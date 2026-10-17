@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <rect x="12" y="12" width="104" height="104" rx="24" fill="#1E293B" stroke="#475569" stroke-width="4"/>
+  <!-- Minus (Before) bar -->
+  <rect x="28" y="38" width="44" height="12" rx="6" fill="#F87171"/>
+  <!-- Plus (After) symbol -->
+  <rect x="28" y="74" width="44" height="12" rx="6" fill="#4ADE80"/>
+  <rect x="44" y="58" width="12" height="44" rx="6" fill="#4ADE80"/>
+  <!-- Delta triangle accent -->
+  <path d="M88 42L104 82H72L88 42Z" stroke="#38BDF8" stroke-width="6" stroke-linejoin="round"/>
+</svg>

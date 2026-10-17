@@ -100,7 +100,9 @@ if [ -z "${PP_SKIP_MARKER_RE:-}" ] \
 fi
 
 if [ -z "$ROOT" ]; then
-  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+  ROOT=$(git rev-parse --show-toplevel 2>/dev/null \
+    || GIT_CONFIG_GLOBAL=/dev/null git rev-parse --show-toplevel 2>/dev/null \
+    || echo "")
 fi
 if [ -z "$ROOT" ]; then
   echo "scrub-paths: not inside a git repo and --against-root not given" >&2
@@ -116,7 +118,8 @@ if [ $STAGED -eq 1 ]; then
     elif [ -f "$ROOT/$f" ]; then
       FILES+=("$ROOT/$f")
     fi
-  done < <(git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null)
+  done < <(git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+    || GIT_CONFIG_GLOBAL=/dev/null git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null)
 fi
 
 if [ ${#DIRS[@]} -eq 0 ] && [ ${#FILES[@]} -eq 0 ]; then

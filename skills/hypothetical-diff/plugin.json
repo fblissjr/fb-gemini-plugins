@@ -2,8 +2,9 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "hypothetical-diff",
   "displayName": "Hypothetical Diff",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any domain—writing, strategy, calendars, contracts, spreadsheets, research, and code. Synthesizes concrete hypothetical deltas to anchor search, align on ambiguous goals, stress-test counterfactual decisions, and reverse-diff root causes in both Google Antigravity and Gemini Spark.",
+  "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"
   },

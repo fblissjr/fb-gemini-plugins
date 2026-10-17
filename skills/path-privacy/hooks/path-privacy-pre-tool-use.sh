@@ -85,6 +85,10 @@ if ! command -v pp_name_regex >/dev/null 2>&1 \
   pp_is_license_file() { return 1; }
 fi
 
+pp_git() {
+  git "$@" 2>/dev/null || GIT_CONFIG_GLOBAL=/dev/null git "$@" 2>/dev/null
+}
+
 # --- Shell execution: run_command (Antigravity) / Bash (Claude Code) ----------
 if [ "$TOOL" = "Bash" ] || [ "$TOOL" = "run_command" ]; then
   CMD=$(jq -r '.toolCall.args.CommandLine // .tool_input.command // ""' <<<"$PAYLOAD" 2>/dev/null)
@@ -115,12 +119,12 @@ if [ "$TOOL" = "Bash" ] || [ "$TOOL" = "run_command" ]; then
   CWD_B=$(jq -r '.toolCall.args.Cwd // .workspacePaths[0] // .cwd // ""' <<<"$PAYLOAD" 2>/dev/null)
   ROOT_B=""
   if [ -n "$CWD_B" ] && [ -d "$CWD_B" ]; then
-    ROOT_B=$(git -C "$CWD_B" rev-parse --show-toplevel 2>/dev/null || echo "")
+    ROOT_B=$(pp_git -C "$CWD_B" rev-parse --show-toplevel || echo "")
   elif [ -z "$CWD_B" ]; then
     if [ -n "${CLAUDE_PROJECT_DIR:-}" ] && [ -d "${CLAUDE_PROJECT_DIR:-}" ]; then
-      ROOT_B=$(git -C "$CLAUDE_PROJECT_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")
+      ROOT_B=$(pp_git -C "$CLAUDE_PROJECT_DIR" rev-parse --show-toplevel || echo "")
     elif [ "$HARNESS" != "antigravity" ]; then
-      ROOT_B=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+      ROOT_B=$(pp_git rev-parse --show-toplevel || echo "")
     fi
   fi
   [ -z "$ROOT_B" ] && allow_call
@@ -248,14 +252,14 @@ esac
 ROOT=""
 FILE_DIR=$(dirname "$FILE_PATH" 2>/dev/null || echo ".")
 if [ -d "$FILE_DIR" ]; then
-  ROOT=$(git -C "$FILE_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")
+  ROOT=$(pp_git -C "$FILE_DIR" rev-parse --show-toplevel || echo "")
 else
   # New file in a not-yet-created subdirectory: walk up until an existing parent is found
   PROBE_DIR="$FILE_DIR"
   while [ -n "$PROBE_DIR" ] && [ "$PROBE_DIR" != "/" ] && [ "$PROBE_DIR" != "." ] && [ ! -d "$PROBE_DIR" ]; do
     PROBE_DIR=$(dirname "$PROBE_DIR")
   done
-  [ -d "$PROBE_DIR" ] && ROOT=$(git -C "$PROBE_DIR" rev-parse --show-toplevel 2>/dev/null || echo "")
+  [ -d "$PROBE_DIR" ] && ROOT=$(pp_git -C "$PROBE_DIR" rev-parse --show-toplevel || echo "")
 fi
 [ -z "$ROOT" ] && ROOT="${CLAUDE_PROJECT_DIR:-}"
 [ -z "$ROOT" ] && allow_call
@@ -268,7 +272,7 @@ case "$FILE_PATH" in
 esac
 
 # Gitignored targets cannot reach a commit, so no rule binds on them.
-if git -C "$ROOT_REAL" check-ignore -q "$FILE_PATH" 2>/dev/null; then
+if pp_git -C "$ROOT_REAL" check-ignore -q "$FILE_PATH"; then
   allow_call
 fi
 

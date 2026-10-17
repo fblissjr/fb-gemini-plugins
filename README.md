@@ -8,8 +8,8 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 
 | Plugin / Skill | Version | Platforms | Components | Description |
 |----------------|---------|-----------|------------|-------------|
-| **[hypothetical-diff](skills/hypothetical-diff/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`domain-playbooks.md`, `hyde-theory-and-patterns.md`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any domain—writing, contracts, strategy, calendars, spreadsheets, research, and code. |
-| **[path-privacy](skills/path-privacy/)** | `0.20.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name. |
+| **[hypothetical-diff](skills/hypothetical-diff/)** | `0.1.1` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any domain—writing, contracts, strategy, calendars, spreadsheets, research, and code. |
+| **[path-privacy](skills/path-privacy/)** | `0.21.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name. |
 
 ---
 
@@ -51,7 +51,7 @@ agy plugin validate ./skills/path-privacy --strict
 ### Method 3: Antigravity App (v2.24.0+)
 
 - Because Antigravity App and `agy` CLI share `~/.gemini/config/plugins/`, running `agy plugin install ./skills/<name>` immediately enables the plugin in the Antigravity App as well.
-- When opening the `fb-gemini-plugins` workspace directly in Antigravity App or CLI, `.agents/plugins.json` and `.agents/skills/` also register all plugins automatically for the workspace.
+- When opening the `fb-gemini-plugins` workspace directly in Antigravity App or CLI, `.agents/plugins.json` automatically registers all plugins in `skills/` for the workspace.
 
 ### Method 4: Gemini Spark & Gemini App (`Customize > Skills`)
 

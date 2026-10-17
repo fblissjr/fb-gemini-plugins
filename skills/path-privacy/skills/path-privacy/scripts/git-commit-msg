@@ -56,7 +56,9 @@ if [ -n "$MSG_BODY" ]; then
   fi
 fi
 
-BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null || echo "")
+BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null \
+  || GIT_CONFIG_GLOBAL=/dev/null git symbolic-ref --short HEAD 2>/dev/null \
+  || echo "")
 if [ -n "$BRANCH" ]; then
   if ! bash "$SCANNER" --text "$BRANCH" --lax-boundary --quiet; then
     echo "path-privacy: external path detected in branch name: $BRANCH" >&2

@@ -50,7 +50,8 @@ fi
 # LICENSE files are skipped: copyright lines are managed by hand.
 if NAME_RE=$(pp_name_regex .); then
   NAME_HITS=$(
-    git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ --diff-filter=ACMR 2>/dev/null \
+    (git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ --diff-filter=ACMR 2>/dev/null \
+      || GIT_CONFIG_GLOBAL=/dev/null git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ --diff-filter=ACMR 2>/dev/null) \
       | PP_NAME_RE="$NAME_RE" LC_ALL=C awk '
           BEGIN { re = ENVIRON["PP_NAME_RE"] }
           /^\+\+\+ b\// { f = substr($0, 7); next }

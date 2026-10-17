@@ -34,8 +34,12 @@ if [ -z "$CWD" ] || [ ! -d "$CWD" ]; then
   emit_empty
 fi
 
+pp_git() {
+  git "$@" 2>/dev/null || GIT_CONFIG_GLOBAL=/dev/null git "$@" 2>/dev/null
+}
+
 # Only inject when inside a git working tree
-if ! git -C "$CWD" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+if ! pp_git -C "$CWD" rev-parse --is-inside-work-tree >/dev/null; then
   emit_empty
 fi
 
@@ -62,7 +66,7 @@ if [ -r "$HOOKS_DIR_LIB" ]; then
   # shellcheck source=/dev/null
   . "$HOOKS_DIR_LIB"
 else
-  pp_hooks_dir() { git -C "$1" rev-parse --path-format=absolute --git-path hooks 2>/dev/null; }
+  pp_hooks_dir() { pp_git -C "$1" rev-parse --path-format=absolute --git-path hooks; }
 fi
 
 # --- outdated-wrapper notice -------------------------------------------------
@@ -123,7 +127,7 @@ if [ -n "$HOOKS_DIR" ] && [ -n "$CURRENT_VERSION" ]; then
 fi
 
 if [ -n "$MISSING_HOOKS" ]; then
-  COMMON_DIR=$(git -C "$CWD" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || echo "")
+  COMMON_DIR=$(pp_git -C "$CWD" rev-parse --path-format=absolute --git-common-dir || echo "")
   NOTICE_MARK="${COMMON_DIR:+$COMMON_DIR/path-privacy-gate-notice}"
   if [ -n "$NOTICE_MARK" ] && [ ! -e "$NOTICE_MARK" ]; then
     if [ "$HARNESS" = "antigravity" ]; then

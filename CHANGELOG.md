@@ -2,6 +2,19 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.22.0] - 2026-10-17
+
+### Changed
+
+- **Antigravity App, CLI & Marketplace Alignment**:
+  - Removed duplicate `.agents/skills/` symlinks so `.agents/plugins.json` serves as the single workspace discovery source without registering skills twice in the system prompt.
+  - Added 128x128 square SVG icons (`assets/logo.svg` + `"logo": "assets/logo.svg"` in `plugin.json`) for both `hypothetical-diff` (`v0.1.1`) and `path-privacy` (`v0.21.0`) for Antigravity App and Marketplace cards.
+  - Expanded `GEMINI.md` with complete, live-verified specifications for Antigravity plugins (`plugin.json`), lifecycle hooks (`hooks.json`), skills (`SKILL.md`), MCP servers and connectors (`mcp_config.json` with `serverUrl`, ADC/OAuth, and eager tools), rules (`rules/AGENTS.md` and `rules/*.md` frontmatter triggers), custom subagents (`agents/<name>.md`), and managed sidecars (`sidecars/<name>/sidecar.json`).
+- **`path-privacy` (`v0.21.0`, wrapper template `t4`)**:
+  - Updated `install-git-hooks.sh` (`WRAPPER_TEMPLATE_VERSION=4`) so generated `.git/hooks/` wrappers also resolve fallback scripts from `~/.gemini/antigravity-cli/plugins/` and Marketplace hash-named plugin directories (`~/.gemini/config/plugins/*/`).
+  - Added `GIT_CONFIG_GLOBAL=/dev/null` fallback across `path-privacy` scripts and hooks when `git` commands run inside the Antigravity Terminal Sandbox and encounter an unreadable `[include]` file in `~/.gitconfig` (such as `~/.gitconfig.local`).
+  - Updated `_name_guard.sh` (`pp_name_regex`) to check repo, global, and `--no-includes ~/.gitconfig` `user.name` values so setting a one-word handle in `.git/config` does not disable full-name protection when `~/.gitconfig` holds a multi-word full name.
+
 ## [0.21.0] - 2026-10-17
 
 ### Added

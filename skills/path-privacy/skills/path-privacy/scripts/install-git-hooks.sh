@@ -60,7 +60,11 @@ SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 # every staleness notice ever shown was false. A gate that cries wolf on every
 # release is a gate people stop reading, and then it misses the one release
 # where the logic really did change.
-WRAPPER_TEMPLATE_VERSION=3
+WRAPPER_TEMPLATE_VERSION=4
+
+pp_git() {
+  git "$@" 2>/dev/null || GIT_CONFIG_GLOBAL=/dev/null git "$@" 2>/dev/null
+}
 
 PLUGIN_JSON="$SELF_DIR/../../../plugin.json"
 [ -f "$PLUGIN_JSON" ] || PLUGIN_JSON="$SELF_DIR/../../../.antigravity-plugin/plugin.json"
@@ -95,7 +99,7 @@ if [ -r "$HOOKS_DIR_LIB" ]; then
   . "$HOOKS_DIR_LIB"
 else
   pp_chains_to_repo_hooks() { return 1; }
-  pp_hooks_dir() { git -C "$1" rev-parse --path-format=absolute --git-path hooks 2>/dev/null; }
+  pp_hooks_dir() { pp_git -C "$1" rev-parse --path-format=absolute --git-path hooks; }
 fi
 
 # --- doctor ------------------------------------------------------------------
@@ -196,7 +200,7 @@ if [ "$DOCTOR" -eq 1 ]; then
     fi
   else
     if [ -z "$TARGET_REPO" ]; then
-      TARGET_REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+      TARGET_REPO=$(pp_git rev-parse --show-toplevel || echo "")
     fi
     if [ -z "$TARGET_REPO" ]; then
       echo "install-git-hooks: --doctor with no root must run inside a git repo." >&2
@@ -215,11 +219,11 @@ fi
 # -----------------------------------------------------------------------------
 
 if [ -z "$TARGET_REPO" ]; then
-  TARGET_REPO=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+  TARGET_REPO=$(pp_git rev-parse --show-toplevel || echo "")
 fi
 # `.git` is a FILE in worktrees and submodules, so -d rejected them with a
 # misleading "missing" message and no way to install.
-if [ -z "$TARGET_REPO" ] || ! git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null 2>&1; then
+if [ -z "$TARGET_REPO" ] || ! pp_git -C "$TARGET_REPO" rev-parse --git-dir >/dev/null; then
   echo "install-git-hooks: not a git repo: $TARGET_REPO" >&2
   exit 2
 fi
@@ -244,7 +248,12 @@ fi
 # dispatcher is the exception: the install above already went to this repo's
 # own hooks dir, which the dispatcher runs.
 HOOKS_SCOPE=$(git -C "$TARGET_REPO" config --show-scope --get core.hooksPath 2>/dev/null | awk '{print $1}' || echo "")
-RAW_HOOKS_DIR=$(git -C "$TARGET_REPO" rev-parse --path-format=absolute --git-path hooks 2>/dev/null || echo "")
+if [ -z "$HOOKS_SCOPE" ] && [ -n "${HOME:-}" ] && [ -r "$HOME/.gitconfig" ]; then
+  if GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git config --no-includes --file "$HOME/.gitconfig" --get core.hooksPath >/dev/null 2>&1; then
+    HOOKS_SCOPE="global"
+  fi
+fi
+RAW_HOOKS_DIR=$(pp_git -C "$TARGET_REPO" rev-parse --path-format=absolute --git-path hooks || echo "")
 if [ -n "$HOOKS_SCOPE" ] && [ "$HOOKS_SCOPE" != "local" ] && [ "$HOOKS_SCOPE" != "worktree" ] \
    && ! pp_chains_to_repo_hooks "$RAW_HOOKS_DIR"; then
   echo "install-git-hooks: core.hooksPath is set in $HOOKS_SCOPE config -> $HOOKS_DIR" >&2
@@ -260,8 +269,8 @@ fi
 # path that fails closed on their machines.
 case "$HOOKS_DIR" in
   "$TARGET_REPO"/*)
-    if git -C "$TARGET_REPO" ls-files --error-unmatch "$HOOKS_DIR" >/dev/null 2>&1 \
-       || [ -n "$(git -C "$TARGET_REPO" ls-files -- "$HOOKS_DIR" 2>/dev/null)" ]; then
+    if pp_git -C "$TARGET_REPO" ls-files --error-unmatch "$HOOKS_DIR" >/dev/null \
+       || [ -n "$(pp_git -C "$TARGET_REPO" ls-files -- "$HOOKS_DIR")" ]; then
       echo "install-git-hooks: $HOOKS_DIR is inside the work tree and tracked by git." >&2
       echo "  The generated wrapper embeds a machine-specific absolute path; committing" >&2
       echo "  it would leak that path and break the hook for everyone else. Refusing." >&2
@@ -344,6 +353,9 @@ $VERSION_COMPARE_SRC
 
 FROZEN_ROOT="\${PATH_PRIVACY_SCRIPT%/skills/path-privacy/scripts/*}"
 AGY_PLUGIN_DIR="\$HOME/.gemini/config/plugins/path-privacy"  # path-privacy: ignore
+AGY_CLI_PLUGIN_DIR="\$HOME/.gemini/antigravity-cli/plugins/path-privacy"  # path-privacy: ignore
+AGY_PLUGINS_ROOT="\$HOME/.gemini/config/plugins"  # path-privacy: ignore
+AGY_CLI_PLUGINS_ROOT="\$HOME/.gemini/antigravity-cli/plugins"  # path-privacy: ignore
 PLUGIN_CACHE="\$HOME/.claude/plugins/cache"  # path-privacy: ignore
 
 # Run the pre-existing hook first, if any.
@@ -368,6 +380,23 @@ newest_exec() {
       }
 }
 
+# Resolve from Antigravity global/CLI plugin directories, including Marketplace
+# hash-named directories (e.g. ~/.gemini/config/plugins/-1870732469773246571).
+find_agy_exec() {
+  local c
+  for c in \\
+    "\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
+    "\$AGY_CLI_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
+    "\$AGY_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME" \\
+    "\$AGY_CLI_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME"; do
+    if [ -r "\$c" ]; then
+      printf '%s' "\$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # The path above is frozen at install time; treat it as a HINT, not a pin.
 CAND=""
 case "\$FROZEN_ROOT" in
@@ -384,8 +413,8 @@ case "\$FROZEN_ROOT" in
     # unrelated packages, and one's version number says nothing about the
     # other's. Sibling VERSIONS are safe to prefer; sibling PUBLISHERS are not.
     CAND="\$(newest_exec "\${FROZEN_ROOT%/*}"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME")"
-    if [ -z "\$CAND" ] && [ -r "\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" ]; then
-      CAND="\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME"
+    if [ -z "\$CAND" ]; then
+      CAND="\$(find_agy_exec || true)"
     fi
     ;;
   *)
@@ -394,13 +423,14 @@ case "\$FROZEN_ROOT" in
     # while it works.
     if [ -r "\$PATH_PRIVACY_SCRIPT" ]; then
       CAND="\$PATH_PRIVACY_SCRIPT"
-    elif [ -r "\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" ]; then
-      CAND="\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME"
     else
-      # Last-resort recovery, only once their own copy is gone. Searches the
-      # cache by version; never the frozen path's PARENT, which reached every
-      # neighbouring project on disk.
-      CAND="\$(newest_exec "\$PLUGIN_CACHE"/*/path-privacy/*/skills/path-privacy/scripts/"\$SCRIPT_NAME")"
+      CAND="\$(find_agy_exec || true)"
+      if [ -z "\$CAND" ]; then
+        # Last-resort recovery, only once their own copy is gone. Searches the
+        # cache by version; never the frozen path's PARENT, which reached every
+        # neighbouring project on disk.
+        CAND="\$(newest_exec "\$PLUGIN_CACHE"/*/path-privacy/*/skills/path-privacy/scripts/"\$SCRIPT_NAME")"
+      fi
     fi
     ;;
 esac
@@ -417,7 +447,7 @@ if [ ! -r "\$PATH_PRIVACY_SCRIPT" ]; then
   echo "  which is why it looks unrelated to what you are committing." >&2
   echo "" >&2
   echo "  Looked for: \$SCRIPT_NAME under" >&2
-  echo "    \${FROZEN_ROOT:-<install dir>}/, \$AGY_PLUGIN_DIR/, and \$PLUGIN_CACHE/*/path-privacy/*/" >&2
+  echo "    \${FROZEN_ROOT:-<install dir>}/, \$AGY_PLUGINS_ROOT/*/, \$AGY_CLI_PLUGINS_ROOT/*/, and \$PLUGIN_CACHE/*/path-privacy/*/" >&2
   echo "  Reinstall:  re-run install-git-hooks.sh" >&2
   if [ -f "\$LOCAL_HOOK" ]; then
     # This wrapper CHAINS your previous hook. Deleting it would silently drop

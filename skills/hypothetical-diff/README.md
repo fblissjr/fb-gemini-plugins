@@ -117,6 +117,8 @@ In Gemini Spark conversations, invoke the skill automatically via natural trigge
 skills/hypothetical-diff/
 ├── plugin.json                                     # Native Antigravity plugin manifest
 ├── README.md                                       # Plugin & dual-platform documentation (this file)
+├── assets/
+│   └── logo.svg                                    # 128x128 square SVG icon for App & Marketplace cards
 └── skills/
     └── hypothetical-diff/
         ├── SKILL.md                                # Self-contained skill (Antigravity + Gemini Spark)

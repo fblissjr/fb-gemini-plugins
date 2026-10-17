@@ -92,7 +92,9 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z "$ROOT" ]; then
-  ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+  ROOT=$(git rev-parse --show-toplevel 2>/dev/null \
+    || GIT_CONFIG_GLOBAL=/dev/null git rev-parse --show-toplevel 2>/dev/null \
+    || echo "")
 fi
 if [ -z "$ROOT" ]; then
   echo "find-external-paths: not inside a git repo and --against-root not given" >&2
@@ -112,7 +114,8 @@ if [ $STAGED -eq 1 ]; then
     elif [ -f "$ROOT/$f" ]; then
       FILES+=("$ROOT/$f")
     fi
-  done < <(git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null)
+  done < <(git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null \
+    || GIT_CONFIG_GLOBAL=/dev/null git -C "$ROOT" diff --cached --name-only --diff-filter=ACM 2>/dev/null)
 fi
 
 # Default to scanning the cwd ONLY if no explicit target mode was selected.

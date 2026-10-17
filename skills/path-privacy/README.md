@@ -89,7 +89,7 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-g
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --uninstall
 ```
 
-The installer writes `.git/hooks/pre-commit` and `.git/hooks/commit-msg` wrappers (`ver=t3`). An existing hook is preserved as `<hook>.local` and runs first.
+The installer writes `.git/hooks/pre-commit` and `.git/hooks/commit-msg` wrappers (`ver=t4`). An existing hook is preserved as `<hook>.local` and runs first.
 
 ## Skill & CLI Usage
 
@@ -120,7 +120,7 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/scrub-pat
 
 ## Which repos are actually protected?
 
-Git hooks live in `.git/`, so they are per repo, uncommittable and installed by hand. `--doctor` is the inventory: per repo and per hook it reports the version stamp (`t3`), `fail-closed` vs `FAILS OPEN`, whether the frozen scanner path still resolves, and `not installed`. Exit 1 if anything needs attention. It is read-only and needs an explicit root to sweep more than the current repo.
+Git hooks live in `.git/`, so they are per repo, uncommittable and installed by hand. `--doctor` is the inventory: per repo and per hook it reports the version stamp (`t4`), `fail-closed` vs `FAILS OPEN`, whether the frozen scanner path still resolves, and `not installed`. Exit 1 if anything needs attention. It is read-only and needs an explicit root to sweep more than the current repo.
 
 `FAILS OPEN` means a pre-0.6.0 wrapper, which exits 0 when the scanner is missing. Re-run the installer in that repo.
 
