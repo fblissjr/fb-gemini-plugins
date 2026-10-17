@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "hypothetical-diff",
   "displayName": "Hypothetical Diff",
-  "version": "0.1.1",
-  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any domain—writing, strategy, calendars, contracts, spreadsheets, research, and code. Synthesizes concrete hypothetical deltas to anchor search, align on ambiguous goals, stress-test counterfactual decisions, and reverse-diff root causes in both Google Antigravity and Gemini Spark.",
+  "version": "0.2.0",
+  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any non-coding or coding domain—writing, difficult conversations, negotiation, learning & mental models, habits, policy counterfactuals, strategy, calendars, contracts, spreadsheets, and code. Simulates any scenario or rewrite in any user-set tone with interactive hunk mix-and-match.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"
@@ -15,16 +15,18 @@
     "hypothetical-diff",
     "hydiff",
     "diff",
-    "retrieval",
+    "simulation",
+    "tone",
+    "negotiation",
+    "mental-models",
     "counterfactual",
     "decision-making",
-    "planning",
     "gemini-spark",
     "antigravity"
   ],
   "suggestedPrompts": [
-    "Generate a hypothetical diff for this proposal so we can see what actually changes before committing",
-    "Use a hypothetical diff (HyDE style) to search our workspace for where this policy or behavior is defined",
-    "Run a counterfactual diff comparing Option A vs Option B across my schedule, budget, and risks"
+    "Simulate a hypothetical diff for this difficult conversation (script + subtext + their reaction) in a warm, unshakeable tone",
+    "Show me a Mental Model Diff (intuitive misconception vs. how it actually works) for this topic",
+    "Run a counterfactual diff comparing Option A vs Option B across my schedule, energy, and trade-offs"
   ]
 }

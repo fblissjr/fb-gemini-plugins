@@ -2,24 +2,28 @@
 
 last updated: 2026-10-17
 
-A universal **Hypothetical Diff (HyDiff)** skill and plugin for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
+A universal **Hypothetical Diff (HyDiff)** skill and plugin (`v0.2.0`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
 
 ---
 
-## Inspiration: From HyDE (2023) to Hypothetical Diffs
+## Inspiration: From HyDE (2023) to Universal State Transitions
 
 In **HyDE** (*Hypothetical Document Embeddings*, Gao et al., ACL 2023, *"Precise Zero-Shot Dense Retrieval without Relevance Labels"*), an LLM bridges the semantic gap between a short, ambiguous query and a rich target document by **generating a hypothetical target document ($\hat{d}$) first**, and then using that concrete artifact to retrieve and ground against real data. Even when $\hat{d}$ contains unverified details, its structure, vocabulary, and shape place it in the right neighborhood of solution space, and grounding washes out the hallucinations.
 
-**`hypothetical-diff` generalizes HyDE from static documents ($\hat{d}$) to universal state transitions ($\hat{\Delta} = \text{After} - \text{Before}$)** across **any domain—not just code**:
-- **Writing, Essays & Executive Memos**
+**`hypothetical-diff` generalizes HyDE from static documents ($\hat{d}$) to universal state transitions ($\hat{\Delta} = \text{After} - \text{Before}$)** across **every everyday non-coding and coding domain—in any tone set by the user**:
+- **Difficult Conversations, Negotiation & Relationships** (*Spoken Script + Subtext + Counterparty Reaction Diffs*)
+- **Learning, Research & Unlearning** (*Intuitive Misconception $\rightarrow$ Expert Mental Model + Prediction Flip Diffs*)
+- **Creative Writing, Storytelling, Speeches & Tone Re-Skinning** (*Show-Don't-Tell, Narrative Beats & Multi-Tone Dial Diffs*)
+- **Habits, Personal Life, Health & Travel Itineraries** (*Environment Friction, Low-Energy Fallbacks & Time/Energy Conservation Diffs*)
+- **Policy, Economics, History & Society** (*1st-, 2nd- [Goodhart/Loophole], and 3rd-Order Ripple Diffs*)
 - **Legal Contracts, Redlines & Company Policies**
 - **Product Strategy, Org Design & Career/Life Decisions**
-- **Calendars, Weekly Schedules & Personal/Team Operations**
+- **Calendars, Weekly Schedules & Workspace Operations**
 - **Spreadsheets, Budgets, Pricing & Financial Models**
-- **Scientific Hypotheses, Research & Root-Cause Troubleshooting**
+- **Scientific Hypotheses & Root-Cause Troubleshooting**
 - **Software Architecture, Config & Codebases**
 
-Instead of debating, searching, or planning in abstract prose, `hypothetical-diff` synthesizes a concrete `--- Before` / `+++ After` delta in the native medium of the domain first, and then uses that diff to **retrieve real context**, **expose hidden assumptions**, **enforce resource conservation**, and **align on exact hunks before execution**.
+Instead of advising, debating, searching, or planning in abstract prose, `hypothetical-diff` synthesizes a concrete `--- Before` / `+++ After` delta in the native medium of the domain first, simulates scenarios in **any user-specified tone or persona**, and lets you **cherry-pick or mix-and-match numbered hunks (`A1 + B2`)** before execution.
 
 ---
 
@@ -27,51 +31,82 @@ Instead of debating, searching, or planning in abstract prose, `hypothetical-dif
 
 | Step | Action | Why It Works |
 |------|--------|--------------|
-| **1. Project ($\hat{\Delta}$)** | Synthesize a concrete `--- Before` / `+++ After` diff (or $K$ orthogonal diffs) in the target medium, tagging unverified specifics as `[HYPOTHETICAL]`. | Humans and search tools react poorly to abstract descriptions ("make it more executive", "find where we handle data retention") but have instant high-bandwidth precision when given a concrete delta. |
-| **2. Ground (The Bottleneck)** | Intersect $\hat{\Delta}$ with reality: query corpora using `-`/`+` anchors, verify conservation laws ($\sum \Delta = 0$), test discriminating observables, or get hunk-level user feedback. | Just like HyDE's contrastive encoder bottleneck, grounding washes out fabricated placeholders while locking onto the true target state. |
-| **3. Converge ($\Delta_{\text{real}}$)** | Replace `[HYPOTHETICAL]` placeholders with verified data and approved hunks. | Produces a precision-verified edit, decision plan, or root-cause diagnosis with zero wasted full-document rewrites. |
+| **1. Project ($\hat{\Delta}$)** | Synthesize a concrete `--- Before` / `+++ After` diff with numbered semantic hunks (`@@ Hunk 1: ... @@`) in the target medium and user-specified tone, tagging unverified specifics as `[HYPOTHETICAL]`. | Humans and search tools react poorly to abstract descriptions ("be firm but empathetic", "make it more executive") but have instant high-bandwidth precision when given a concrete delta. |
+| **2. Ground (The Bottleneck)** | Intersect $\hat{\Delta}$ with reality: query corpora using `-`/`+` anchors, verify conservation laws ($\sum \Delta = 0$ on time, energy, attention, or budget), trace 2nd-order adaptations, or test discriminating observables. | Just like HyDE's contrastive encoder bottleneck, grounding washes out wishful thinking and fabricated placeholders while locking onto the true target state. |
+| **3. Converge ($\Delta_{\text{real}}$)** | Use **Interactive Hunk Selection** (`ask_question` checkboxes in Antigravity or a 1-line Mix-and-Match Ballot in Gemini Spark) to combine exact hunks (`Keep 1 & 3` or `A1 + B2`). | Produces a precision-verified rewrite, script, decision plan, or diagnosis with zero wasted full-document rewrites. |
 
 ---
 
-## Five Operational Modes
+## Six Operational Modes
 
 | Mode | When to Use | Example Prompt |
 |------|-------------|----------------|
-| **`search`** *(HyDE Retrieval)* | Locate where a policy, clause, metric, or behavior lives—or find past precedents—using `-` (Before) and `+` (After) anchors from $\hat{\Delta}$. | *"Use a hypothetical diff to find where our vendor agreements or handbook cover AI model training on customer data."* |
-| **`align`** *(Prototype Slice)* | Resolve vague or subjective goals by previewing a 1–3 hunk Before/After slice before rewriting an entire document, deck, or system. | *"Show me a hypothetical diff on the first two paragraphs of this memo to make it thesis-first and cut 30% of the words."* |
-| **`decide`** *(Counterfactual)* | Stress-test a strategy, pricing change, calendar overhaul, or career decision by enforcing the **Conservation Law of Diffs** (every `+` must name the `-` that funds it). | *"Run a counterfactual diff comparing staying PLG vs. pivoting to enterprise sales over the next 6 months across engineering headcount, cashflow, and my weekly calendar."* |
-| **`diagnose`** *(Reverse-Diff)* | Debug any regression (a funnel drop, stalled project, failed experiment, or broken build) by generating competing upstream causal diffs ($\hat{\Delta}_{\text{cause}}$) and their discriminating check. | *"Our mobile checkout conversion dropped from 6.1% to 1.2% this week while desktop stayed flat. Reverse-diff the top 3 hypothetical upstream causes and tell me what to check first."* |
-| **`ensemble`** *($K$-Diffs)* | Explore multiple valid directions by generating $K=2\text{–}3$ orthogonal diffs, separating **Consensus Hunks** from **Divergent Hunks**. | *"Give me 3 hypothetical diffs for restructuring our Q4 budget: one conservative, one content-heavy, and one event-led."* |
+| **`search`** *(HyDE Retrieval)* | Locate where a policy, clause, note, metric, or behavior lives—or find past precedents—using `-` (Before) and `+` (After) anchors from $\hat{\Delta}$. | *"Use a hypothetical diff to find where our vendor agreements or handbook cover AI model training on customer data."* |
+| **`align`** *(Prototype Slice)* | Resolve subjective writing, editing, or design goals by previewing a 1–3 hunk Before/After slice before rewriting an entire document or deck. | *"Show me a hypothetical diff on the opening scene of my story to make it show-don't-tell in a minimalist tone."* |
+| **`decide`** *(Counterfactual)* | Stress-test a career move, habit routine, travel itinerary, strategy, or budget by enforcing the **Conservation Law of Diffs** (every `+` must name the `-` that funds it). | *"Run a counterfactual diff on my Kyoto itinerary so I'm not exhausted by 3pm, conserving walking energy and transit time."* |
+| **`diagnose`** *(Reverse-Diff)* | Debug any regression or plateau (a stalled habit, broken negotiation, funnel drop, or bug) by generating competing upstream causal diffs ($\hat{\Delta}_{\text{cause}}$) and their discriminating check. | *"Our mobile checkout conversion dropped from 6.1% to 1.2% this week while desktop stayed flat. Reverse-diff the top 3 upstream causes."* |
+| **`ensemble`** *($K$-Diffs)* | Explore multiple creative, strategic, or tonal directions by generating $K=2\text{–}3$ orthogonal diffs, separating **Consensus Hunks** from **Divergent Hunks** for mix-and-match (`A1 + B2`). | *"Give me 3 hypothetical diffs for replying to this scope-creep request across 3 tones: collaborative, crisp executive, and zero-cushion."* |
+| **`simulate`** *(Scenario, Dialogue & Ripple)* | Simulate how any conversation, negotiation, historical counterfactual, or policy plays out across **Subtext**, **Counterparty Reactions**, or **1st/2nd/3rd-Order Ripples** in **any user-set tone**. | *"Simulate a hypothetical diff for asking for a $165k compensation adjustment (spoken script + subtext + manager reaction) in a warm, unshakeable peer tone."* |
 
 ---
 
-## Examples Across Domains
+## Universal Tone, Voice & Persona Engine
 
-### Example 1: Counterfactual Calendar & Operations Diff (`decide` mode)
-In prose, it is easy to wish for *"10 hours of deep work a week"*. In a **Hypothetical Diff**, a 40-hour week is a conserved system ($\Delta t = 0$), forcing every `+` block to name the exact `-` block it replaces:
+You can ask `hypothetical-diff` to simulate or rewrite **anything in any tone**—for example:
+- **Interpersonal & Coaching**: *Warm therapist, calm senior partner, diplomatic hostage negotiator, Socratic tutor*
+- **Direct & Analytical**: *Brutally honest VC partner, appellate judge, skeptical physicist, Warren Buffett shareholder letter*
+- **Creative & Literary**: *Hemingway sparse, Raymond Carver minimalist, deadpan roast, noir detective, Regency drama, sports commentator*
+
+Tone works in three ways:
+1. **Tone *as* the Diff**: Hold facts invariant ($\Delta \text{Facts} = 0$) while diffing the voice (`--- Baseline Draft` $\rightarrow$ `+++ Target Tone`).
+2. **Tone *of* the Simulation**: Run a career decision, policy ripple diff, or negotiation in the persona's voice to expose blind spots that neutral corporate prose hides.
+3. **Multi-Tone Dial (`ensemble` mode)**: View $K=3$ calibrated intensity steps side-by-side and mix-and-match hunks (`A1 + B2`).
+
+---
+
+## Examples Across Everyday Non-Coding Domains
+
+### Example 1: Difficult Conversation — Script, Subtext & Reaction Diff (`simulate` mode)
 
 ```diff
---- Baseline: Current Weekly Schedule (40h allocated)
-+++ Hypothetical: Maker-Morning Operating Rhythm (Net Delta: 0h)
-@@ Tue / Thu Morning Protection @@
-- [09:30–10:00] Daily Standup & Triage (2x/wk = 1.0h)
-- [10:00–12:00] Open calendar / ad-hoc 1:1s & Slack triage (2x/wk = 4.0h)
-+ [09:00–11:30] Protected Deep Work Block — notifications paused (2x/wk = 5.0h)
-@@ Tue / Thu Afternoon Relocation @@
-+ [13:30–14:00] Batched Async Standup + Triage Window (2x/wk = 1.0h)
-- [14:00–15:00] Optional cross-team status syncs -> move to async digest (-1.0h)
+--- Baseline: Instinctive Reply to Scope Creep (Over-Apologetic)
++++ Simulated: Warm "Yes, If" Trade-Off (Tone: Calm, Senior Partner)
+@@ Hunk 1: The Spoken / Written Reply @@
+- Sorry, we're totally swamped right now so we can't add the custom workshop before Friday.
++ I'd love to make the custom workshop happen. Because our week is fully committed to the Friday launch, we can either (a) run the workshop next Wednesday, or (b) do it Thursday if we move the launch review to Monday. Which works best for you?
+@@ Hunk 2: Subtext & Counterparty Reaction @@
+- Heard as: "Refusal / bottleneck" -> Triggers pushback or escalation.
++ Heard as: "Shared ownership of a trade-off" -> Shifts the other person from fighting you to prioritizing their own list.
 ```
 
-### Example 2: HyDE Diff-Anchored Search (`search` mode)
-When searching a Google Drive, Notion/Docs wiki, legal repository, or codebase for where to make a change:
-1. **Project $\hat{\Delta}$**: Draft what the existing paragraph/clause/config (`-`) and the updated version (`+`) would look like.
-2. **Extract Dual Anchors**:
-   - **Before-anchors (`-`)** find *where the current policy or code lives today* (e.g., `"aggregated, de-identified data"`, `"solely to provide the Services"`).
-   - **After-anchors (`+`)** find *historical precedents/amendments that already made this change* (e.g., `"train, fine-tune, or evaluate"`).
-3. **Ground**: Run the search using those concrete phrases, retrieve the real source, and present the grounded diff.
+### Example 2: Learning & Unlearning — Mental Model Diff (`align` mode)
 
-### Example 3: Executive Writing & Redline Alignment (`align` mode)
-Instead of rewriting a 10-page document in the dark, `hypothetical-diff` projects a 2-hunk diff on a representative section alongside its **Load-Bearing Assumptions**, letting you approve Hunk 1 and tweak Hunk 2 in a single turn.
+```diff
+--- Baseline: Intuitive Misconception (Antibiotic Resistance)
++++ Updated Mental Model: Evolutionary Selection Mechanism
+@@ Hunk 1: What Actually Becomes Resistant? @@
+- "If I take antibiotics too often, MY BODY becomes resistant/tolerant to the drug."
++ Your body never becomes resistant—the BACTERIA population undergoes natural selection. The drug kills 99.9% of susceptible bacteria, leaving the 0.1% with a resistance mutation an open field to multiply.
+@@ Hunk 2: Real-World Prediction Flip @@
+- Old Prediction: Resistance is personal tolerance (like caffeine) that resets if I take a break.
++ New Prediction: Resistant bacteria selected in one person can spread to someone who has never taken an antibiotic in their life.
+```
+
+### Example 3: Policy & Society — 1st / 2nd / 3rd-Order Ripple Diff (`simulate` mode)
+
+```diff
+--- Baseline: Uncapped Hospital ER Wait Times
++++ Simulated Policy: Strict 4-Hour ER Wait-Time Mandate (+12 Months)
+@@ Hunk 1 (1st-Order Direct Effect): Fast-Track Triage @@
+- Minor cases wait 5–7 hours behind complex admissions.
++ Dedicated nurse-practitioner lanes clear minor cases in <90m.
+@@ Hunk 2 (2nd-Order Goodhart Loophole): Clock-Start Gaming @@
+- Patients enter the ER clock immediately upon ambulance arrival.
++ At Hour 3:50, overloaded hospitals hold patients in ambulance bays ("ramping") to delay starting the official ER clock.
+@@ Hunk 3 (3rd-Order Equilibrium Fix): Paired Metric @@
+- Scoreboard tracks only "Door-to-Decision <= 4h".
++ Scoreboard pairs "Ambulance Offload Time + 4h Target + 7-Day Readmission Rate" to close the loophole.
+```
 
 ---
 
@@ -107,7 +142,7 @@ agy plugin validate ./skills/hypothetical-diff --strict
      ```
   2. In **Skills $\rightarrow$ + $\rightarrow$ Upload skill**, upload `hypothetical-diff-skill.zip` and click **Import**.
 
-In Gemini Spark conversations, invoke the skill automatically via natural trigger phrases (*"show me a hypothetical diff"*, *"counterfactual diff"*, *"HyDE diff"*) or explicitly via `/hypothetical-diff` or `@hypothetical-diff`.
+In Gemini Spark conversations, invoke the skill automatically via natural trigger phrases (*"show me a hypothetical diff"*, *"simulate a diff in the tone of..."*, *"script and subtext diff"*, *"mental model diff"*) or explicitly via `/hypothetical-diff` or `@hypothetical-diff`.
 
 ---
 
@@ -115,14 +150,14 @@ In Gemini Spark conversations, invoke the skill automatically via natural trigge
 
 ```text
 skills/hypothetical-diff/
-├── plugin.json                                     # Native Antigravity plugin manifest
-├── README.md                                       # Plugin & dual-platform documentation (this file)
+├── plugin.json                                     # Native Antigravity plugin manifest (v0.2.0)
 ├── assets/
-│   └── logo.svg                                    # 128x128 square SVG icon for App & Marketplace cards
+│   └── logo.svg                                    # 128x128 square SVG icon for App/Marketplace cards
+├── README.md                                       # Plugin & dual-platform documentation (this file)
 └── skills/
     └── hypothetical-diff/
         ├── SKILL.md                                # Self-contained skill (Antigravity + Gemini Spark)
         └── references/
-            ├── domain-playbooks.md                 # Worked templates across 7 non-coding & coding domains
-            └── hyde-theory-and-patterns.md         # HyDE (Gao et al. 2023) theory, anchor extraction & K-diffs
+            ├── domain-playbooks.md                 # 12 worked playbooks across everyday non-coding & coding domains
+            └── hyde-theory-and-patterns.md         # HyDE theory, ripple diffs, tone projection & hunk algebra
 ```

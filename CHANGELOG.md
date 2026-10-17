@@ -2,6 +2,21 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.23.0] - 2026-10-17
+
+### Changed
+
+- **`hypothetical-diff` (`v0.2.0`)**:
+  - Added **`simulate` mode** (6 operational modes total: `search`, `align`, `decide`, `diagnose`, `ensemble`, `simulate`) and the **Universal Tone, Voice & Persona Engine**, allowing any scenario, rewrite, dialogue, or counterfactual to be simulated in any user-specified tone (e.g., warm therapist, brutal VC partner, calm senior peer, Socratic tutor, Hemingway minimalist, deadpan roast) while preserving `--- Before` / `+++ After` structural rigor and conservation laws.
+  - Expanded everyday **non-coding domains and playbooks** (`references/domain-playbooks.md` and `SKILL.md` to 12 playbooks):
+    - **Difficult Conversations, Negotiation & Relationships**: Spoken/written script + unspoken subtext + simulated counterparty reaction diffs.
+    - **Learning, Research & Unlearning**: Intuitive Misconception $\rightarrow$ Expert Mental Model diffs with real-world **Prediction Flips**.
+    - **Creative Writing, Storytelling & Speeches**: Show-Don't-Tell sensory diffs, narrative beat diffs, and Multi-Tone Dial ensembles.
+    - **Habits, Personal Life, Health & Travel Itineraries**: Environment friction diffs, Low-Energy Tuesday fallbacks, and strict Time/Budget/Physical Energy conservation.
+    - **Policy, Economics, History & Society**: 1st-, 2nd- (Goodhart/Loophole adaptation), and 3rd-Order Equilibrium Ripple Diffs ($\hat{\Delta}^{(1)} \rightarrow \hat{\Delta}^{(2)} \rightarrow \hat{\Delta}^{(3)}$).
+  - Added **Interactive Hunk Staging ("Mix-and-Match Menu")**: Pairs numbered semantic hunks (`[Hunk 1]`, `[Hunk 2]`, ...) with `ask_question` (`is_multi_select: true`) in Antigravity and 1-line Mix-and-Match Ballots (`A1 + B2`) in Gemini Spark.
+  - Expanded `references/hyde-theory-and-patterns.md` with formal sections on Higher-Order Ripple Diffs, Orthogonal Tone & Persona Projection ($\hat{\Delta}_{\text{tone}}$), and Interactive Hunk Algebra.
+
 ## [0.22.0] - 2026-10-17
 
 ### Changed

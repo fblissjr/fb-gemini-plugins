@@ -15,7 +15,7 @@ fb-gemini-plugins/
 ├── .agents/
 │   └── plugins.json                         # Workspace plugin registry (do NOT duplicate in .agents/skills/)
 ├── skills/
-│   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.1.1)
+│   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.2.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/
 │   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
