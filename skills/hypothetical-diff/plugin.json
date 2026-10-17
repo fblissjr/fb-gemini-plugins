@@ -1,0 +1,29 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "hypothetical-diff",
+  "displayName": "Hypothetical Diff",
+  "version": "0.1.0",
+  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any domain—writing, strategy, calendars, contracts, spreadsheets, research, and code. Synthesizes concrete hypothetical deltas to anchor search, align on ambiguous goals, stress-test counterfactual decisions, and reverse-diff root causes in both Google Antigravity and Gemini Spark.",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "hyde",
+    "hypothetical-diff",
+    "hydiff",
+    "diff",
+    "retrieval",
+    "counterfactual",
+    "decision-making",
+    "planning",
+    "gemini-spark",
+    "antigravity"
+  ],
+  "suggestedPrompts": [
+    "Generate a hypothetical diff for this proposal so we can see what actually changes before committing",
+    "Use a hypothetical diff (HyDE style) to search our workspace for where this policy or behavior is defined",
+    "Run a counterfactual diff comparing Option A vs Option B across my schedule, budget, and risks"
+  ]
+}

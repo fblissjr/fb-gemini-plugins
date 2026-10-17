@@ -6,13 +6,22 @@ This file provides guidance to Google Antigravity (`agy` CLI v1.4.0+ and Antigra
 
 ## Overview
 
-`fb-gemini-plugins` is a monorepo of native plugins, skills, and hooks for Google Antigravity. Each plugin lives under `skills/<plugin-name>/` and conforms to the Antigravity Plugin Specification (`https://antigravity.google/schemas/v1/plugin.json`).
+`fb-gemini-plugins` is a monorepo of native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise). Each plugin lives under `skills/<plugin-name>/` and conforms to the Antigravity Plugin Specification (`https://antigravity.google/schemas/v1/plugin.json`) while shipping open-standard `SKILL.md` definitions that work in both Antigravity and Gemini Spark.
 
 ## Repository Structure
 
 ```
 fb-gemini-plugins/
 ├── skills/
+│   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.1.0)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── skills/
+│   │   │   └── hypothetical-diff/
+│   │   │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
+│   │   │       └── references/              # Deep-dive domain playbooks and HyDE theory
+│   │   │           ├── domain-playbooks.md
+│   │   │           └── hyde-theory-and-patterns.md
+│   │   └── README.md                        # Plugin and dual-platform documentation
 │   └── path-privacy/                        # Path & author privacy plugin (v0.20.0)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
 │       ├── hooks.json                       # Plugin-root hooks configuration (SessionStart, PreToolUse)
@@ -114,8 +123,10 @@ Every file created or modified inside this repository MUST obey these rules:
 
 ### 3. Skill Definition (`skills/<name>/skills/<skill-name>/SKILL.md`)
 
-- Frontmatter requires `name` and `description`.
-- Keep `SKILL.md` concise and action-oriented; put detailed patterns and workflows in `references/` and helper scripts in `scripts/`.
+- **YAML frontmatter**: Must start on **line 1** with `---` and include `name` and `description` (with explicit trigger conditions so both Antigravity and Gemini Spark parse and auto-route it reliably).
+- **Dual-platform compatibility (Antigravity + Gemini Spark)**:
+  - Keep `SKILL.md` concise, action-oriented, and **self-contained** so it works as a standalone single-file upload/paste in **Gemini Spark** (`Customize > Skills` / Canvas) as well as inside an Antigravity plugin.
+  - Place extended domain playbooks, pattern catalogs, and theoretical references in `references/` and helper scripts in `scripts/` for progressive disclosure in Antigravity and ZIP package uploads in Gemini Spark.
 - Always invoke helper shell scripts with `bash <script>` or check `[ -r "$SCRIPT" ]` so gates do not silently fail if executable bits are stripped on checkout.
 
 ### 4. Version Cascade
@@ -130,7 +141,8 @@ When updating a plugin's version, keep these locations in sync:
 Run these checks before committing any changes:
 
 ```bash
-# 1. Validate plugin structure and manifest against the Antigravity runtime loader
+# 1. Validate plugin structures and manifests against the Antigravity runtime loader
+agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 
 # 2. Check git hook installation health
