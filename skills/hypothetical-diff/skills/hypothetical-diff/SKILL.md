@@ -232,7 +232,7 @@ exact symbol names, types, and config keys to maximize search anchor precision.
      relevant Google Docs, Sheets, Slides, Calendar events, Gmail threads, or
      Drive files before proposing edits.
 5. **Interactive Hunk Staging ("Mix-and-Match Menu")**
-   - Surface the 2–4 **Load-Bearing Assumptions** and let the user cherry-pick
+   - Surface the 2–4 **Important Assumptions** and let the user cherry-pick
      or combine hunks effortlessly:
      - **In Google Antigravity**: When multiple hunks or $K$-diff options require
        a user choice, invoke `ask_question` (`is_multi_select: true`) listing
