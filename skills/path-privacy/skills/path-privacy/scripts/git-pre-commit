@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# path-privacy: skip-file
+# git-pre-commit (path-privacy)
+# Hard-blocks commits whose staged files contain paths resolving outside the
+# repo root, or whose ADDED lines contain the git user.name full name.
+# Designed to be invoked from a repo's .git/hooks/pre-commit (chained or standalone).
+# Resolved from the plugin on every run, so changes here need no reinstall.
+set -u
+
+# Resolve plugin scripts dir from this file's location.
+SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCANNER="$SELF_DIR/find-external-paths.sh"
+
+# If installed into .git/hooks/, the script may be a copy; allow override via env.
+if [ -n "${PATH_PRIVACY_SCRIPT_DIR:-}" ]; then
+  SCANNER="$PATH_PRIVACY_SCRIPT_DIR/find-external-paths.sh"
+fi
+
+if [ ! -r "$SCANNER" ]; then
+  echo "path-privacy: scanner not found or not readable: $SCANNER" >&2
+  # Fail CLOSED, matching the installed wrapper. This used to exit 0 "by design",
+  # which quietly defeated the wrapper's guarantee one level down: the wrapper
+  # carefully selects an entry script, that script finds its own
+  # delegate missing, and the commit sails through with no gate and no error.
+  # A silent bypass on a privacy gate is unrecoverable; a block is loud and fixable.
+  echo "  The leak gate is NOT running, so this commit is blocked rather than" >&2
+  echo "  allowed through unchecked. Reinstall with install-git-hooks.sh." >&2
+  exit 1
+fi
+
+# shellcheck source=/dev/null
+. "$(dirname "$SCANNER")/_name_guard.sh" 2>/dev/null
+if ! command -v pp_name_regex >/dev/null 2>&1 || ! command -v pp_is_license_file >/dev/null 2>&1; then
+  echo "path-privacy: _name_guard.sh missing or unusable beside the scanner." >&2
+  echo "  The name gate is NOT running, so this commit is blocked. Reinstall with install-git-hooks.sh." >&2
+  exit 1
+fi
+
+FAILED=0
+
+if ! bash "$SCANNER" --staged; then
+  FAILED=1
+fi
+
+# Full name, on ADDED lines only. Paths are checked over whole staged files, so
+# an old leak in a file you touch still surfaces; the name is not, because a
+# name already in history (a package manifest's authors field, say) would then
+# block every unrelated commit to that file. New writes are what this gate is
+# for; the whole-tree sweep is `find-external-paths.sh -d .`'s job.
+# LICENSE files are skipped: copyright lines are managed by hand.
+if NAME_RE=$(pp_name_regex .); then
+  NAME_HITS=$(
+    git diff --cached -U0 --no-color --no-ext-diff --src-prefix=a/ --dst-prefix=b/ --diff-filter=ACMR 2>/dev/null \
+      | PP_NAME_RE="$NAME_RE" LC_ALL=C awk '
+          BEGIN { re = ENVIRON["PP_NAME_RE"] }
+          /^\+\+\+ b\// { f = substr($0, 7); next }
+          /^@@ / {
+            h = $0; sub(/^@@ -[0-9,]+ \+/, "", h); sub(/[, ].*$/, "", h); ln = h + 0; next
+          }
+          /^\+/ {
+            b = f; sub(/.*\//, "", b); b = tolower(b)
+            if (b !~ /^(license|licence|copying)(\..*)?$/) {
+              l = tolower(substr($0, 2))
+              if (l !~ /^[[:space:]]*signed-off-by:/ && l ~ re) print f ":" ln
+            }
+            ln++
+          }
+        '
+  )
+  if [ -n "$NAME_HITS" ]; then
+    echo "" >&2
+    echo "path-privacy: added lines contain the git user.name full name:" >&2
+    printf '%s\n' "$NAME_HITS" | sed 's/^/  /' >&2
+    echo "Use the GitHub handle or a placeholder such as <author> instead." >&2
+    FAILED=1
+  fi
+fi
+
+if [ $FAILED -eq 1 ]; then
+  echo "" >&2
+  echo "path-privacy: commit blocked by pre-commit hook." >&2
+  echo "Replace the path with a repo-relative or generic reference, then re-stage." >&2
+  echo "The correction is routine: commit messages, branch names and changelog entries do not mention it." >&2
+  exit 1
+fi
+
+exit 0

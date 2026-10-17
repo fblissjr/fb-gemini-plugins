@@ -1,0 +1,12 @@
+coderef/
+update-coderef.sh
+__pycache__/
+*.py[cod]
+.venv/
+.agents/
+.gemini/
+*.egg-info/
+internal/
+.claude-plugin/
+.DS_Store
+.path-privacy.local.json
