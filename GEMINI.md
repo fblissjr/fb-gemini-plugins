@@ -15,14 +15,15 @@ fb-gemini-plugins/
 ├── .agents/
 │   └── plugins.json                         # Workspace plugin registry (do NOT duplicate in .agents/skills/)
 ├── skills/
-│   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.2.0)
+│   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.3.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/
 │   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
 │   │   ├── skills/
 │   │   │   └── hypothetical-diff/
 │   │   │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
-│   │   │       └── references/              # Deep-dive domain playbooks and HyDE theory
+│   │   │       └── references/              # Deep-dive simulation engine, domain playbooks & HyDE theory
+│   │   │           ├── simulation-engine.md
 │   │   │           ├── domain-playbooks.md
 │   │   │           └── hyde-theory-and-patterns.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
@@ -266,6 +267,7 @@ When updating a plugin's version, keep these locations in sync:
 2. `README.md` (catalog table)
 3. `CHANGELOG.md` (new release section)
 4. If `install-git-hooks.sh` changes its generated `.git/hooks/` wrapper template, bump `WRAPPER_TEMPLATE_VERSION` in `skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh`.
+5. When `skills/path-privacy/` changes, synchronize the peer Claude repository checkout and local `~/.gemini` / `~/.claude` caches with `bash skills/path-privacy/skills/path-privacy/scripts/sync-peer.sh --install --peer <peer-plugin-dir>` (and bump `.claude-plugin/marketplace.json` + `CHANGELOG.md` in the peer repo).
 
 ## Validation & Maintenance Commands
 
