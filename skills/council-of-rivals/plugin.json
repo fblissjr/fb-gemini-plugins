@@ -1,0 +1,30 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "council-of-rivals",
+  "displayName": "Council of Rivals",
+  "version": "0.1.0",
+  "description": "Adversarial multi-persona collision arena and Double-Crux extractor across any non-coding or coding domain—strategy, career/life choices, investments, policy, creative work, science, and architecture. Casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact Crux Map and decisive test.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "council-of-rivals",
+    "red-team",
+    "adversarial",
+    "crux",
+    "double-crux",
+    "simulation",
+    "debate",
+    "decision-making",
+    "gemini-spark",
+    "antigravity"
+  ],
+  "suggestedPrompts": [
+    "Convene a Council of Rivals (3 conflicting minds with incompatible incentives) to tear apart this plan and extract the Crux Map",
+    "Run an adversarial tribunal on my career decision: cast a Risk-Averse Realist, an Asymmetric-Upside Founder, and Future-Me at Age 60",
+    "Pit a Short-Seller, a Power-User Customer, and a First-Principles Engineer against each other on this product strategy"
+  ]
+}

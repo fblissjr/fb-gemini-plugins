@@ -15,6 +15,17 @@ fb-gemini-plugins/
 ├── .agents/
 │   └── plugins.json                         # Workspace plugin registry (do NOT duplicate in .agents/skills/)
 ├── skills/
+│   ├── council-of-rivals/                   # Adversarial multi-persona collision arena & Crux extractor (v0.1.0)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── skills/
+│   │   │   └── council-of-rivals/
+│   │   │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
+│   │   │       └── references/              # Rival panels & Double-Crux extraction protocols
+│   │   │           ├── rival-panels-and-archetypes.md
+│   │   │           └── crux-extraction-and-protocols.md
+│   │   └── README.md                        # Plugin and dual-platform documentation
 │   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.3.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/
@@ -274,11 +285,12 @@ Every file created or modified inside this repository MUST obey these rules:
 ### 8. Version Cascade
 
 When updating a plugin's version, keep these locations in sync:
-1. `skills/<name>/plugin.json` (`version`) and `skills/path-privacy/.claude-plugin/plugin.json` (`version`)
-2. `README.md` (catalog table)
-3. `CHANGELOG.md` (new release section)
-4. If `install-git-hooks.sh` changes its generated `.git/hooks/` wrapper template, bump `WRAPPER_TEMPLATE_VERSION` in `skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh`.
-5. When `skills/path-privacy/` changes, synchronize the peer Claude repository checkout and local `~/.gemini` / `~/.claude` caches with `bash skills/path-privacy/skills/path-privacy/scripts/sync-peer.sh --install --peer <peer-plugin-dir>` (and bump `.claude-plugin/marketplace.json` + `CHANGELOG.md` in the peer repo).
+1. `skills/<name>/plugin.json` (`version`), `skills/<name>/README.md`, and `skills/path-privacy/.claude-plugin/plugin.json` (`version`)
+2. `README.md` (catalog table and plugin sections)
+3. `GEMINI.md` / `AGENTS.md` (Repository Structure version comments)
+4. `CHANGELOG.md` (new release section)
+5. If `install-git-hooks.sh` changes its generated `.git/hooks/` wrapper template, bump `WRAPPER_TEMPLATE_VERSION` in `skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh`.
+6. When `skills/path-privacy/` changes, synchronize the peer Claude repository checkout and local `~/.gemini` / `~/.claude` caches with `bash skills/path-privacy/skills/path-privacy/scripts/sync-peer.sh --install --peer <peer-plugin-dir>` (and bump `.claude-plugin/marketplace.json` + `CHANGELOG.md` in the peer repo).
 
 ## Validation & Maintenance Commands
 
@@ -286,8 +298,10 @@ Run these checks before committing any changes:
 
 ```bash
 # 1. Validate plugin structures and manifests against the Antigravity runtime loader
+agy plugin validate skills/council-of-rivals --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
+agy plugin validate skills/sparring-partner --strict --json
 
 # 2. Check git hook installation health and dual-harness alignment
 bash skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor

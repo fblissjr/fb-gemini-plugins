@@ -2,6 +2,15 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.27.0] - 2026-10-18
+
+### Added
+
+- **`council-of-rivals` (`v0.1.0` — Adversarial Multi-Persona Collision Arena & Double-Crux Extractor)**:
+  - Added [`skills/council-of-rivals/`](skills/council-of-rivals/) for **Google Antigravity** and **Gemini Spark** as the third orthogonal pillar of the simulation & reasoning suite alongside `hypothetical-diff` (3rd-person state-transition blueprint) and `sparring-partner` (1st-person 1-on-1 flight simulator).
+  - **Incompatible-Incentive Casting & Direct Cross-Examination**: Casts 3–5 conflicting minds with mutually exclusive objective functions and zero-tolerance boundaries in any user-set tone, forbids lukewarm consensus, and forces rivals to quote and attack each other's load-bearing premises in Round 2.
+  - **Double-Crux Extraction ($\mathcal{C}$) & Subagent Fan-Out**: Distills every collision into an **Uncontested Bedrock**, explicit **"If/Then Flip Conditions"** (separating Empirical Cruxes from Value Cruxes), and a **24-Hour Decisive Test**; supports parallel isolated subagent fan-out (`invoke_subagent`) in Antigravity and ships with [`references/rival-panels-and-archetypes.md`](skills/council-of-rivals/skills/council-of-rivals/references/rival-panels-and-archetypes.md) (12 domain panels) and [`references/crux-extraction-and-protocols.md`](skills/council-of-rivals/skills/council-of-rivals/references/crux-extraction-and-protocols.md).
+
 ## [0.26.0] - 2026-10-18
 
 ### Added

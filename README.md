@@ -8,6 +8,7 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 
 | Plugin / Skill | Version | Platforms | Components | Description |
 |----------------|---------|-----------|------------|-------------|
+| **[council-of-rivals](skills/council-of-rivals/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`council-of-rivals`), References (`rival-panels-and-archetypes.md`, `crux-extraction-and-protocols.md`), Icon (`assets/logo.svg`) | **Adversarial multi-persona collision arena & Double-Crux extractor**: casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact **Crux Map ($\mathcal{C}$)** and decisive test. |
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`simulation-engine.md`, `domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any non-coding or coding domain—simulating anything at any granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match. |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Synchronizer (`sync-peer.sh`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name across both Antigravity and Claude Code. |
 | **[sparring-partner](skills/sparring-partner/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
@@ -24,6 +25,7 @@ Plugins installed into `~/.gemini/config/plugins/` are shared automatically betw
 
 ```bash
 # Option A: Install a single plugin directly from GitHub (no manual git clone needed)
+agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/council-of-rivals
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
@@ -32,6 +34,7 @@ agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skill
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills
 
 # Option C: Install from a local checkout of fb-gemini-plugins
+agy plugin install ./skills/council-of-rivals
 agy plugin install ./skills/hypothetical-diff
 agy plugin install ./skills/path-privacy
 agy plugin install ./skills/sparring-partner
@@ -40,6 +43,7 @@ agy plugin install ./skills/sparring-partner
 agy plugin list
 
 # Validate plugin manifests, skills, and hooks against the runtime loader
+agy plugin validate ./skills/council-of-rivals --strict
 agy plugin validate ./skills/hypothetical-diff --strict
 agy plugin validate ./skills/path-privacy --strict
 agy plugin validate ./skills/sparring-partner --strict
@@ -50,7 +54,7 @@ agy plugin validate ./skills/sparring-partner --strict
 1. Start an interactive session with `agy`.
 2. Run `/plugin` in the prompt.
 3. Switch to the **Discover** tab and select **+ Install from local directory...**.
-4. Enter the path to `skills/hypothetical-diff` or `skills/path-privacy` in your `fb-gemini-plugins` checkout.
+4. Enter the path to `skills/council-of-rivals`, `skills/hypothetical-diff`, `skills/path-privacy`, or `skills/sparring-partner` in your `fb-gemini-plugins` checkout.
 
 ### Method 3: Antigravity App (v2.24.0+)
 
@@ -59,16 +63,18 @@ agy plugin validate ./skills/sparring-partner --strict
 
 ### Method 4: Gemini Spark & Gemini App (`Customize > Skills`)
 
-Skills such as **[hypothetical-diff](skills/hypothetical-diff/)** are authored with self-contained `SKILL.md` instructions and line-1 YAML frontmatter so they work directly in **Gemini Spark**, **Gemini web/desktop (`Customize > Skills`)**, and **Gemini Enterprise**:
+Skills such as **[council-of-rivals](skills/council-of-rivals/)**, **[hypothetical-diff](skills/hypothetical-diff/)**, and **[sparring-partner](skills/sparring-partner/)** are authored with self-contained `SKILL.md` instructions and line-1 YAML frontmatter so they work directly in **Gemini Spark**, **Gemini web/desktop (`Customize > Skills`)**, and **Gemini Enterprise**:
 
 1. **Single-File Upload or Paste (Recommended for Gemini Spark & Canvas)**:
    - Open Gemini Spark / Gemini and navigate to **Customize $\rightarrow$ Skills** (or **Skills** in the left sidebar).
-   - Click **+ $\rightarrow$ Upload skill** and select `skills/hypothetical-diff/skills/hypothetical-diff/SKILL.md` (or click **Create skill** and paste its contents).
+   - Click **+ $\rightarrow$ Upload skill** and select `skills/<name>/skills/<name>/SKILL.md` (or click **Create skill** and paste its contents).
 2. **Full Skill Bundle ZIP Upload (Includes `references/`)**:
    ```bash
+   (cd skills/council-of-rivals/skills/council-of-rivals && zip -r ../../../../council-of-rivals-skill.zip SKILL.md references/)
    (cd skills/hypothetical-diff/skills/hypothetical-diff && zip -r ../../../../hypothetical-diff-skill.zip SKILL.md references/)
+   (cd skills/sparring-partner/skills/sparring-partner && zip -r ../../../../sparring-partner-skill.zip SKILL.md references/)
    ```
-   Upload `hypothetical-diff-skill.zip` via **Skills $\rightarrow$ + $\rightarrow$ Upload skill**.
+   Upload the desired `*-skill.zip` via **Skills $\rightarrow$ + $\rightarrow$ Upload skill**.
 
 ### Per-Repository Git Hooks (`pre-commit` & `commit-msg` for `path-privacy`)
 
@@ -85,6 +91,34 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-g
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor <parent-dir>
 ```
+
+---
+
+## The Simulation & Decision Suite (`hypothetical-diff`, `sparring-partner`, `council-of-rivals`)
+
+Together, these three plugins cover the three orthogonal dimensions of simulation, decision-making, and high-stakes communication:
+
+| Plugin | POV & Topology | Core Primitive |
+|--------|----------------|----------------|
+| **[`hypothetical-diff`](skills/hypothetical-diff/)** (`v0.3.0`) | **3rd-Person State-Transition Blueprint** | Synthesizes a concrete `--- Before` / `+++ After` delta ($\hat{\Delta}$) across any domain, tone, and granularity (`L0` atomic micro-choices $\leftrightarrow$ `L4` macro eras), enforcing resource/energy conservation ($\sum \Delta = 0$) and interactive hunk mix-and-match (`A1 + B2`). |
+| **[`sparring-partner`](skills/sparring-partner/)** (`v0.1.0`) | **1st-Person 1-on-1 Flight Simulator** | Locks a **Sealed Envelope** (counterparty's secret BATNA, unspoken fear, triggers, unlocks, and live `Trust`/`Patience` meters) under Fog of War, plays strictly one turn at a time in character (`L1`–`L5`), and delivers a **Flight-Recorder Debrief** at the end. |
+| **[`council-of-rivals`](skills/council-of-rivals/)** (`v0.1.0`) | **Multi-Agent Collision Arena** | Casts 3–5 conflicting minds with incompatible incentives, forces direct cross-examination between rivals (with optional parallel subagent fan-out in Antigravity), and extracts the **Double-Crux Map ($\mathcal{C}$)** and 24-hour decisive test. |
+
+### How `hypothetical-diff` (`v0.3.0`) Works
+Inspired by **HyDE** (*Hypothetical Document Embeddings*, Gao et al., ACL 2023), `hypothetical-diff` operates across six modes (**`search`**, **`align`**, **`decide`**, **`diagnose`**, **`ensemble`**, and **`simulate`**) and a **5-Level Structural Zoom Ladder (`L0`–`L4`)**:
+- **Telescoping Zoom Diffs (`L3` $\rightarrow$ `L0`)**: Connects a 1-to-5-year strategy or habit goal directly down to Tuesday at 07:15 AM (`L0`), catching *"Macro Ambition / Micro Starvation"* mismatches.
+- **Turn-by-Turn Rally & Subtext Diffs**: Diffs spoken scripts, unspoken subtext, and counterparty reactions across multi-turn conversations in any user-set tone.
+- **Mental Model & Ripple Diffs**: Diffs *Intuitive Misconception (`-`) $\rightarrow$ Expert Mechanism (`+`)* with a **Real-World Prediction Flip**, or traces **1st / 2nd (Goodhart) / 3rd-Order Ripple Diffs** and **Monte Carlo Branching Envelopes**.
+- See [skills/hypothetical-diff/README.md](skills/hypothetical-diff/README.md), [simulation-engine.md](skills/hypothetical-diff/skills/hypothetical-diff/references/simulation-engine.md), [domain-playbooks.md](skills/hypothetical-diff/skills/hypothetical-diff/references/domain-playbooks.md), and [hyde-theory-and-patterns.md](skills/hypothetical-diff/skills/hypothetical-diff/references/hyde-theory-and-patterns.md).
+
+### How `sparring-partner` (`v0.1.0`) Works
+- **No Sycophantic Cave-Ins**: The counterparty never folds to a generic ask; concessions require hitting **Green-Key Unlocks** (e.g., tactical empathy labeling, calibrated `"How/What"` questions, or conserved `"Yes, If"` trade-offs).
+- **Live Ring Controls**: Call `"Time-out"` for a Corner Coach whisper, `"Rewind Turn X"` to re-shoot a turn, `"Swap Seats"` to watch the AI handle your hardest objection, or `"Debrief"` to unseal the Hidden Counterparty Card and view the **Instant Replay Diff**.
+- See [skills/sparring-partner/README.md](skills/sparring-partner/README.md), [counterparty-archetypes.md](skills/sparring-partner/skills/sparring-partner/references/counterparty-archetypes.md), and [hidden-state-and-debrief.md](skills/sparring-partner/skills/sparring-partner/references/hidden-state-and-debrief.md).
+
+### How `council-of-rivals` (`v0.1.0`) Works
+- **3-Round Collision (`Indict` $\rightarrow$ `Cross-Examine` $\rightarrow$ `Crux Map`)**: Rivals attack each other's load-bearing assumptions directly and state the exact empirical threshold or value trade-off where they would flip sides.
+- See [skills/council-of-rivals/README.md](skills/council-of-rivals/README.md), [rival-panels-and-archetypes.md](skills/council-of-rivals/skills/council-of-rivals/references/rival-panels-and-archetypes.md), and [crux-extraction-and-protocols.md](skills/council-of-rivals/skills/council-of-rivals/references/crux-extraction-and-protocols.md).
 
 ---
 
@@ -177,49 +211,17 @@ See [skills/path-privacy/README.md](skills/path-privacy/README.md) and [patterns
 
 ---
 
-## What `hypothetical-diff` Does (with Examples)
-
-Inspired by **HyDE** (*Hypothetical Document Embeddings*, Gao et al., ACL 2023), **`hypothetical-diff`** bridges the gap between abstract intent and concrete action by synthesizing a plausible **Before $\rightarrow$ After delta ($\hat{\Delta}$)** *first*—in the native medium of any domain—and then grounding that delta against real documents, connected Workspace apps, conservation laws, or user feedback.
-
-It operates across five modes (**`search`**, **`align`**, **`decide`**, **`diagnose`**, and **`ensemble`**) in both **Google Antigravity** and **Gemini Spark**:
-
-### Example 1: Counterfactual Strategy & Calendar Diffs (`decide` mode)
-Unlike a prose pros/cons list where benefits appear "for free," a **Hypothetical Diff** enforces the **Conservation Law of Finite Systems** ($\sum \Delta = 0$ across hours, budget, or headcount)—every `+` addition must explicitly name the `-` removal that funds it:
-
-```diff
---- Baseline: Current Weekly Operating Rhythm (40h allocated)
-+++ Hypothetical: Maker-Morning Schedule (Net Delta: 0h)
-@@ Tue / Thu Morning Protection @@
-- [09:30–10:00] Daily Standup & Triage (2x/wk = 1.0h)
-- [10:00–12:00] Open calendar / ad-hoc 1:1s & Slack triage (2x/wk = 4.0h)
-+ [09:00–11:30] Protected Deep Work Block — notifications paused (2x/wk = 5.0h)
-@@ Tue / Thu Afternoon Relocation @@
-+ [13:30–14:00] Batched Async Standup + Triage Window (2x/wk = 1.0h)
-- [14:00–15:00] Optional cross-team status syncs -> move to async digest (-1.0h)
-```
-
-### Example 2: HyDE Diff-Anchored Retrieval (`search` mode)
-When searching a Google Drive corpus, policy handbook, legal repository, or codebase for where to make a change:
-1. **Project $\hat{\Delta}$**: Draft what the existing clause/row/config (`-`) and the updated version (`+`) would plausibly look like.
-2. **Extract Asymmetric Anchors**:
-   - **Before-anchors (`-`)** locate *where the current artifact lives today* (because the target file still contains the old pattern).
-   - **After-anchors (`+`)** locate *historical precedents, amendments, or commits* that already made a similar change.
-3. **Ground**: Query the workspace with those concrete anchors and replace `[HYPOTHETICAL]` placeholders with the verified text.
-
-### Example 3: Hunk-Level Alignment for Writing, Redlines & Connected Apps (`align` & `ensemble` modes)
-Before rewriting a 10-page memo, redlining a contract, or mutating a Google Doc/Sheet/Calendar in Gemini Spark, `hypothetical-diff` projects 1–3 focused hunks (`@@ ... @@`) alongside their **Load-Bearing Assumptions**, allowing you to approve Hunk 1 and adjust Hunk 2 in a single turn.
-
-See [skills/hypothetical-diff/README.md](skills/hypothetical-diff/README.md), [domain-playbooks.md](skills/hypothetical-diff/skills/hypothetical-diff/references/domain-playbooks.md), and [hyde-theory-and-patterns.md](skills/hypothetical-diff/skills/hypothetical-diff/references/hyde-theory-and-patterns.md) for full details.
-
----
-
 ## Repository Layout
 
 ```
 fb-gemini-plugins/
+├── .agents/
+│   └── plugins.json             # Workspace plugin registry
 ├── skills/
-│   ├── hypothetical-diff/       # HyDE-inspired universal Before/After diff plugin & skill (Antigravity + Gemini Spark)
-│   └── path-privacy/            # Native Antigravity & Claude Code privacy plugin (plugin.json + hooks.json + skills/)
+│   ├── council-of-rivals/       # Adversarial multi-persona collision arena & Double-Crux extractor (v0.1.0)
+│   ├── hypothetical-diff/       # Multi-granularity (L0-L4) Before/After diff & simulation plugin (v0.3.0)
+│   ├── path-privacy/            # Dual-harness Antigravity & Claude Code path/author privacy plugin (v0.22.0)
+│   └── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.0)
 ├── GEMINI.md                    # Workspace instructions for Antigravity
 ├── AGENTS.md                    # Symlink to GEMINI.md
 ├── CHANGELOG.md                 # Release history
@@ -233,8 +235,10 @@ Requires Google Antigravity CLI `v1.4.0+` (`agy`), `ripgrep` (`rg`), and `jq`.
 
 ```bash
 # Validate plugin manifests and components
+agy plugin validate skills/council-of-rivals --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
+agy plugin validate skills/sparring-partner --strict --json
 
 # Check installed git hooks health
 bash skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor
