@@ -11,6 +11,7 @@ description: >-
   this repo", "scrub external paths", "install path-privacy hooks", "find
   absolute paths in this repo", "remove $HOME references", "block path leaks",
   "audit before commit", "privacy scan paths".
+allowed-tools: "Bash,Read,Edit"
 ---
 
 <!-- path-privacy: skip-file -->
@@ -98,7 +99,8 @@ or `${CLAUDE_PLUGIN_ROOT}` in Claude Code. Scripts live in
 | Find the full name | `git grep -n -i -E "$(bash -c '. <scripts>/_name_guard.sh; pp_name_regex .')" \| cut -d: -f1,2` | Existing occurrences as `file:line`; the `cut` keeps the name itself out of the output |
 | Scrub (preview / write) | `scrub-paths.sh -d .` then `--apply` | Needs `.path-privacy.local.json`; see `references/scrub_workflow.md` |
 | Install / uninstall git hooks | `install-git-hooks.sh` / `--uninstall` | Preserves an existing hook as `.local` and chains it |
-| Check this repo's gate | `install-git-hooks.sh --doctor [root]` | Read-only; version, fail-closed, installed-or-not, per repo |
+| Check this repo's gate | `install-git-hooks.sh --doctor [root]` | Read-only; version, fail-closed, installed-or-not, per repo, plus cross-harness cache alignment |
+| Align peer checkout & installed caches | `sync-peer.sh [--check \| --apply --peer <dir> \| --install]` | Verifies or syncs byte-identical dual-harness plugin trees across peer repos and `~/.gemini` / `~/.claude` caches |
 
 Findings print as `<file>:<lineno>: <matched-token>`, exit 1 on any finding.
 Name findings print `<file>:<lineno>` only; nothing in this plugin echoes the

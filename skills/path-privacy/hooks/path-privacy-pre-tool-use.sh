@@ -389,7 +389,7 @@ BLOCK=""
 
 # --- 2. external paths ---------------------------------------------------------
 if [ $PATH_EXEMPT -eq 0 ] && [ -r "$SCANNER" ]; then
-  SCAN_OUT=$(bash "$SCANNER" --against-root "$ROOT_REAL" --text "$NEWTEXT" 2>&1)
+  SCAN_OUT=$(bash "$SCANNER" --against-root "$ROOT_REAL" --allow-skip-file --text "$NEWTEXT" 2>&1)
   if [ $? -eq 1 ]; then
     FINDINGS=$(printf '%s\n' "$SCAN_OUT" | awk '/^<text>:/ || /^  → use:/' | sed "s|^<text>:|  ${REL}:|")
     SKIP_FORM=""

@@ -7,6 +7,6 @@ __pycache__/
 .gemini/
 *.egg-info/
 internal/
-.claude-plugin/
+/.claude-plugin/
 .DS_Store
 .path-privacy.local.json

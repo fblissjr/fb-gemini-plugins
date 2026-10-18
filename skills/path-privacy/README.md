@@ -89,13 +89,13 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-g
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --uninstall
 ```
 
-The installer writes `.git/hooks/pre-commit` and `.git/hooks/commit-msg` wrappers (`ver=t4`). An existing hook is preserved as `<hook>.local` and runs first.
+The installer writes `.git/hooks/pre-commit` and `.git/hooks/commit-msg` wrappers (`ver=t5`). An existing hook is preserved as `<hook>.local` and runs first.
 
 ## Skill & CLI Usage
 
 | Skill | Description |
 |-------|-------------|
-| `path-privacy` | Scan files, directories, staged changes or strings for external paths; find the full name; scrub with a suggestion config; install, remove and inspect the git hooks |
+| `path-privacy` | Scan files, directories, staged changes or strings for external paths; find the full name; scrub with a suggestion config; install, remove and inspect the git hooks; keep Antigravity and Claude Code plugin copies aligned |
 
 Trigger phrases in Antigravity App or CLI: *"scan for path leaks"*, *"check for leaked paths"*, *"are we leaking my home path"*, *"is my name in this repo"*, *"scrub external paths"*, *"install path-privacy hooks"*, *"find absolute paths in this repo"*, *"remove $HOME references"*, *"block path leaks"*.
 
@@ -111,8 +111,13 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/find-exte
 # List tracked lines carrying the full name, as file:line (never prints the name itself)
 git grep -n -i -E "$(bash -c '. ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/_name_guard.sh; pp_name_regex .')" | cut -d: -f1,2
 
-# Check which repos under a root have the git commit gate and at what version
+# Check which repos under a root have the git commit gate and verify harness alignment
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor <root>
+
+# Verify or synchronize peer checkouts and installed ~/.gemini + ~/.claude caches
+bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/sync-peer.sh --check
+bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/sync-peer.sh --apply --peer <peer-plugin-dir>
+bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/sync-peer.sh --install
 
 # Preview working-tree replacements from .path-privacy.local.json (add --apply to write)
 bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/scrub-paths.sh -d .
@@ -120,7 +125,7 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/scrub-pat
 
 ## Which repos are actually protected?
 
-Git hooks live in `.git/`, so they are per repo, uncommittable and installed by hand. `--doctor` is the inventory: per repo and per hook it reports the version stamp (`t4`), `fail-closed` vs `FAILS OPEN`, whether the frozen scanner path still resolves, and `not installed`. Exit 1 if anything needs attention. It is read-only and needs an explicit root to sweep more than the current repo.
+Git hooks live in `.git/`, so they are per repo, uncommittable and installed by hand. `--doctor` is the inventory: per repo and per hook it reports the version stamp (`t5`), `fail-closed` vs `FAILS OPEN`, whether the frozen scanner path still resolves, and `not installed`, as well as whether installed Antigravity (`~/.gemini/...`) and Claude Code (`~/.claude/plugins/cache/...`) copies on the machine are aligned. Exit 1 if anything needs attention. It is read-only and needs an explicit root to sweep more than the current repo.
 
 `FAILS OPEN` means a pre-0.6.0 wrapper, which exits 0 when the scanner is missing. Re-run the installer in that repo.
 
@@ -128,11 +133,13 @@ Git hooks live in `.git/`, so they are per repo, uncommittable and installed by 
 
 A global `core.hooksPath` replaces `.git/hooks` in every repo. The installer refuses to write into it, since that would gate every repo on the machine. One kind of global hooks directory is the exception: a dispatcher whose hooks each run the repo's own `<git-common-dir>/hooks/<name>`. Such a dispatcher declares itself with a file named `.chains-to-repo-hooks`, and needs executable `pre-commit` and `commit-msg` hooks. When both are present, the installer, `--doctor` and the `SessionStart` check use the repo's own hooks directory.
 
-## Keeping installed hooks current
+## Keeping installed hooks and dual harnesses aligned
 
-The wrapper in `.git/hooks` locates the plugin, so a plugin update cannot rewrite it; its logic is frozen at install. The scripts it calls (`git-pre-commit`, `git-commit-msg`, the scanner, the name guard) are resolved from the installed plugin on every commit, so most changes need no reinstall.
+The plugin directory is a **unified dual-manifest bundle**: it carries both Antigravity's root `plugin.json` + `hooks.json` and Claude Code's `.claude-plugin/plugin.json` + `hooks/hooks.json`, while sharing 100% of `hooks/*.sh`, `skills/path-privacy/scripts/*`, and `skills/path-privacy/references/*`.
 
-When the wrapper template itself changes, the `SessionStart` hook regenerates the wrapper in place, touching only files that carry the plugin's own stamp. A wrapper newer than the running plugin is left alone and reported. If the refresh fails (read-only `.git`, `core.hooksPath` elsewhere), the hook says so.
+- **At commit time (`ver=t5`)**: The wrapper in `.git/hooks/` scores all readable candidate scripts across both `~/.gemini/...` and `~/.claude/plugins/cache/...` by `(wrapper_template_version, plugin_semver, is_frozen)` and executes the newest installed copy on the machine.
+- **At session start**: When the wrapper template changes, `SessionStart` refreshes `.git/hooks/` in place. If one harness's installed plugin is older than the repo's hooks, `SessionStart` identifies which harness is lagging and instructs you to run `sync-peer.sh --install`.
+- **Across repositories and caches (`sync-peer.sh`)**: Run `sync-peer.sh --apply --peer <dir>` to make a peer repository's `path-privacy` directory 100% byte-identical, and `sync-peer.sh --install` to update both `~/.gemini/` and `~/.claude/` installed caches simultaneously.
 
 ## How to remove a leak
 

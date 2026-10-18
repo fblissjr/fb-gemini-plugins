@@ -60,15 +60,16 @@ SELF_DIR="$(cd "$(dirname "$0")" && pwd)"
 # every staleness notice ever shown was false. A gate that cries wolf on every
 # release is a gate people stop reading, and then it misses the one release
 # where the logic really did change.
-WRAPPER_TEMPLATE_VERSION=4
+WRAPPER_TEMPLATE_VERSION=5
 
 pp_git() {
   git "$@" 2>/dev/null || GIT_CONFIG_GLOBAL=/dev/null git "$@" 2>/dev/null
 }
 
-PLUGIN_JSON="$SELF_DIR/../../../plugin.json"
-[ -f "$PLUGIN_JSON" ] || PLUGIN_JSON="$SELF_DIR/../../../.antigravity-plugin/plugin.json"
-[ -f "$PLUGIN_JSON" ] || PLUGIN_JSON="$SELF_DIR/../../../.claude-plugin/plugin.json"
+PLUGIN_ROOT_DIR="$(cd "$SELF_DIR/../../.." 2>/dev/null && pwd || echo "$SELF_DIR/../../..")"
+PLUGIN_JSON="$PLUGIN_ROOT_DIR/plugin.json"
+[ -f "$PLUGIN_JSON" ] || PLUGIN_JSON="$PLUGIN_ROOT_DIR/.antigravity-plugin/plugin.json"
+[ -f "$PLUGIN_JSON" ] || PLUGIN_JSON="$PLUGIN_ROOT_DIR/.claude-plugin/plugin.json"
 WRAPPER_VERSION="t${WRAPPER_TEMPLATE_VERSION}"
 PLUGIN_VERSION=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN_JSON" 2>/dev/null | head -1)
 [ -z "$PLUGIN_VERSION" ] && PLUGIN_VERSION="unknown"
@@ -108,6 +109,90 @@ fi
 # SessionStart directive keeps asserting the rule either way, so an ungated repo
 # looks exactly like a gated one from inside a session.
 DOCTOR_RC=0
+
+pp_read_root_version() {
+  local root="$1" pj ver
+  for pj in "$root/plugin.json" "$root/.claude-plugin/plugin.json" "$root/.antigravity-plugin/plugin.json"; do
+    if [ -r "$pj" ]; then
+      ver=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$pj" 2>/dev/null | head -1)
+      if [ -n "$ver" ]; then
+        printf '%s' "$ver"
+        return 0
+      fi
+    fi
+  done
+  printf 'unknown'
+}
+
+pp_read_root_template() {
+  local root="$1" inst tver
+  inst="$root/skills/path-privacy/scripts/install-git-hooks.sh"
+  if [ -r "$inst" ]; then
+    tver=$(sed -n 's/^WRAPPER_TEMPLATE_VERSION=\(.*\)$/t\1/p' "$inst" 2>/dev/null | head -1)
+    if [ -n "$tver" ]; then
+      printf '%s' "$tver"
+      return 0
+    fi
+  fi
+  printf 'unknown'
+}
+
+doctor_harnesses() {
+  local agy_ver claude_ver d label pver tver status
+  local -a dirs=()
+
+  # 1. Check dual-manifest version parity inside this plugin checkout itself.
+  if [ -r "$PLUGIN_ROOT_DIR/plugin.json" ] && [ -r "$PLUGIN_ROOT_DIR/.claude-plugin/plugin.json" ]; then
+    agy_ver=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN_ROOT_DIR/plugin.json" 2>/dev/null | head -1)
+    claude_ver=$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$PLUGIN_ROOT_DIR/.claude-plugin/plugin.json" 2>/dev/null | head -1)
+    if [ -n "$agy_ver" ] && [ -n "$claude_ver" ] && [ "$agy_ver" != "$claude_ver" ]; then
+      printf 'Dual-manifest mismatch in plugin root:\n  plugin.json (%s) != .claude-plugin/plugin.json (%s)\n\n' "$agy_ver" "$claude_ver"
+      DOCTOR_RC=1
+    fi
+  fi
+
+  # 2. Discover installed copies across Antigravity and Claude Code on this machine.
+  if [ -n "${HOME:-}" ]; then
+    for d in \
+      "$HOME/.gemini/config/plugins/path-privacy" \
+      "$HOME/.gemini/antigravity-cli/plugins/path-privacy"; do
+      [ -d "$d/skills/path-privacy/scripts" ] && dirs+=("$d")
+    done
+    for mp in "$HOME/.claude/plugins/cache"/*/path-privacy; do
+      [ -d "$mp" ] || continue
+      d=$(printf '%s\n' "$mp"/* 2>/dev/null | awk -F/ 'NF>1 {print $NF"\t"$0}' | sort -rV 2>/dev/null | head -1 | cut -f2-)
+      [ -n "$d" ] && [ -d "$d/skills/path-privacy/scripts" ] && dirs+=("$d")
+    done
+  fi
+
+  [ ${#dirs[@]} -eq 0 ] && return 0
+
+  echo "Harness installations:"
+  for d in "${dirs[@]}"; do
+    label="$d"
+    [ -n "${HOME:-}" ] && label="${label/#$HOME/~}"
+    pver=$(pp_read_root_version "$d")
+    tver=$(pp_read_root_template "$d")
+    status="current"
+    if [ "$tver" != "$WRAPPER_VERSION" ]; then
+      if pp_template_is_newer "$tver" "$WRAPPER_VERSION"; then
+        status="ahead of this checkout ($tver > $WRAPPER_VERSION)"
+      else
+        status="BEHIND template ($tver < $WRAPPER_VERSION) -- run: sync-peer.sh --install"
+        DOCTOR_RC=1
+      fi
+    elif [ "$pver" != "$PLUGIN_VERSION" ] && [ "$PLUGIN_VERSION" != "unknown" ]; then
+      if pp_version_is_newer "$pver" "$PLUGIN_VERSION"; then
+        status="ahead of this checkout ($pver > $PLUGIN_VERSION)"
+      else
+        status="BEHIND version ($pver < $PLUGIN_VERSION) -- run: sync-peer.sh --install"
+        DOCTOR_RC=1
+      fi
+    fi
+    printf '  %-54s ver=%-8s template=%-4s %s\n' "$label" "$pver" "$tver" "$status"
+  done
+  echo ""
+}
 
 doctor_repo() {
   local repo="$1"
@@ -179,6 +264,7 @@ doctor_repo() {
 if [ "$DOCTOR" -eq 1 ]; then
   echo "path-privacy doctor -- plugin $PLUGIN_VERSION, wrapper template $WRAPPER_VERSION"
   echo ""
+  doctor_harnesses
   if [ -n "$DOCTOR_ROOT" ]; then
     # -maxdepth first: GNU find warns when it follows other primaries. Prune the
     # heavy directories rather than descending them; a vendored dependency tree
@@ -210,9 +296,9 @@ if [ "$DOCTOR" -eq 1 ]; then
   fi
   echo ""
   if [ "$DOCTOR_RC" -eq 0 ]; then
-    echo "All reported gates are current and fail closed."
+    echo "All reported gates and harness installations are current and fail closed."
   else
-    echo "Findings above. Fix with: install-git-hooks.sh -C <repo>"
+    echo "Findings above. Fix repo hooks with: install-git-hooks.sh -C <repo> (or sync harnesses with: sync-peer.sh --install)"
   fi
   exit "$DOCTOR_RC"
 fi
@@ -363,77 +449,66 @@ if [ -x "\$LOCAL_HOOK" ]; then
   "\$LOCAL_HOOK" "\$@" || exit \$?
 fi
 
-# Highest version that is ACTUALLY READABLE, not merely highest. A newest copy
-# that is unreadable must not shadow a working older one and block every
-# commit. Sort by the VERSION component alone -- the 5th field from the right in
-# <ver>/skills/path-privacy/scripts/<name> -- because sort -rV over whole paths
-# compares the marketplace directory first, so cache/mp-z/0.0.1 beat
-# cache/mp-a/9.9.9. And sort -V rather than glob order, which is lexicographic
-# and would pick 0.1.9 over 0.1.10.
-newest_exec() {
-  printf '%s\\n' "\$@" \\
-    | awk -F/ 'NF>4 {print \$(NF-4)"\\t"\$0}' \\
-    | sort -rV | cut -f2- | {
-        while IFS= read -r c; do
-          if [ -r "\$c" ]; then printf '%s' "\$c"; break; fi
-        done
-      }
-}
-
-# Resolve from Antigravity global/CLI plugin directories, including Marketplace
-# hash-named directories (e.g. ~/.gemini/config/plugins/-1870732469773246571).
-find_agy_exec() {
-  local c
-  for c in \\
-    "\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
-    "\$AGY_CLI_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
-    "\$AGY_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME" \\
-    "\$AGY_CLI_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME"; do
-    if [ -r "\$c" ]; then
-      printf '%s' "\$c"
-      return 0
+# Select the highest-version READABLE candidate across both Antigravity and
+# Claude Code installations on this machine. When a repo is used with both
+# harnesses, one agent's installed cache may temporarily lag the other's;
+# scoring every candidate by (wrapper_template_version, plugin_semver, is_frozen)
+# ensures commits always execute the most up-to-date scanner and never warn
+# falsely when at least one harness on the machine matches WRAPPER_VERSION.
+score_candidate() {
+  local c="\$1" pref="\$2" root inst pj tnum pver
+  [ -r "\$c" ] || return 0
+  root="\${c%/skills/path-privacy/scripts/*}"
+  tnum=""
+  inst="\$root/skills/path-privacy/scripts/install-git-hooks.sh"
+  if [ -r "\$inst" ]; then
+    tnum=\$(sed -n 's/^WRAPPER_TEMPLATE_VERSION=\\([0-9][0-9]*\\)\$/\\1/p' "\$inst" 2>/dev/null | head -1)
+  fi
+  [ -z "\$tnum" ] && tnum=0
+  pver=""
+  for pj in "\$root/plugin.json" "\$root/.claude-plugin/plugin.json" "\$root/.antigravity-plugin/plugin.json"; do
+    if [ -r "\$pj" ]; then
+      pver=\$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\\([0-9.][0-9.]*\\)".*/\\1/p' "\$pj" 2>/dev/null | head -1)
+      [ -n "\$pver" ] && break
     fi
   done
-  return 1
+  [ -z "\$pver" ] && pver="0.0.0"
+  printf '%s.%s.%s\\t%s\\n' "\$tnum" "\$pver" "\$pref" "\$c"
+}
+
+best_cross_harness_exec() {
+  local c
+  {
+    # 1. Frozen install path (prefers local checkout on exact version tie: pref=2)
+    score_candidate "\$PATH_PRIVACY_SCRIPT" 2
+    # 2. If frozen path was inside a Claude marketplace cache, check sibling versions in that same marketplace (pref=1)
+    case "\$FROZEN_ROOT" in
+      "\$PLUGIN_CACHE"/*/path-privacy/*)
+        for c in "\${FROZEN_ROOT%/*}"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME"; do
+          score_candidate "\$c" 1
+        done
+        ;;
+    esac
+    # 3. Antigravity global & CLI plugin directories (pref=1)
+    for c in \\
+      "\$AGY_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
+      "\$AGY_CLI_PLUGIN_DIR/skills/path-privacy/scripts/\$SCRIPT_NAME" \\
+      "\$AGY_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME" \\
+      "\$AGY_CLI_PLUGINS_ROOT"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME"; do
+      score_candidate "\$c" 1
+    done
+    # 4. Claude Code plugin cache across marketplaces (pref=0)
+    for c in "\$PLUGIN_CACHE"/*/path-privacy/*/skills/path-privacy/scripts/"\$SCRIPT_NAME"; do
+      score_candidate "\$c" 0
+    done
+  } | sort -rV 2>/dev/null | head -1 | cut -f2-
 }
 
 # The path above is frozen at install time; treat it as a HINT, not a pin.
-CAND=""
-case "\$FROZEN_ROOT" in
-  "\$PLUGIN_CACHE"/*/path-privacy/*)
-    # Marketplace install. The frozen path is version-stamped, so an update
-    # writes a SIBLING version dir and leaves this one intact until cleanup ~14
-    # days later. Re-resolving only when the frozen path is GONE therefore keeps
-    # running the superseded scanner for that entire window: the gate silently
-    # trails the installed plugin and self-corrects only as a side effect of
-    # garbage collection. So resolve to the newest version on every run.
-    #
-    # Scoped to this marketplace's own path-privacy directory, never across
-    # marketplaces: two marketplaces shipping a plugin of the same name are
-    # unrelated packages, and one's version number says nothing about the
-    # other's. Sibling VERSIONS are safe to prefer; sibling PUBLISHERS are not.
-    CAND="\$(newest_exec "\${FROZEN_ROOT%/*}"/*/skills/path-privacy/scripts/"\$SCRIPT_NAME")"
-    if [ -z "\$CAND" ]; then
-      CAND="\$(find_agy_exec || true)"
-    fi
-    ;;
-  *)
-    # Local checkout or Antigravity plugin install. Nothing rotates it into
-    # versioned sibling directories, so the frozen path stays authoritative
-    # while it works.
-    if [ -r "\$PATH_PRIVACY_SCRIPT" ]; then
-      CAND="\$PATH_PRIVACY_SCRIPT"
-    else
-      CAND="\$(find_agy_exec || true)"
-      if [ -z "\$CAND" ]; then
-        # Last-resort recovery, only once their own copy is gone. Searches the
-        # cache by version; never the frozen path's PARENT, which reached every
-        # neighbouring project on disk.
-        CAND="\$(newest_exec "\$PLUGIN_CACHE"/*/path-privacy/*/skills/path-privacy/scripts/"\$SCRIPT_NAME")"
-      fi
-    fi
-    ;;
-esac
+CAND="\$(best_cross_harness_exec)"
+if [ -z "\$CAND" ] && [ -r "\$PATH_PRIVACY_SCRIPT" ]; then
+  CAND="\$PATH_PRIVACY_SCRIPT"
+fi
 [ -n "\$CAND" ] && PATH_PRIVACY_SCRIPT="\$CAND"
 
 # Fail CLOSED and loudly. This hook is a leak gate; if it cannot run, allowing

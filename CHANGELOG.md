@@ -2,6 +2,16 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.24.0] - 2026-10-18
+
+### Changed
+
+- **`path-privacy` (`v0.22.0`, wrapper template `t5`)**:
+  - **Unified Dual-Manifest Plugin Tree**: Added `.claude-plugin/plugin.json` (`v0.22.0`) and `hooks/hooks.json` alongside Antigravity's root `plugin.json` and `hooks.json` so the entire `skills/path-privacy/` directory is 100% byte-for-byte identical across `fb-gemini-plugins` and Claude Code plugin repositories.
+  - **Cross-Harness Version Resolution in Git Hooks (`t5`)**: Updated `install-git-hooks.sh` (`WRAPPER_TEMPLATE_VERSION=5`) so generated `.git/hooks/pre-commit` and `.git/hooks/commit-msg` wrappers score all readable candidate scripts across both Antigravity (`~/.gemini/config/plugins/...`, `~/.gemini/antigravity-cli/plugins/...`) and Claude Code (`~/.claude/plugins/cache/...`) by `(wrapper_template_version, plugin_semver, is_frozen)` and execute the newest installed copy on the machine.
+  - **Cross-Harness Drift Diagnostics (`--doctor` & `SessionStart`)**: `install-git-hooks.sh --doctor` now checks dual-manifest version parity and compares installed Antigravity and Claude Code plugin copies on disk, flagging lagging caches with the exact sync command; `path-privacy-session-start.sh` now names the lagging harness when hooks are ahead of the running plugin.
+  - **Peer & Cache Synchronizer (`scripts/sync-peer.sh`)**: Added `sync-peer.sh` (`--check`, `--apply --peer <dir>`, `--install`) to verify and synchronize peer repository checkouts and local `~/.gemini` / `~/.claude` installed plugin caches in a single step.
+
 ## [0.23.0] - 2026-10-17
 
 ### Changed

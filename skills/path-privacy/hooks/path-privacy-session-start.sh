@@ -150,12 +150,12 @@ if [ -n "$REFRESHED_HOOKS" ]; then
   CONTEXT+=" ($REFRESHED_HOOKS). No action needed."$'\n'
 fi
 if [ -n "$AHEAD_HOOKS" ]; then
-  CONTEXT+="path-privacy: this repo's git hooks are NEWER than the running plugin"
-  CONTEXT+=": $AHEAD_HOOKS; running plugin is $CURRENT_VERSION."$'\n'
-  CONTEXT+="The gate itself is fine -- it is the installed plugin that is behind."$'\n'
-  CONTEXT+="Do NOT re-run install-git-hooks.sh: it would regenerate the hooks from the"$'\n'
-  CONTEXT+="older plugin and downgrade them. Update the plugin instead."$'\n'
-  CONTEXT+="Mention this to the user once, then carry on."$'\n'
+  HARNESS_LABEL="Claude Code"
+  [ "$HARNESS" = "antigravity" ] && HARNESS_LABEL="Antigravity"
+  CONTEXT+="path-privacy: this repo's git hooks ($AHEAD_HOOKS) are NEWER than the running $HARNESS_LABEL plugin ($CURRENT_VERSION)."$'\n'
+  CONTEXT+="The commit gate itself is fine -- this $HARNESS_LABEL plugin copy is behind the sibling harness that updated the hooks."$'\n'
+  CONTEXT+="Do NOT re-run install-git-hooks.sh from this older copy (it would downgrade the hooks)."$'\n'
+  CONTEXT+="To align both harnesses, run sync-peer.sh --install from the newer checkout (or update this plugin). Mention this to the user once, then carry on."$'\n'
 fi
 # -----------------------------------------------------------------------------
 

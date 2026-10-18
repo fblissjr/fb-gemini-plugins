@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "path-privacy",
   "displayName": "Path Privacy",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "description": "Keeps personal identifiers out of repo content: every path written into the repo must be relative to the repo root, and the git user.name full name never appears. PreToolUse hooks rewrite in-repo absolute paths to relative and block external paths or full-name leaks across file edits and git/gh commands; pre-commit and commit-msg git hooks hard-block at commit.",
   "logo": "assets/logo.svg",
   "author": {

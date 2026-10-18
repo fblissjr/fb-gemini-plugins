@@ -26,12 +26,15 @@ fb-gemini-plugins/
 │   │   │           ├── domain-playbooks.md
 │   │   │           └── hyde-theory-and-patterns.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
-│   └── path-privacy/                        # Path & author privacy plugin (v0.21.0)
+│   └── path-privacy/                        # Path & author privacy plugin (v0.22.0)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
-│       ├── hooks.json                       # Plugin-root hooks configuration (SessionStart, PreToolUse)
+│       ├── .claude-plugin/
+│       │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
+│       ├── hooks.json                       # Antigravity plugin-root hooks configuration (SessionStart, PreToolUse)
 │       ├── assets/
 │       │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
 │       ├── hooks/                           # Dual-harness hook scripts (Antigravity + Claude Code)
+│       │   ├── hooks.json                   # Claude Code hooks manifest
 │       │   ├── path-privacy-session-start.sh
 │       │   └── path-privacy-pre-tool-use.sh
 │       ├── skills/
@@ -41,7 +44,7 @@ fb-gemini-plugins/
 │       │       │   ├── patterns.md
 │       │       │   ├── scrub_workflow.md
 │       │       │   └── path-privacy.local.json.example
-│       │       └── scripts/                 # Scanner, scrubber, and git hooks
+│       │       └── scripts/                 # Scanner, scrubber, synchronizer, and git hooks
 │       │           ├── _hooks_dir.sh
 │       │           ├── _name_guard.sh
 │       │           ├── _skip_marker.sh
@@ -50,7 +53,8 @@ fb-gemini-plugins/
 │       │           ├── git-commit-msg
 │       │           ├── git-pre-commit
 │       │           ├── install-git-hooks.sh
-│       │           └── scrub-paths.sh
+│       │           ├── scrub-paths.sh
+│       │           └── sync-peer.sh
 │       └── README.md                        # Plugin documentation
 ├── GEMINI.md                                # Project instructions (this file)
 ├── AGENTS.md                                # Symlink to GEMINI.md
@@ -258,7 +262,7 @@ Every file created or modified inside this repository MUST obey these rules:
 ### 8. Version Cascade
 
 When updating a plugin's version, keep these locations in sync:
-1. `skills/<name>/plugin.json` (`version`)
+1. `skills/<name>/plugin.json` (`version`) and `skills/path-privacy/.claude-plugin/plugin.json` (`version`)
 2. `README.md` (catalog table)
 3. `CHANGELOG.md` (new release section)
 4. If `install-git-hooks.sh` changes its generated `.git/hooks/` wrapper template, bump `WRAPPER_TEMPLATE_VERSION` in `skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh`.
@@ -272,8 +276,9 @@ Run these checks before committing any changes:
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 
-# 2. Check git hook installation health
+# 2. Check git hook installation health and dual-harness alignment
 bash skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor
+bash skills/path-privacy/skills/path-privacy/scripts/sync-peer.sh --check
 
 # 3. Scan working tree for external path or full-name leaks
 bash skills/path-privacy/skills/path-privacy/scripts/find-external-paths.sh -d .
