@@ -3,7 +3,9 @@
 Concrete templates and worked examples showing how to project, ground, and
 converge **Hypothetical Diffs ($\hat{\Delta}$)** across everyday non-coding,
 creative, interpersonal, analytical, and coding domains—in any tone set by the
-user.
+user. (For multi-granularity `L0`–`L4` zoom ladders, turn-by-turn rallies,
+temporal inversion tables, and Monte Carlo branching envelopes, see
+[simulation-engine.md](simulation-engine.md).)
 
 ---
 
@@ -63,7 +65,7 @@ instantly.
 - pretended everything was fine so they wouldn't fight at the restaurant.
 + Marcus folded the paper wrapper from his straw into a tight accordion, pressed
 + it flat with his thumb, and asked the waiter if the kitchen was still doing
-+ theshared dessert menu. Elena hadn't looked up from her email since the bread arrived.
++ the shared dessert menu. Elena hadn't looked up from her email since the bread arrived.
 
 @@ Hunk 2: Dialogue Subtext (Cutting On-the-Nose Speech) @@
 - "You don't care about us anymore," he said quietly.

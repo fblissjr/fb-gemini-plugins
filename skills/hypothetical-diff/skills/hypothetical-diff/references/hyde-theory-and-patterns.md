@@ -166,7 +166,25 @@ cap).
 
 ---
 
-## 9. Anti-Patterns & Failure Modes to Avoid
+## 9. Multi-Resolution State Projection ($\hat{\Delta}_L$) & Scale Consistency
+
+A state transition exists simultaneously across structural scales $L \in \{L_0, L_1, L_2, L_3, L_4\}$
+and time horizons $t \in \{t_{\text{tick}}, t_{\text{day}}, t_{\text{year}}, t_{\text{era}}\}$:
+
+$$\hat{\Delta}_{L_3} \approx \int_{t} \sum_{i} \hat{\Delta}_{L_0, i}(t)\,dt$$
+
+- **The Cross-Scale Conservation Law**: A macro state transition $\hat{\Delta}_{L_3}$
+  (e.g., *"Publish a book in 12 months"* or *"Cut enterprise churn by 50%"*) is
+  physically realizable **if and only if** the integral of the micro diffs
+  $\hat{\Delta}_{L_0}$ and tactical diffs $\hat{\Delta}_{L_1}$ supplies the
+  required conserved inputs.
+- **Telescoping Verification**: Projecting $\hat{\Delta}_{L_3} \rightarrow \hat{\Delta}_{L_2} \rightarrow \hat{\Delta}_{L_0}$
+  in a single **Telescoping Diff** catches **"Macro Ambition / Micro Starvation"**
+  before execution begins (see [simulation-engine.md](simulation-engine.md)).
+
+---
+
+## 10. Anti-Patterns & Failure Modes to Avoid
 
 1. **Mistaking the Projection for Ground Truth**:
    - *Failure*: Presenting `[HYPOTHETICAL]` numbers, file paths, or clause
@@ -185,3 +203,9 @@ cap).
    - *Fix*: Break changes into 2–4 small, numbered semantic hunks (`@@ Hunk 1: ... @@`,
      `@@ Hunk 2: ... @@`) with 1–2 lines of unchanged context so the user can
      cherry-pick them interactively.
+4. **Single-Scale Tunnel Vision**:
+   - *Failure*: Simulating a 5-year strategy at `L4` with zero `L0`/`L1` Tuesday-morning
+     behavioral mechanism, or obsessing over an `L0` word choice when the `L3`
+     incentive structure is broken.
+   - *Fix*: Use `Zoom In (L0)` and `Zoom Out (L3/L4)` to verify cross-scale
+     consistency.

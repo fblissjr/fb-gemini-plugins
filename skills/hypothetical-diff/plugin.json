@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "hypothetical-diff",
   "displayName": "Hypothetical Diff",
-  "version": "0.2.0",
-  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any non-coding or coding domain—writing, difficult conversations, negotiation, learning & mental models, habits, policy counterfactuals, strategy, calendars, contracts, spreadsheets, and code. Simulates any scenario or rewrite in any user-set tone with interactive hunk mix-and-match.",
+  "version": "0.3.0",
+  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any non-coding or coding domain—writing, difficult conversations, negotiation, learning & mental models, habits, policy counterfactuals, strategy, calendars, contracts, spreadsheets, and code. Simulates anything at any granularity (L0 atomic micro-choices to L4 macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"
@@ -16,6 +16,7 @@
     "hydiff",
     "diff",
     "simulation",
+    "multi-granularity",
     "tone",
     "negotiation",
     "mental-models",
@@ -25,8 +26,8 @@
     "antigravity"
   ],
   "suggestedPrompts": [
-    "Simulate a hypothetical diff for this difficult conversation (script + subtext + their reaction) in a warm, unshakeable tone",
-    "Show me a Mental Model Diff (intuitive misconception vs. how it actually works) for this topic",
-    "Run a counterfactual diff comparing Option A vs Option B across my schedule, energy, and trade-offs"
+    "Simulate a 3-turn negotiation rally diff (spoken script + subtext + their pushback) in a warm, unshakeable tone",
+    "Run a Telescoping Diff (L3 1-year goal down to L0 Tuesday 7:15 AM micro-cue) and check for scale mismatches",
+    "Show me a Mental Model Diff (intuitive misconception vs. how it actually works) or Monte Carlo branching diff for this topic"
   ]
 }

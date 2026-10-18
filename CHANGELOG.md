@@ -2,6 +2,19 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.25.0] - 2026-10-18
+
+### Added
+
+- **`hypothetical-diff` (`v0.3.0` — Multi-Granularity Simulation Engine)**:
+  - Added the **4-Axis Granularity Space ($\mathcal{G} = \langle \text{Scale}, \text{Time}, \text{Fidelity}, \text{Lens} \rangle$)** and the **5-Level Structural Zoom Ladder (`L0` Atomic/Sub-second $\leftrightarrow$ `L4` Macro/Era)** so any scenario, dialogue, habit, policy, strategy, or system can be simulated and zoomed continuously across resolutions.
+  - Added [`references/simulation-engine.md`](skills/hypothetical-diff/skills/hypothetical-diff/references/simulation-engine.md) with four multi-granularity simulation archetypes:
+    1. **Telescoping Zoom Diff (`L3 Macro` $\rightarrow$ `L2 Meso` $\rightarrow$ `L0 Micro`)**: Links 1-to-5-year goals directly down to Tuesday 07:15 AM micro-cues and enforces the **Cross-Scale Conservation Law** (detecting *"Macro Ambition / Micro Starvation"* mismatches).
+    2. **Turn-by-Turn Rally State Machines (`Turn 1` $\rightarrow$ `Turn 2` $\rightarrow$ `Turn 3`)**: Simulates multi-turn negotiations, sales objections, interviews, and difficult conversations comparing the *Default Derailment Path (`-`)* vs. *Calibrated Steering Path (`+`)* with spoken lines, subtext, and emotional temperature deltas ($\Delta \text{Temp}$).
+    3. **Multi-Horizon Temporal Compounding & Inversion Diffs (`+10m | +2wk | +6mo | +3yr`)**: Exposes sign flips between short-term relief traps and long-term compounding choices.
+    4. **Monte Carlo Branching Envelopes & Curveball Perturbations (`Base Case 60% | Upside 20% | Murphy's Law Tail-Risk 20% + Pre-Emptive Hedge`)**: Replaces single-line projections with probability envelopes and minimum-cost pre-emptive hedges.
+  - Added **Multi-Perspective Simultaneous Lens Diffing** (*Proposer*, *Skeptical Counterparty*, *Silent Bystander*, *Future-You*) and the **Interactive Simulation Controller** (`Zoom In`, `Zoom Out`, `Step +1 Turn/Yr`, `Curveball`, `Shift Tone/Lens`, `Mix & Match Hunks`).
+
 ## [0.24.0] - 2026-10-18
 
 ### Changed
