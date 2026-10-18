@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- 10% margin frame: content within 14..114 -->
+  <rect x="14" y="14" width="100" height="100" rx="22" fill="#0F172A" stroke="#334155" stroke-width="3"/>
+  <!-- Left speech/shield card (User - Electric Cyan) -->
+  <path d="M26 38C26 32.4772 30.4772 28 36 28H64C69.5228 28 74 32.4772 74 38V58C74 63.5228 69.5228 68 64 68H42L30 78V68C27.7909 68 26 66.2091 26 64V38Z" fill="#0EA5E9" fill-opacity="0.18" stroke="#38BDF8" stroke-width="3.5" stroke-linejoin="round"/>
+  <line x1="36" y1="43" x2="62" y2="43" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="36" y1="53" x2="54" y2="53" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Right speech/hidden card (Counterparty - Amber/Coral with Lock/Hidden state) -->
+  <path d="M102 56C102 50.4772 97.5228 46 92 46H64C58.4772 46 54 50.4772 54 56V76C54 81.5228 58.4772 86 64 86H86L98 96V86C100.209 86 102 84.2091 102 82V56Z" fill="#F59E0B" fill-opacity="0.2" stroke="#FBBF24" stroke-width="3.5" stroke-linejoin="round"/>
+  <!-- Lightning spark at collision point -->
+  <path d="M66 36L58 50H67L61 64" stroke="#F43F5E" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Keyhole / Hidden state symbol inside right card -->
+  <circle cx="82" cy="64" r="4.5" fill="#FBBF24"/>
+  <path d="M80 67L79 75H85L84 67" fill="#FBBF24"/>
+</svg>

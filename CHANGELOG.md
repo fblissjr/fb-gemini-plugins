@@ -2,6 +2,16 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.26.0] - 2026-10-18
+
+### Added
+
+- **`sparring-partner` (`v0.1.0` — Live In-Character Roleplay & Flight Simulator)**:
+  - Added [`skills/sparring-partner/`](skills/sparring-partner/) as an orthogonal companion to `hypothetical-diff` for **Google Antigravity** and **Gemini Spark**: whereas `hypothetical-diff` previews a 3rd-person Before/After delta upfront, `sparring-partner` runs a **1st-person, turn-by-turn live simulation under Fog of War**.
+  - **The Sealed Envelope (Zero-Spoiler Hidden State)**: At Turn 0, silently locks the counterparty's secret walk-away/BATNA, unspoken political or personal fear, Red-Button Triggers (`Trust -2`), Green-Key Unlocks (`Trust +2`), and live `Trust (5/10)` / `Patience (5/5)` meters—preventing sycophantic AI cave-ins and holding all hidden cards until the debrief.
+  - **5 Difficulty Levels (`L1 Warm-Up` $\leftrightarrow$ `L5 Kobayashi Maru`) & Live Ring Controls**: Supports any user-set tone or persona with mid-round controls (`"Time-out / Coach"`, `"Rewind Turn X"`, `"Swap Seats"`, `"Dial up to L4"`, `"Debrief"`).
+  - **Flight-Recorder Debrief & References**: Unseals the Hidden Counterparty Card, prints a turn-by-turn `Trust`/`Patience` flight recorder, highlights what was left on the table, and renders an **Instant Replay Diff** (`--- What You Said` vs. `+++ The Unlock Line`). Ships with [`references/counterparty-archetypes.md`](skills/sparring-partner/skills/sparring-partner/references/counterparty-archetypes.md) (12 blueprints) and [`references/hidden-state-and-debrief.md`](skills/sparring-partner/skills/sparring-partner/references/hidden-state-and-debrief.md).
+
 ## [0.25.0] - 2026-10-18
 
 ### Added

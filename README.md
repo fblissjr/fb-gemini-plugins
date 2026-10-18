@@ -10,6 +10,7 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 |----------------|---------|-----------|------------|-------------|
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`simulation-engine.md`, `domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any non-coding or coding domain—simulating anything at any granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match. |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Synchronizer (`sync-peer.sh`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name across both Antigravity and Claude Code. |
+| **[sparring-partner](skills/sparring-partner/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
 
 ---
 
@@ -25,6 +26,7 @@ Plugins installed into `~/.gemini/config/plugins/` are shared automatically betw
 # Option A: Install a single plugin directly from GitHub (no manual git clone needed)
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
+agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
 
 # Option B: Bulk-install ALL plugins in this repo directly from GitHub
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills
@@ -32,6 +34,7 @@ agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skill
 # Option C: Install from a local checkout of fb-gemini-plugins
 agy plugin install ./skills/hypothetical-diff
 agy plugin install ./skills/path-privacy
+agy plugin install ./skills/sparring-partner
 
 # Verify installed plugins
 agy plugin list
@@ -39,6 +42,7 @@ agy plugin list
 # Validate plugin manifests, skills, and hooks against the runtime loader
 agy plugin validate ./skills/hypothetical-diff --strict
 agy plugin validate ./skills/path-privacy --strict
+agy plugin validate ./skills/sparring-partner --strict
 ```
 
 ### Method 2: Antigravity CLI Interactive TUI (`/plugin`)

@@ -57,6 +57,17 @@ fb-gemini-plugins/
 │       │           ├── scrub-paths.sh
 │       │           └── sync-peer.sh
 │       └── README.md                        # Plugin documentation
+│   └── sparring-partner/                    # Live 1-on-1 in-character flight simulator plugin & skill (v0.1.0)
+│       ├── plugin.json                      # Native Antigravity plugin manifest
+│       ├── assets/
+│       │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│       ├── skills/
+│       │   └── sparring-partner/
+│       │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
+│       │       └── references/              # Counterparty archetypes & Sealed Envelope debrief mechanics
+│       │           ├── counterparty-archetypes.md
+│       │           └── hidden-state-and-debrief.md
+│       └── README.md                        # Plugin and dual-platform documentation
 ├── GEMINI.md                                # Project instructions (this file)
 ├── AGENTS.md                                # Symlink to GEMINI.md
 ├── CHANGELOG.md                             # Version history

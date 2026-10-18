@@ -1,0 +1,30 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "sparring-partner",
+  "displayName": "Sparring Partner",
+  "version": "0.1.0",
+  "description": "Live 1-on-1 in-character roleplay and high-pressure conversation flight simulator across any domain—negotiations, difficult personal talks, interviews, sales objections, crisis briefings, cross-examinations, and creative roleplay. Holds hidden counterparty cards (secret BATNA, hidden fears, triggers, and trust meter) under Fog of War until the Flight-Recorder Debrief.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "sparring-partner",
+    "roleplay",
+    "simulation",
+    "negotiation",
+    "difficult-conversations",
+    "interview-prep",
+    "flight-simulator",
+    "debrief",
+    "gemini-spark",
+    "antigravity"
+  ],
+  "suggestedPrompts": [
+    "Spar with me live as my skeptical VP while I ask for a $165k raise—keep your hidden constraints secret until the debrief",
+    "Run a Difficulty 4 live sparring round: you're an upset enterprise client threatening to churn and I have 5 turns to save the renewal",
+    "Be my sparring partner for a tough personal boundary conversation—stay strictly in character one turn at a time"
+  ]
+}
