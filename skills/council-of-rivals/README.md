@@ -2,23 +2,17 @@
 
 last updated: 2026-10-18
 
-An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** (`v0.1.0`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
+An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** (`v0.1.1`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
 
 ---
 
-## Why `council-of-rivals`? (The 3rd Pillar of the Simulation Suite)
+## Why `council-of-rivals`?
 
 When you ask a standard AI for "multiple perspectives," you get three polite paragraphs from the same underlying voice that agree to "balance all factors."
 
 **`council-of-rivals` bans lukewarm consensus**. It casts **3–5 sharply opposing minds with incompatible objective functions**, forces them to **cross-examine your idea and each other**, and distills the clash into a **Double-Crux Map ($\mathcal{C}$)**—the exact factual threshold or value trade-off where the rivals split, plus the single decisive test that resolves the debate.
 
-### How the 3 Simulation & Reasoning Plugins Fit Together
-
-| Plugin | POV & Topology | Best Used When... |
-|--------|----------------|-------------------|
-| **[`hypothetical-diff`](../hypothetical-diff/)** | **3rd-Person State-Transition Blueprint** (`--- Before` / `+++ After`) | You want to preview, zoom (`L0`–`L4`), and edit a concrete change before committing. |
-| **[`sparring-partner`](../sparring-partner/)** | **1st-Person 1-on-1 Flight Simulator** (*You vs. Counterparty with Sealed Envelope*) | You need to practice delivering a negotiation, interview, or tough talk live under Fog of War. |
-| **`council-of-rivals`** | **Multi-Agent Collision Arena** (*3–5 Rivals colliding with each other $\rightarrow$ Crux Map*) | You face a high-stakes decision or thesis and want conflicting experts/incentives to tear it apart and find the **Crux**. |
+This plugin is fully self-contained; it can be used alone or chained with other skills via the conversation.
 
 ---
 
@@ -69,7 +63,7 @@ agy plugin validate ./skills/council-of-rivals --strict
 
 ```text
 skills/council-of-rivals/
-├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.0)
+├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.1)
 ├── assets/
 │   └── logo.svg                                    # 128x128 square SVG icon for App/Marketplace cards
 ├── README.md                                       # Plugin & dual-platform documentation (this file)

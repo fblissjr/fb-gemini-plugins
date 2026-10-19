@@ -22,8 +22,6 @@ A live, first-person **Conversation & Negotiation Flight Simulator** that puts
 you across the table from a realistic human counterparty who holds **hidden
 cards you cannot see until the debrief**.
 
-While [`hypothetical-diff`](../../hypothetical-diff/skills/hypothetical-diff/SKILL.md)
-is a third-person analytical blueprint (`--- Before` / `+++ After`),
 **`sparring-partner` is first-person live pressure**:
 - **Asymmetric Information (Fog of War)**: Real people do not wear their BATNA
   (walk-away line), political insecurities, or secret budget caps on their

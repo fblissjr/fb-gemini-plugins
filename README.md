@@ -94,9 +94,9 @@ bash ~/.gemini/config/plugins/path-privacy/skills/path-privacy/scripts/install-g
 
 ---
 
-## The Simulation & Decision Suite (`hypothetical-diff`, `sparring-partner`, `council-of-rivals`)
+## Simulation & Decision Plugins (`hypothetical-diff`, `sparring-partner`, `council-of-rivals`)
 
-Together, these three plugins cover the three orthogonal dimensions of simulation, decision-making, and high-stakes communication:
+These three plugins are fully independent: each `SKILL.md` and its references never link to or depend on another skill. They can still be chained by the user in conversation when needed.
 
 | Plugin | POV & Topology | Core Primitive |
 |--------|----------------|----------------|

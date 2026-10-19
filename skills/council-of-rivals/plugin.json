@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "council-of-rivals",
   "displayName": "Council of Rivals",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Adversarial multi-persona collision arena and Double-Crux extractor across any non-coding or coding domain—strategy, career/life choices, investments, policy, creative work, science, and architecture. Casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact Crux Map and decisive test.",
   "logo": "assets/logo.svg",
   "author": {

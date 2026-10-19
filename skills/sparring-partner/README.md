@@ -2,13 +2,13 @@
 
 last updated: 2026-10-18
 
-A live 1-on-1 **In-Character Roleplay & High-Pressure Conversation Flight Simulator** (`v0.1.0`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
+A live 1-on-1 **In-Character Roleplay & High-Pressure Conversation Flight Simulator** (`v0.1.1`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
 
 ---
 
-## Why `sparring-partner`? (Orthogonal to `hypothetical-diff`)
+## Why `sparring-partner`?
 
-While **[`hypothetical-diff`](../hypothetical-diff/)** gives you a third-person analytical blueprint (`--- Before` / `+++ After`) before a conversation, knowing your script on paper is completely different from **performing under live pressure when the other person interrupts, deflects, or stonewalls—and you cannot see their cards**.
+Knowing your script on paper is completely different from **performing under live pressure when the other person interrupts, deflects, or stonewalls—and you cannot see their cards**.
 
 `sparring-partner` solves the two biggest flaws of standard AI roleplay:
 1. **No Sycophantic Cave-Ins**: Normal AI roleplay folds after two polite sentences (*"Great point, here's the 20% raise!"*). `sparring-partner` enforces **conditional concessions**—the counterparty only yields when you hit specific psychological or structural **Green-Key Unlocks**, and pushes back harder if you trigger **Red-Button Triggers**.
@@ -80,7 +80,7 @@ agy plugin validate ./skills/sparring-partner --strict
 
 ```text
 skills/sparring-partner/
-├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.0)
+├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.1)
 ├── assets/
 │   └── logo.svg                                    # 128x128 square SVG icon for App/Marketplace cards
 ├── README.md                                       # Plugin & dual-platform documentation (this file)

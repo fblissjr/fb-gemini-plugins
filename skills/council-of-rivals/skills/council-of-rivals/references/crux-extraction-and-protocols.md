@@ -82,21 +82,3 @@ or multi-document strategy where the user wants a **Deep Council**:
    main agent runs Round 2 (Cross-Examination Clash) and Round 3 (Double-Crux
    Map) directly over their competing evidence.
 
----
-
-## 4. The Complete 3-Plugin Reasoning Suite Loop
-
-`council-of-rivals`, [`hypothetical-diff`](../../../hypothetical-diff/skills/hypothetical-diff/SKILL.md),
-and [`sparring-partner`](../../../sparring-partner/skills/sparring-partner/SKILL.md)
-can be chained in any order:
-
-```text
-[1. council-of-rivals]  Collide 3–5 opposing minds -> Extract the Double Crux (C)
-          │
-          ▼
-[2. hypothetical-diff]  Project the Crux-winning strategy as a concrete Before/After Diff (Δ̂)
-          │
-          ▼
-[3. sparring-partner]   Step into the ring 1-on-1 against the toughest dissenting stakeholder
-                        to practice defending the plan under live pressure
-```

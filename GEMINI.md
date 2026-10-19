@@ -86,6 +86,15 @@ fb-gemini-plugins/
 └── README.md                                # Repository catalog and installation guide
 ```
 
+## Skill Independence Rule (CRITICAL)
+
+Every skill/plugin in this repository MUST stand entirely on its own:
+
+- Never reference, link to, or depend on another skill or plugin in this repo from a `SKILL.md`, `references/`, `plugin.json`, or plugin `README.md` (no relative links like `../other-skill/`, no "hand off to <other-skill>" controls, no "suite loop" or comparison tables naming sibling skills).
+- Skills are chained by the user in conversation, relying on progressive disclosure; a skill must never assume another one is installed.
+- Exception: only when the user explicitly asks for a specific cross-skill link or integration.
+- The root `README.md` catalog, `CHANGELOG.md`, and this file may list plugins side by side, but must not describe skills as dependent on each other.
+
 ## Path & Author Privacy Rules (CRITICAL)
 
 Every file created or modified inside this repository MUST obey these rules:

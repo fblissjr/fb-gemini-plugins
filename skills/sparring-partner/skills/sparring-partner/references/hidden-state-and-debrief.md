@@ -67,17 +67,12 @@ breaking the fourth wall:
 
 ---
 
-## 4. Synergy with `hypothetical-diff` (The Plan $\rightarrow$ Spar $\rightarrow$ Diff Loop)
+## 4. Debrief Replay Loop
 
-`sparring-partner` and [`hypothetical-diff`](../../../hypothetical-diff/skills/hypothetical-diff/SKILL.md)
-form an orthogonal closed loop:
-
-1. **Before the Match (`hypothetical-diff`)**: Draft and stress-test your
-   planned script and trade-offs using a Before/After diff.
-2. **In the Ring (`sparring-partner`)**: Pressure-test your delivery live
-   one turn at a time against a counterparty with hidden cards.
-3. **In the Debrief (`sparring-partner` $\rightarrow$ `hypothetical-diff`)**:
-   Review the **Flight-Recorder Debrief** and the **Instant Replay Diff**
-   (`--- Turn X: What You Actually Said` vs. `+++ Turn X: The Unlock Line`),
-   then use `"Rewind Turn X"` to practice the upgraded line until it feels
-   effortless.
+1. **In the Ring**: Pressure-test your delivery live one turn at a time
+   against a counterparty with hidden cards.
+2. **In the Debrief**: Review the **Flight-Recorder Debrief** and the
+   **Instant Replay Diff** (`--- Turn X: What You Actually Said` vs.
+   `+++ Turn X: The Unlock Line`).
+3. **Rewind**: Use `"Rewind Turn X"` to practice the upgraded line until it
+   feels effortless.

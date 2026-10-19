@@ -21,15 +21,9 @@ replaces polite, sycophantic "pros and cons" lists with **3–5 sharply opposing
 minds who have incompatible incentives and are forced to cross-examine your
 proposal and each other**.
 
-In the simulation & reasoning suite, each tool covers an orthogonal dimension:
-- **[`hypothetical-diff`](../../hypothetical-diff/skills/hypothetical-diff/SKILL.md)**:
-  *3rd-Person State-Transition Blueprint* (`--- Before` / `+++ After`).
-- **[`sparring-partner`](../../sparring-partner/skills/sparring-partner/SKILL.md)**:
-  *1st-Person 1-on-1 Flight Simulator* (You vs. a single counterparty with hidden
-  cards).
-- **`council-of-rivals`**: *Multi-Agent Collision Arena & Crux Extractor* (3–5
-  conflicting minds colliding with **each other** to isolate the exact load-bearing
-  premise—the **Crux ($\mathcal{C}$)**—that decides the outcome).
+`council-of-rivals` is a *Multi-Agent Collision Arena & Crux Extractor*: 3–5
+conflicting minds collide with **each other** to isolate the exact load-bearing
+premise—the **Crux ($\mathcal{C}$)**—that decides the outcome.
 
 ---
 
@@ -141,7 +135,7 @@ user's requested tone):
 - **Decisive Test (Run This First)**:
   - `<1-sentence concrete check or experiment that resolves Crux 1>`
 
-> **Arena Controls**: `Cross-Examine <Rival>` · `Inject Evidence ("What if...")` · `Swap Seat / Shift Tone` · `Diff the Winning Path (hypothetical-diff)` · `Spar 1-on-1 vs. <Rival> (sparring-partner)`
+> **Arena Controls**: `Cross-Examine <Rival>` · `Inject Evidence ("What if...")` · `Swap Seat / Shift Tone`
 ```
 
 ---
@@ -156,11 +150,9 @@ After convening the council, let the user steer the next round (via
   the room and force the rivals to update their positions.
 - 🪑 **`Swap Seat / Change Tone`**: Add a 4th rival (e.g., *"Add a Regulator"* or
   *"Re-run in a Deadpan Roast tone"*).
-- 🔀 **`Hand Off to hypothetical-diff`**: Project the Crux-resolved synthesis as
-  a concrete `--- Before` / `+++ After` diff (`hypothetical-diff`).
-- 🥊 **`Hand Off to sparring-partner`**: Step into the ring 1-on-1 against the
-  most skeptical rival (`sparring-partner`) to practice defending your thesis
-  live.
+
+This skill is self-contained. Its output (the Crux Map and Decisive Test) is
+plain text the user can carry into any follow-up request.
 
 ---
 

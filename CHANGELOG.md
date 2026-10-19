@@ -2,6 +2,14 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.28.0] - 2026-10-19
+
+### Changed
+
+- **`council-of-rivals` (`v0.1.1`) and `sparring-partner` (`v0.1.1`)**: Decoupled skills from each other. Removed all cross-skill links, handoff controls, "suite loop" sections, and comparison tables from `SKILL.md`, references, and plugin READMEs; each skill is now fully standalone and can be chained by the user via progressive disclosure. `hypothetical-diff` (`v0.3.0`) required no changes.
+- **`GEMINI.md` / `AGENTS.md`**: Added a "Skill Independence" rule forbidding direct cross-skill entanglement unless the user explicitly requests it.
+- **`README.md`**: Reframed the "Simulation & Decision Suite" section as independent plugins.
+
 ## [0.27.0] - 2026-10-18
 
 ### Added
