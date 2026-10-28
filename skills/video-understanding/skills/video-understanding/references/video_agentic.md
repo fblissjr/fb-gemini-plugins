@@ -14,9 +14,9 @@ Companion reference to [`../SKILL.md`](../SKILL.md).
 
 ## 1. Opt-In Requirement & Supported Models
 
-Agentic video understanding is **never enabled by default**. Even on Gemini 4 Argon and Gemini 3.8 Flash, omitting `"processing"` defaults to `1 fps` static frame extraction.
+Agentic video understanding is **never enabled by default**. Even on Gemini 3.8 Flash, omitting `"processing"` defaults to `1 fps` static frame extraction.
 - **How to enable**: Set `"processing": "agentic"` on the `"type": "video"` input object.
-- **Supported models**: `gemini-3.8-flash` (default), `gemini-4-argon`, `gemini-3.6-flash`, `gemini-3.5-flash-lite`, and newer models.
+- **Supported models**: `gemini-3.8-flash` (default), `gemini-3.1-pro-preview`, `gemini-3.5-flash-lite`, and newer models.
 - **How it works**: The model inspects the audio transcript first and dynamically loads visual frames or audio segments on demand at adaptive frame rates and resolutions (`processing_call` and `processing_result` steps interleaved with `thought` steps in `interaction.steps`), reducing video input token usage by up to `88%` on long-form content.
 
 ---

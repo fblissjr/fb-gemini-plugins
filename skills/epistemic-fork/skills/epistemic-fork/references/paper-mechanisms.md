@@ -32,12 +32,12 @@ In a preregistered randomized experiment ($N = 109$ verified domain experts in e
 ### Finding 4: Unsolicited Pushback & Switching a Taken Side ($H_4$)
 - **The Evidence**:
   - Even when an expert explicitly declared their own choice *first* (17% of decisions), unsolicited opposing advocacy from the agent caused them to abandon their declared choice **60%** of the time (**+53pp gap**, $p < .001$).
-  - In baseline audits of unmanipulated **Claude Opus 4.8**, when a prompt explicitly specified the non-modal choice and asked *only* for implementation code, the stock model still brought up the alternative **66%** of the time and actively advocated against the user's choice **41%** of the time (often demoting the user's primary spec to a "sensitivity check").
+  - In baseline audits of an unmanipulated frontier coding model, when a prompt explicitly specified the non-modal choice and asked *only* for implementation code, the stock model still brought up the alternative **66%** of the time and actively advocated against the user's choice **41%** of the time (often demoting the user's primary spec to a "sensitivity check").
 - **How `epistemic-fork` Solves It**: `lock` mode enforces a strict **Zero-Advocacy Execution Firewall**: 100% Layer-1 procedural bug protection with 0% unsolicited methodological pivots, 0% "sensitivity check" demotions, and 0% unrequested competing baselines.
 
 ### Finding 5: Stock Model Prior Monoculture & Epistemic Ventriloquism
 - **The Evidence**:
-  - Off-the-shelf Claude Opus 4.8 converged on the exact same 5-choice vector (`BAAAA`) **91%** of the time (and **95%** on Fable 5), meaning independent teams using the same foundation model will mistake correlated model priors for independent scientific consensus.
+  - In baseline trials without steering, the off-the-shelf frontier model converged on the exact same 5-choice vector (`BAAAA`) **91%** of the time (and **95%** in a replication variant), meaning independent teams using the same foundation model will mistake correlated model priors for independent scientific consensus.
   - Post-task, **52%** of experts rated their final recommendation as more their own than the AI's, yet **77%** repeated the agent's rationales (often verbatim) and only **15%** mentioned the agent in their write-up.
 - **How `epistemic-fork` Solves It**: `audit` mode runs a strict **Two-Pass Review**:
   - **Pass 1 (`[HYGIENE AUDIT]`)**: Objective bugs only.

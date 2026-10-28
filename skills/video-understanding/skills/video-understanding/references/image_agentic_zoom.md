@@ -12,16 +12,16 @@ Companion reference to [`../SKILL.md`](../SKILL.md).
        --box 256,128,768,512 --out /tmp/crop.png
      ```
 - **When Path 3B (`gemini_media.py zoom`) IS permitted**:
-  - Only when you specifically need an external model in `gemini-api` to run autonomous remote sandboxed `code_execution` (`tools: [{"type": "code_execution"}]` + `"resolution": "ultra_high"`) or when referencing the Gemini 3 / Gemini 4 per-item `media_resolution` token table below for `gemini-api` calls.
+  - Only when you specifically need an external model in `gemini-api` to run autonomous remote sandboxed `code_execution` (`tools: [{"type": "code_execution"}]` + `"resolution": "ultra_high"`) or when referencing the Gemini 3+ per-item `media_resolution` token table below for `gemini-api` calls.
 - **Media privacy gate**: Always ask the user and name the file before uploading local media via `gemini-api`.
 
 ---
 
-## 1. Per-Content-Item `media_resolution` Token Table (Gemini 3 & Gemini 4)
+## 1. Per-Content-Item `media_resolution` Token Table (Gemini 3+)
 
-Gemini 3 and Gemini 4 models allow setting `"resolution"` on **each individual media item** inside the `input` array. You can mix resolutions in a single request (for example, `"resolution": "low"` on a clean reference image and `"resolution": "ultra_high"` on a dense multi-row contact sheet or architectural diagram):
+Gemini 3+ models allow setting `"resolution"` on **each individual media item** inside the `input` array. You can mix resolutions in a single request (for example, `"resolution": "low"` on a clean reference image and `"resolution": "ultra_high"` on a dense multi-row contact sheet or architectural diagram):
 
-| `resolution` Value | Image Tokens (Gemini 3 / 4) | Video Tokens / Frame (Gemini 3 / 4) | Audio Tokens / Sec | Recommended Use |
+| `resolution` Value | Image Tokens (Gemini 3+) | Video Tokens / Frame (Gemini 3+) | Audio Tokens / Sec | Recommended Use |
 | :--- | :--- | :--- | :--- | :--- |
 | `"unspecified"` (Default) | `1120` | `70` | `25` | General single-still questions |
 | `"low"` | `280` | `70` | `25` | Reference stills passed for coarse identity or style context |

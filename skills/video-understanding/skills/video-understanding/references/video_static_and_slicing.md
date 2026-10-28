@@ -14,10 +14,10 @@ Companion reference to [`../SKILL.md`](../SKILL.md).
 
 ## 1. How Static Video Processing Works (API Default)
 
-By default, all Gemini models (including Gemini 4 Argon and Gemini 3.8 Flash) process video in **static** mode (`"processing": "static"` or `{"type": "static", ...}`):
+By default, all Gemini models (including Gemini 3.8 Flash and Gemini 3.1 Pro) process video in **static** mode (`"processing": "static"` or `{"type": "static", ...}`):
 - **Default sampling**: Extracts `1 frame/second` (`1 fps`) and places all extracted frames into context in a single pass, alongside single-channel audio (`32 tokens/s`).
 - **Why use Static over Agentic on short clips (`<5 min`)**: Static processing avoids the extra thinking tokens (`total_thought_tokens`) and tool-call round-trips (`total_tool_use_tokens`) incurred by timeline navigation when most or all of a short clip is relevant.
-- **Per-item `resolution` on video (Gemini 3 and Gemini 4)**:
+- **Per-item `resolution` on video (Gemini 3+)**:
   - `"low"` / `"medium"` / `"unspecified"` (default): `~70 visual tokens/frame` (`~100 tokens/s` with audio and metadata).
   - `"high"`: `~280 visual tokens/frame` (`~300 tokens/s` with audio and metadata). **Always set `"resolution": "high"` when reading burned-in frame numbers, fine visual boundaries, or multi-panel diagnostic strips.**
 
