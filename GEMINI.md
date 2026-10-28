@@ -26,6 +26,21 @@ fb-gemini-plugins/
 │   │   │           ├── rival-panels-and-archetypes.md
 │   │   │           └── crux-extraction-and-protocols.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
+│   ├── epistemic-fork/                      # Specification & Judgment Matrix engine (Herdagdelen et al. 2026) (v0.1.0)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── skills/
+│   │   │   └── epistemic-fork/
+│   │   │       ├── SKILL.md                 # Self-contained 4-mode skill (matrix, sweep, lock, audit)
+│   │   │       ├── references/              # Domain templates & empirical mechanisms
+│   │   │       │   ├── domain-templates.md
+│   │   │       │   └── paper-mechanisms.md
+│   │   │       └── scripts/                 # Zero-dependency stdlib multiverse & audit CLI
+│   │   │           └── spec_matrix.py
+│   │   └── README.md                        # Plugin and multi-platform documentation
 │   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.3.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/

@@ -2,6 +2,19 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.31.0] - 2026-10-28
+
+### Added
+
+- **`epistemic-fork` (`v0.1.0` — Specification & Judgment Matrix Engine based on Herdağdelen, Joren, & Tamkin 2026)**:
+  - Added [`skills/epistemic-fork/`](skills/epistemic-fork/) for **Google Antigravity**, **Claude Code**, and **Gemini Spark**, operationalizing the empirical findings of *"Who's Aligned to Whom? How AI Agents Shape Experts' Research Judgment Calls"* across ML/video pipelines, software architecture, empirical data science, and strategy—with **zero hidden background automation**.
+  - **4 Explicit User-Controlled Modes**:
+    1. `matrix`: Partitions tasks into **Layer 1 (Verifiable Hygiene)** vs. **Layer 2 (Underdetermined Judgment Axes $d_1 \dots d_k$)** and renders the **6-Column Contrastive Judgment & Sensitivity Matrix** supporting $N$-way, continuous, and hybrid options alongside **Level-2 structural worldviews**, **failure modes**, **discriminating observable diagnostics**, and **marginal leverage ($\Delta$)**.
+    2. `sweep`: Parameterizes upstream forks and decomposes **Marginal Fork Leverage ($\Delta_j$)**, single-factor variance share ($R^2_j$), and decision-band crossings (`ABOVE_BAND`, `BELOW_BAND`, `INSIDE_BAND`, `STRADDLES_BAND`).
+    3. `lock`: Enforces a **Zero-Advocacy Execution Lock** when the user declares a specification—preserving the agent's 55%-to-6% objective procedural bug reduction while blocking unsolicited prior pushback, "sensitivity check" demotions, and competing baseline anchoring.
+    4. `audit`: Runs a strict **Two-Pass Audit** separating **Pass 1 (`[HYGIENE AUDIT]`)** objective bugs from **Pass 2 (`[ANTIPODAL & PROVENANCE AUDIT]`)** silent defaults (`AI_SILENT_DEFAULT`), the steelmanned **Antipodal Configuration ($\overline{L}$)**, and an in-chat **Decision Provenance Map**.
+  - **Bundled Zero-Dependency CLI (`scripts/spec_matrix.py`)**: Includes `sweep` (Cartesian/fractional grid generator and marginal leverage / $R^2$ decomposition), `scan-defaults` (AST + regex scanner for hardcoded thresholds, weights, filters, estimators, and signature defaults), `lint-neutrality` (detector for asymmetric first-person advocacy or sensitivity-check demotion), and `--self-test`.
+
 ## [0.30.0] - 2026-10-28
 
 ### Added

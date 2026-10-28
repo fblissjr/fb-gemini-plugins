@@ -1,0 +1,21 @@
+{
+  "name": "epistemic-fork",
+  "version": "0.1.0",
+  "description": "Operationalizes Herdagdelen, Joren, & Tamkin (2026, 'Who\\'s Aligned to Whom? How AI Agents Shape Experts\\' Research Judgment Calls') into a 4-mode Specification & Judgment Matrix engine (matrix, sweep, lock, audit). Separates verifiable procedural hygiene from underdetermined judgment axes, maps N-way and continuous choices across Level-2 structural worldviews, failure modes, discriminating diagnostics, and marginal leverage, and provides zero-advocacy execution lock plus two-pass antipodal stress-testing.",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "epistemic-fork",
+    "spec-matrix",
+    "multiverse",
+    "contrastive-fork",
+    "judgment-calls",
+    "specification-curve",
+    "antipodal-audit",
+    "antigravity",
+    "gemini-spark"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "epistemic-fork",
+  "displayName": "Epistemic Fork & Specification Matrix",
+  "version": "0.1.0",
+  "description": "Operationalizes Herdagdelen, Joren, & Tamkin (2026, 'Who\\'s Aligned to Whom? How AI Agents Shape Experts\\' Research Judgment Calls') into a 4-mode Specification & Judgment Matrix engine (matrix, sweep, lock, audit). Separates verifiable procedural hygiene from underdetermined judgment axes, maps N-way and continuous choices across Level-2 structural worldviews, failure modes, discriminating diagnostics, and marginal leverage, and provides zero-advocacy execution lock plus two-pass antipodal stress-testing.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "epistemic-fork",
+    "spec-matrix",
+    "multiverse",
+    "contrastive-fork",
+    "judgment-calls",
+    "specification-curve",
+    "antipodal-audit",
+    "antigravity",
+    "gemini-spark"
+  ],
+  "suggestedPrompts": [
+    "Run epistemic-fork in matrix mode to map the underdetermined judgment axes, Level-2 worldviews, discriminating diagnostics, and leverage before we code",
+    "Run a multiverse sensitivity sweep across our upstream parameter forks and rank each knob by marginal leverage",
+    "Run a two-pass epistemic audit on this script: separate objective procedural bugs (Pass 1) from silent AI defaults and the antipodal counter-specification (Pass 2)"
+  ]
+}
