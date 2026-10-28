@@ -68,17 +68,35 @@ fb-gemini-plugins/
 │       │           ├── scrub-paths.sh
 │       │           └── sync-peer.sh
 │       └── README.md                        # Plugin documentation
-│   └── sparring-partner/                    # Live 1-on-1 in-character flight simulator plugin & skill (v0.1.2)
+│   ├── sparring-partner/                    # Live 1-on-1 in-character flight simulator plugin & skill (v0.1.2)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── skills/
+│   │   │   └── sparring-partner/
+│   │   │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
+│   │   │       └── references/              # Counterparty archetypes & Sealed Envelope debrief mechanics
+│   │   │           ├── counterparty-archetypes.md
+│   │   │           └── hidden-state-and-debrief.md
+│   │   └── README.md                        # Plugin and dual-platform documentation
+│   └── video-understanding/                 # Video, image & audio understanding router & CLI toolkit (v0.1.0)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
+│       ├── .claude-plugin/
+│       │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
 │       ├── assets/
 │       │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
 │       ├── skills/
-│       │   └── sparring-partner/
-│       │       ├── SKILL.md                 # Self-contained skill definition (Antigravity + Gemini Spark)
-│       │       └── references/              # Counterparty archetypes & Sealed Envelope debrief mechanics
-│       │           ├── counterparty-archetypes.md
-│       │           └── hidden-state-and-debrief.md
-│       └── README.md                        # Plugin and dual-platform documentation
+│       │   └── video-understanding/
+│       │       ├── SKILL.md                 # Self-contained skill router (Antigravity + Gemini Spark)
+│       │       ├── references/              # Progressive-disclosure multimodal reference guides
+│       │       │   ├── video_static_and_slicing.md
+│       │       │   ├── video_agentic.md
+│       │       │   ├── image_boxes_and_masks.md
+│       │       │   ├── image_agentic_zoom.md
+│       │       │   └── audio_and_transcription.md
+│       │       └── scripts/                 # Self-contained local & gemini-api CLI helper
+│       │           └── gemini_media.py
+│       └── README.md                        # Plugin and multi-platform documentation
 ├── GEMINI.md                                # Project instructions (this file)
 ├── AGENTS.md                                # Symlink to GEMINI.md
 ├── CHANGELOG.md                             # Version history
@@ -311,6 +329,7 @@ agy plugin validate skills/council-of-rivals --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json
+agy plugin validate skills/video-understanding --strict --json
 
 # 2. Check git hook installation health and dual-harness alignment
 bash skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor

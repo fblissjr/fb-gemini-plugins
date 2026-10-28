@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- 10% margin frame: content within 14..114 -->
+  <rect x="14" y="14" width="100" height="100" rx="22" fill="#0F172A" stroke="#334155" stroke-width="3"/>
+  <!-- Filmstrip perforations along top and bottom rails -->
+  <rect x="24" y="22" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="40" y="22" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="56" y="22" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="72" y="22" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="88" y="22" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="24" y="101" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="40" y="101" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="56" y="101" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="72" y="101" width="8" height="5" rx="1.5" fill="#475569"/>
+  <rect x="88" y="101" width="8" height="5" rx="1.5" fill="#475569"/>
+  <!-- 2D Grounding Bounding Box Reticle (Cyan) -->
+  <rect x="28" y="36" width="72" height="56" rx="8" fill="#0EA5E9" fill-opacity="0.14" stroke="#38BDF8" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <path d="M28 46V39C28 37.3431 29.3431 36 31 36H38" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M100 46V39C100 37.3431 98.6569 36 97 36H90" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M28 82V89C28 90.6569 29.3431 92 31 92H38" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M100 82V89C100 90.6569 98.6569 92 97 92H90" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Play / Frame Inspection Prism (Purple/Amber) -->
+  <polygon points="54,48 54,80 80,64" fill="#A855F7" fill-opacity="0.35" stroke="#C084FC" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Audio Waveform Pulse Bars -->
+  <line x1="40" y1="58" x2="40" y2="70" stroke="#FBBF24" stroke-width="3" stroke-linecap="round"/>
+  <line x1="46" y1="52" x2="46" y2="76" stroke="#FBBF24" stroke-width="3" stroke-linecap="round"/>
+  <line x1="88" y1="54" x2="88" y2="74" stroke="#FBBF24" stroke-width="3" stroke-linecap="round"/>
+</svg>

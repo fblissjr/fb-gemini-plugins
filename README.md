@@ -12,6 +12,7 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`simulation-engine.md`, `domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any non-coding or coding domain—simulating anything at any granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match. |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Synchronizer (`sync-peer.sh`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name across both Antigravity and Claude Code. |
 | **[sparring-partner](skills/sparring-partner/)** | `0.1.2` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
+| **[video-understanding](skills/video-understanding/)** | `0.1.0` | Antigravity, Claude Code, Gemini Spark | Skill (`video-understanding`), References (`video_static_and_slicing.md`, `video_agentic.md`, `image_boxes_and_masks.md`, `image_agentic_zoom.md`, `audio_and_transcription.md`), CLI (`scripts/gemini_media.py`), Icon (`assets/logo.svg`) | **Progressive-disclosure video, image, and audio understanding router with a strict Native-First Gate**: encodes `<80 MB` `.1fps` frame-held companions (`encode-1fps`) and local image crops (`crop`) for `$0` native `read_file` inspection first, escalating to the Gemini Interactions API only for `>100 MB` master videos, server-side frame-span slicing (`slice`), opt-in agentic timeline navigation (`agentic-video`), `0..1000` 2D box/polygon segmentation grounding (`boxes`), agentic code-execution zoom (`zoom`), and visual speaker transcription (`transcribe-spans`). |
 
 ---
 
@@ -29,6 +30,7 @@ agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skill
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
+agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/video-understanding
 
 # Option B: Bulk-install ALL plugins in this repo directly from GitHub
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills
@@ -38,6 +40,7 @@ agy plugin install ./skills/council-of-rivals
 agy plugin install ./skills/hypothetical-diff
 agy plugin install ./skills/path-privacy
 agy plugin install ./skills/sparring-partner
+agy plugin install ./skills/video-understanding
 
 # Verify installed plugins
 agy plugin list
@@ -47,6 +50,7 @@ agy plugin validate ./skills/council-of-rivals --strict
 agy plugin validate ./skills/hypothetical-diff --strict
 agy plugin validate ./skills/path-privacy --strict
 agy plugin validate ./skills/sparring-partner --strict
+agy plugin validate ./skills/video-understanding --strict
 ```
 
 ### Method 2: Antigravity CLI Interactive TUI (`/plugin`)
@@ -221,7 +225,8 @@ fb-gemini-plugins/
 │   ├── council-of-rivals/       # Adversarial multi-persona collision arena & Double-Crux extractor (v0.1.2)
 │   ├── hypothetical-diff/       # Multi-granularity (L0-L4) Before/After diff & simulation plugin (v0.3.0)
 │   ├── path-privacy/            # Dual-harness Antigravity & Claude Code path/author privacy plugin (v0.22.0)
-│   └── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.2)
+│   ├── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.2)
+│   └── video-understanding/     # Progressive-disclosure video, image & audio router + CLI toolkit (v0.1.0)
 ├── GEMINI.md                    # Workspace instructions for Antigravity
 ├── AGENTS.md                    # Symlink to GEMINI.md
 ├── CHANGELOG.md                 # Release history
@@ -239,6 +244,7 @@ agy plugin validate skills/council-of-rivals --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json
+agy plugin validate skills/video-understanding --strict --json
 
 # Check installed git hooks health
 bash skills/path-privacy/skills/path-privacy/scripts/install-git-hooks.sh --doctor

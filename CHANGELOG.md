@@ -2,6 +2,22 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.30.0] - 2026-10-28
+
+### Added
+
+- **`video-understanding` (`v0.1.0` — Progressive-Disclosure Video, Image & Audio Understanding Router + CLI Toolkit)**:
+  - Added [`skills/video-understanding/`](skills/video-understanding/) for **Google Antigravity**, **Claude Code**, and **Gemini Spark** with a strict **Rule 0 Native-First Gate** (`$0` API spend via `read_file` on `.1fps` frame-held companions, `<100 MB` clips, and local image crops first; escalating to `gemini-api` only for capabilities the harness cannot perform natively).
+  - **Self-Contained CLI Helper (`scripts/gemini_media.py`)**:
+    1. `encode-1fps`: Encodes any video (or `[--first..--last]` frame span) into `<80 MB` `<stem>.1fps.<first:05d>-<last:05d>.mp4` companions (`-r 1`, muted, optional `--burn-frame-numbers`) for deterministic `1:1` frame alignment in `read_file` at `$0` API spend.
+    2. `crop`: Crops pixel (`--box x1,y1,x2,y2`) or normalized `0..1000` (`--box-1000 ymin,xmin,ymax,xmax`) image regions to a local PNG for `$0` native `read_file` inspection.
+    3. `boxes`: Runs `0..1000` `box_2d` (`[ymin, xmin, ymax, xmax]`) and polygon `mask` (`[[x, y], ...]`) grounding, descaling to exact pixel coordinates (`box_xyxy_px` and `box_ltwh_px`) on the image's canvas and optionally matching against local `.json` or bit-packed `.npz` detections (`--match-boxes`, `IoU >= 0.50`).
+    4. `slice`: Runs server-side `[first..last]` frame-span slicing (`start_offset` / `end_offset` in seconds) at native FPS (auto-probed via `ffprobe` or `--fps`) in high-resolution static mode.
+    5. `agentic-video`: Runs opt-in `"processing": "agentic"` timeline navigation on `>100 MB` single-canvas videos or mixed `agentic` + `static` (`--compare-clip`) continuity queries while mechanically refusing multi-panel (`*_STACKED*` / `.1fps.`) strips.
+    6. `zoom`: Runs Agentic Vision (`tools: [{"type": "code_execution"}]` + `"resolution": "ultra_high"`) on dense contact sheets and diagnostic grids.
+    7. `transcribe-spans`: Runs audio or multimodal (`--visual-speakers`) speaker transcription and converts `MM:SS.mmm` timestamps into inclusive `[start_frame, end_frame]` spans.
+    8. `--self-test`: Deterministic offline unit and `--dry-run` payload validation suite.
+
 ## [0.29.0] - 2026-10-28
 
 ### Changed

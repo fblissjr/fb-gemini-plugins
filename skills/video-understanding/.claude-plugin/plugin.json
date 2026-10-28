@@ -1,0 +1,21 @@
+{
+  "name": "video-understanding",
+  "version": "0.1.0",
+  "description": "Progressive-disclosure video, image, and audio understanding router with a strict Native-First Gate. Uses built-in read_file (.1fps frame-held companions, <100 MB clips, local image crops) at $0 API spend first, escalating to the Gemini Interactions API only for >100 MB master videos, server-side frame-span slicing, opt-in agentic timeline navigation, 0..1000 2D box/polygon segmentation grounding, agentic code-execution zoom, and visual speaker transcription.",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "video-understanding",
+    "multimodal",
+    "image-grounding",
+    "bounding-boxes",
+    "segmentation",
+    "transcription",
+    "agentic-vision",
+    "antigravity",
+    "gemini-spark"
+  ]
+}
