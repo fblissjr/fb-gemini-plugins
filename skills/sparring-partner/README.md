@@ -1,8 +1,8 @@
 # sparring-partner
 
-last updated: 2026-10-18
+last updated: 2026-10-28
 
-A live 1-on-1 **In-Character Roleplay & High-Pressure Conversation Flight Simulator** (`v0.1.1`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
+A live 1-on-1 **In-Character Roleplay & High-Pressure Conversation Flight Simulator** (`v0.1.2`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
 
 ---
 
@@ -22,7 +22,7 @@ Knowing your script on paper is completely different from **performing under liv
 |-------|--------------|--------------|
 | **1. Lock (Turn 0)** | Silently seals the counterparty's hidden BATNA, unspoken fear, triggers, unlocks, and `Trust (5/10)` / `Patience (5/5)` meters. | Forces you to discover what the other person actually cares about through calibrated questions and active listening rather than reading a cheat sheet. |
 | **2. Spar (Turns $1 \dots N$)** | Plays strictly **1 turn at a time** in first-person character (`"I"`), with subtle nonverbal micro-cues (`*[Closes laptop halfway]*`) and a 1-line Corner HUD. | Builds real conversational reflexes under pressure without fourth-wall-breaking essays. |
-| **3. Debrief (Flight Recorder)** | Unseals the Hidden Counterparty Card, prints the turn-by-turn `Trust`/`Patience` flight recorder, reveals what you left on the table, and shows an **Instant Replay Diff**. | Lets you see the exact moment a turn succeeded or derailed—and immediately **`"Rewind Turn X"`** to test the upgraded line live. |
+| **3. Debrief (Flight Recorder)** | Unseals the Hidden Counterparty Card, prints the turn-by-turn `Trust`/`Patience` flight recorder, reveals what you left on the table, and shows a **Pivotal Turn Replay**. | Lets you see the exact moment a turn succeeded or derailed—and immediately **`"Rewind Turn X"`** to test the upgraded line live. |
 
 ---
 
@@ -32,7 +32,7 @@ Knowing your script on paper is completely different from **performing under liv
 |-------|------------|-----------------------|
 | **`L1`** | **Warm-Up** | Constructive, patient (`7/7`), drops clear verbal hints toward their hidden constraint. |
 | **`L2`** | **Realistic** | Busy everyday human (`Patience 5/5`); protects their time and status quo until 1 Green-Key unlock lands. |
-| **`L3`** | **Hardball** *(Default)* | Guarded negotiator; uses tactical silence, anchoring, and deflections; requires uncovering their hidden constraint + a conserved trade-off. |
+| **`L3`** | **Hardball** *(Default)* | Guarded negotiator; uses tactical silence, anchoring, and deflections; requires uncovering their hidden constraint + a reciprocal give-get trade-off. |
 | **`L4`** | **Hostile / Shark** | High-pressure adversarial counterparty; interrupts rambling answers, pounces on weak numbers or apologies, and bluffs walk-aways. |
 | **`L5`** | **Kobayashi Maru** | No-win trap or crisis scenario where the obvious ask is impossible; victory requires reframing the game or surviving with integrity intact. |
 
@@ -80,7 +80,7 @@ agy plugin validate ./skills/sparring-partner --strict
 
 ```text
 skills/sparring-partner/
-├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.1)
+├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.2)
 ├── assets/
 │   └── logo.svg                                    # 128x128 square SVG icon for App/Marketplace cards
 ├── README.md                                       # Plugin & dual-platform documentation (this file)

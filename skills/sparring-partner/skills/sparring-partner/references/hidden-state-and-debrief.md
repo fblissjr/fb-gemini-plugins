@@ -42,7 +42,7 @@ $$\mathcal{S}_{\text{hidden}} = \langle \text{BATNA}, \text{Fear}, \mathcal{T}_{
 |------------------|-------------------|--------------------------------------------------------------|
 | **Tactical Empathy / Labeling** *(Voss)* | *"It sounds like you're worried that making an exception here creates a precedent you'll have to defend across the whole org."* | **`Trust +2`** (Hits Green-Key Unlock; counterparty says *"That's exactly it"* and reveals the real constraint). |
 | **Calibrated "How / What" Question** | *"How can we structure this so your Q3 cashflow cap stays untouched while locking in the adjustment for Q4?"* | **`Trust +1 to +2`** (Invites the counterparty to solve your problem using their own constraints). |
-| **Conserved "Yes, If" Trade-Off** | *"We can hit the May 1 date if we move the custom PDF export to Phase 2—or keep both for May 15."* | **`Trust +1`**, preserves boundary without triggering defensive escalation. |
+| **Conditional "Yes, If" Trade-Off** | *"We can hit the May 1 date if we move the custom PDF export to Phase 2—or keep both for May 15."* | **`Trust +1`**, preserves boundary without triggering defensive escalation. |
 | **Unanchored Concession / Apology** | *"Sorry to bother you, I can drop the price by 15% if that helps."* | **`Trust -1`**, encourages L3/L4 counterparties to pocket the concession and demand more. |
 | **Premature Ultimatum / Blame** | *"If you can't match this, I'll have to look elsewhere."* | **`Trust -2`, `Patience -1`** (Hits Red-Button Trigger; counterparty shifts to defensive stonewalling). |
 | **Rambling / Dodging a Direct Question** | 3-paragraph monologue that never answers their question. | **`Patience -1`**, counterparty interrupts: *"Give me the 10-second version."* |
@@ -72,7 +72,6 @@ breaking the fourth wall:
 1. **In the Ring**: Pressure-test your delivery live one turn at a time
    against a counterparty with hidden cards.
 2. **In the Debrief**: Review the **Flight-Recorder Debrief** and the
-   **Instant Replay Diff** (`--- Turn X: What You Actually Said` vs.
-   `+++ Turn X: The Unlock Line`).
+   **Pivotal Turn Replay** (what you said vs. the Green-Key unlock line).
 3. **Rewind**: Use `"Rewind Turn X"` to practice the upgraded line until it
    feels effortless.

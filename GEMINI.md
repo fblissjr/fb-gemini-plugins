@@ -15,7 +15,7 @@ fb-gemini-plugins/
 ├── .agents/
 │   └── plugins.json                         # Workspace plugin registry (do NOT duplicate in .agents/skills/)
 ├── skills/
-│   ├── council-of-rivals/                   # Adversarial multi-persona collision arena & Crux extractor (v0.1.0)
+│   ├── council-of-rivals/                   # Adversarial multi-persona collision arena & Crux extractor (v0.1.2)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/
 │   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
@@ -68,7 +68,7 @@ fb-gemini-plugins/
 │       │           ├── scrub-paths.sh
 │       │           └── sync-peer.sh
 │       └── README.md                        # Plugin documentation
-│   └── sparring-partner/                    # Live 1-on-1 in-character flight simulator plugin & skill (v0.1.0)
+│   └── sparring-partner/                    # Live 1-on-1 in-character flight simulator plugin & skill (v0.1.2)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
 │       ├── assets/
 │       │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards

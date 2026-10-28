@@ -1,8 +1,8 @@
 # council-of-rivals
 
-last updated: 2026-10-18
+last updated: 2026-10-28
 
-An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** (`v0.1.1`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
+An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** (`v0.1.2`) for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+) and **Gemini Spark** (including Gemini web/desktop `Customize > Skills` and Gemini Enterprise).
 
 ---
 
@@ -11,8 +11,6 @@ An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** (`v0.1.
 When you ask a standard AI for "multiple perspectives," you get three polite paragraphs from the same underlying voice that agree to "balance all factors."
 
 **`council-of-rivals` bans lukewarm consensus**. It casts **3–5 sharply opposing minds with incompatible objective functions**, forces them to **cross-examine your idea and each other**, and distills the clash into a **Double-Crux Map ($\mathcal{C}$)**—the exact factual threshold or value trade-off where the rivals split, plus the single decisive test that resolves the debate.
-
-This plugin is fully self-contained; it can be used alone or chained with other skills via the conversation.
 
 ---
 
@@ -63,7 +61,7 @@ agy plugin validate ./skills/council-of-rivals --strict
 
 ```text
 skills/council-of-rivals/
-├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.1)
+├── plugin.json                                     # Native Antigravity plugin manifest (v0.1.2)
 ├── assets/
 │   └── logo.svg                                    # 128x128 square SVG icon for App/Marketplace cards
 ├── README.md                                       # Plugin & dual-platform documentation (this file)

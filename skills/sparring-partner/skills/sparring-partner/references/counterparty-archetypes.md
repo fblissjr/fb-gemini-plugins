@@ -39,8 +39,8 @@ the user until the Phase 3 Flight-Recorder Debrief).
     discount with no give-get (signals your price was padded—they will immediately
     demand 30%).
   - **Green-Key Unlocks (`Trust +2`)**: Trading price for term length (24-month
-    lock-in) or stripping low-cost/high-perceived-value add-ons (*Conservation
-    of Value*).
+    lock-in) or stripping low-cost/high-perceived-value add-ons (*Give-Get
+    Reciprocity*).
 
 ---
 
@@ -161,7 +161,8 @@ the user until the Phase 3 Flight-Recorder Debrief).
 - **Sealed Envelope (Hidden until Debrief)**:
   - **Actual Rubric**: Testing for (1) first-principles ownership vs. passenger
     syndrome, (2) intellectual honesty about a real mistake, and (3) calibrated
-    level-appropriate scope (`L3` systems thinking + `L0` execution proof).
+    level-appropriate scope (strategic systems thinking paired with concrete
+    execution proof).
 
 ---
 

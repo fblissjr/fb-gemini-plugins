@@ -8,10 +8,10 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 
 | Plugin / Skill | Version | Platforms | Components | Description |
 |----------------|---------|-----------|------------|-------------|
-| **[council-of-rivals](skills/council-of-rivals/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`council-of-rivals`), References (`rival-panels-and-archetypes.md`, `crux-extraction-and-protocols.md`), Icon (`assets/logo.svg`) | **Adversarial multi-persona collision arena & Double-Crux extractor**: casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact **Crux Map ($\mathcal{C}$)** and decisive test. |
+| **[council-of-rivals](skills/council-of-rivals/)** | `0.1.2` | Antigravity, Gemini Spark | Skill (`council-of-rivals`), References (`rival-panels-and-archetypes.md`, `crux-extraction-and-protocols.md`), Icon (`assets/logo.svg`) | **Adversarial multi-persona collision arena & Double-Crux extractor**: casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact **Crux Map ($\mathcal{C}$)** and decisive test. |
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`simulation-engine.md`, `domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any non-coding or coding domain—simulating anything at any granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match. |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Synchronizer (`sync-peer.sh`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name across both Antigravity and Claude Code. |
-| **[sparring-partner](skills/sparring-partner/)** | `0.1.0` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
+| **[sparring-partner](skills/sparring-partner/)** | `0.1.2` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
 
 ---
 
@@ -101,8 +101,8 @@ These three plugins are fully independent: each `SKILL.md` and its references ne
 | Plugin | POV & Topology | Core Primitive |
 |--------|----------------|----------------|
 | **[`hypothetical-diff`](skills/hypothetical-diff/)** (`v0.3.0`) | **3rd-Person State-Transition Blueprint** | Synthesizes a concrete `--- Before` / `+++ After` delta ($\hat{\Delta}$) across any domain, tone, and granularity (`L0` atomic micro-choices $\leftrightarrow$ `L4` macro eras), enforcing resource/energy conservation ($\sum \Delta = 0$) and interactive hunk mix-and-match (`A1 + B2`). |
-| **[`sparring-partner`](skills/sparring-partner/)** (`v0.1.0`) | **1st-Person 1-on-1 Flight Simulator** | Locks a **Sealed Envelope** (counterparty's secret BATNA, unspoken fear, triggers, unlocks, and live `Trust`/`Patience` meters) under Fog of War, plays strictly one turn at a time in character (`L1`–`L5`), and delivers a **Flight-Recorder Debrief** at the end. |
-| **[`council-of-rivals`](skills/council-of-rivals/)** (`v0.1.0`) | **Multi-Agent Collision Arena** | Casts 3–5 conflicting minds with incompatible incentives, forces direct cross-examination between rivals (with optional parallel subagent fan-out in Antigravity), and extracts the **Double-Crux Map ($\mathcal{C}$)** and 24-hour decisive test. |
+| **[`sparring-partner`](skills/sparring-partner/)** (`v0.1.2`) | **1st-Person 1-on-1 Flight Simulator** | Locks a **Sealed Envelope** (counterparty's secret BATNA, unspoken fear, triggers, unlocks, and live `Trust`/`Patience` meters) under Fog of War, plays strictly one turn at a time in character (`L1`–`L5`), and delivers a **Flight-Recorder Debrief** at the end. |
+| **[`council-of-rivals`](skills/council-of-rivals/)** (`v0.1.2`) | **Multi-Agent Collision Arena** | Casts 3–5 conflicting minds with incompatible incentives, forces direct cross-examination between rivals (with optional parallel subagent fan-out in Antigravity), and extracts the **Double-Crux Map ($\mathcal{C}$)** and 24-hour decisive test. |
 
 ### How `hypothetical-diff` (`v0.3.0`) Works
 Inspired by **HyDE** (*Hypothetical Document Embeddings*, Gao et al., ACL 2023), `hypothetical-diff` operates across six modes (**`search`**, **`align`**, **`decide`**, **`diagnose`**, **`ensemble`**, and **`simulate`**) and a **5-Level Structural Zoom Ladder (`L0`–`L4`)**:
@@ -111,12 +111,12 @@ Inspired by **HyDE** (*Hypothetical Document Embeddings*, Gao et al., ACL 2023),
 - **Mental Model & Ripple Diffs**: Diffs *Intuitive Misconception (`-`) $\rightarrow$ Expert Mechanism (`+`)* with a **Real-World Prediction Flip**, or traces **1st / 2nd (Goodhart) / 3rd-Order Ripple Diffs** and **Monte Carlo Branching Envelopes**.
 - See [skills/hypothetical-diff/README.md](skills/hypothetical-diff/README.md), [simulation-engine.md](skills/hypothetical-diff/skills/hypothetical-diff/references/simulation-engine.md), [domain-playbooks.md](skills/hypothetical-diff/skills/hypothetical-diff/references/domain-playbooks.md), and [hyde-theory-and-patterns.md](skills/hypothetical-diff/skills/hypothetical-diff/references/hyde-theory-and-patterns.md).
 
-### How `sparring-partner` (`v0.1.0`) Works
-- **No Sycophantic Cave-Ins**: The counterparty never folds to a generic ask; concessions require hitting **Green-Key Unlocks** (e.g., tactical empathy labeling, calibrated `"How/What"` questions, or conserved `"Yes, If"` trade-offs).
-- **Live Ring Controls**: Call `"Time-out"` for a Corner Coach whisper, `"Rewind Turn X"` to re-shoot a turn, `"Swap Seats"` to watch the AI handle your hardest objection, or `"Debrief"` to unseal the Hidden Counterparty Card and view the **Instant Replay Diff**.
+### How `sparring-partner` (`v0.1.2`) Works
+- **No Sycophantic Cave-Ins**: The counterparty never folds to a generic ask; concessions require hitting **Green-Key Unlocks** (e.g., tactical empathy labeling, calibrated `"How/What"` questions, or conditional `"Yes, If"` trade-offs).
+- **Live Ring Controls**: Call `"Time-out"` for a Corner Coach whisper, `"Rewind Turn X"` to re-shoot a turn, `"Swap Seats"` to watch the AI handle your hardest objection, or `"Debrief"` to unseal the Hidden Counterparty Card and view the **Pivotal Turn Replay**.
 - See [skills/sparring-partner/README.md](skills/sparring-partner/README.md), [counterparty-archetypes.md](skills/sparring-partner/skills/sparring-partner/references/counterparty-archetypes.md), and [hidden-state-and-debrief.md](skills/sparring-partner/skills/sparring-partner/references/hidden-state-and-debrief.md).
 
-### How `council-of-rivals` (`v0.1.0`) Works
+### How `council-of-rivals` (`v0.1.2`) Works
 - **3-Round Collision (`Indict` $\rightarrow$ `Cross-Examine` $\rightarrow$ `Crux Map`)**: Rivals attack each other's load-bearing assumptions directly and state the exact empirical threshold or value trade-off where they would flip sides.
 - See [skills/council-of-rivals/README.md](skills/council-of-rivals/README.md), [rival-panels-and-archetypes.md](skills/council-of-rivals/skills/council-of-rivals/references/rival-panels-and-archetypes.md), and [crux-extraction-and-protocols.md](skills/council-of-rivals/skills/council-of-rivals/references/crux-extraction-and-protocols.md).
 
@@ -218,10 +218,10 @@ fb-gemini-plugins/
 ├── .agents/
 │   └── plugins.json             # Workspace plugin registry
 ├── skills/
-│   ├── council-of-rivals/       # Adversarial multi-persona collision arena & Double-Crux extractor (v0.1.0)
+│   ├── council-of-rivals/       # Adversarial multi-persona collision arena & Double-Crux extractor (v0.1.2)
 │   ├── hypothetical-diff/       # Multi-granularity (L0-L4) Before/After diff & simulation plugin (v0.3.0)
 │   ├── path-privacy/            # Dual-harness Antigravity & Claude Code path/author privacy plugin (v0.22.0)
-│   └── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.0)
+│   └── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.2)
 ├── GEMINI.md                    # Workspace instructions for Antigravity
 ├── AGENTS.md                    # Symlink to GEMINI.md
 ├── CHANGELOG.md                 # Release history

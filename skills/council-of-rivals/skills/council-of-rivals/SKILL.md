@@ -19,11 +19,8 @@ description: >-
 An **Adversarial Multi-Persona Collision Arena & Double-Crux Extractor** that
 replaces polite, sycophantic "pros and cons" lists with **3–5 sharply opposing
 minds who have incompatible incentives and are forced to cross-examine your
-proposal and each other**.
-
-`council-of-rivals` is a *Multi-Agent Collision Arena & Crux Extractor*: 3–5
-conflicting minds collide with **each other** to isolate the exact load-bearing
-premise—the **Crux ($\mathcal{C}$)**—that decides the outcome.
+proposal and each other** to isolate the exact load-bearing premise—the **Crux
+($\mathcal{C}$)**—that decides the outcome.
 
 ---
 
@@ -150,9 +147,6 @@ After convening the council, let the user steer the next round (via
   the room and force the rivals to update their positions.
 - 🪑 **`Swap Seat / Change Tone`**: Add a 4th rival (e.g., *"Add a Regulator"* or
   *"Re-run in a Deadpan Roast tone"*).
-
-This skill is self-contained. Its output (the Crux Map and Decisive Test) is
-plain text the user can carry into any follow-up request.
 
 ---
 

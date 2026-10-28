@@ -2,6 +2,12 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.29.0] - 2026-10-28
+
+### Changed
+
+- **`sparring-partner` (`v0.1.2`) and `council-of-rivals` (`v0.1.2`)**: Removed remaining cross-vocabulary and residual phrasing from `hypothetical-diff` across `SKILL.md`, `references/`, and plugin `README.md` files (replacing `Instant Replay Diff` / `diff` blocks in `sparring-partner` with native `Pivotal Turn Replay (What You Said -> The Unlock Line)`, replacing `conserved trade-off` / `L3`/`L0` zoom-ladder terminology with native negotiation terms, and tightening the opening and closing sections of `council-of-rivals`). Synced version strings in `README.md` and `GEMINI.md`.
+
 ## [0.28.0] - 2026-10-19
 
 ### Changed
