@@ -10,6 +10,7 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 |----------------|---------|-----------|------------|-------------|
 | **[council-of-rivals](skills/council-of-rivals/)** | `0.1.2` | Antigravity, Gemini Spark | Skill (`council-of-rivals`), References (`rival-panels-and-archetypes.md`, `crux-extraction-and-protocols.md`), Icon (`assets/logo.svg`) | **Adversarial multi-persona collision arena & Double-Crux extractor**: casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and each other in any user-set tone, isolating the exact **Crux Map ($\mathcal{C}$)** and decisive test. |
 | **[epistemic-fork](skills/epistemic-fork/)** | `0.1.0` | Antigravity, Claude Code, Gemini Spark | Skill (`epistemic-fork`), References (`domain-templates.md`, `paper-mechanisms.md`), CLI (`scripts/spec_matrix.py`), Icon (`assets/logo.svg`) | **Specification & Judgment Matrix engine (Herdağdelen, Joren, & Tamkin 2026)**: separates **Layer 1 (Verifiable Hygiene)** from **Layer 2 (Underdetermined Judgment Axes $d_1 \dots d_k$)** across 4 explicit modes (`matrix`, `sweep`, `lock`, `audit`)—rendering the **6-Column Contrastive Judgment & Sensitivity Matrix** ($N$-way/continuous options, Level-2 structural worldviews, failure modes, discriminating observable checks, and marginal leverage $\Delta$), decomposing multiverse variance via `scripts/spec_matrix.py`, enforcing zero-advocacy execution lock, and running two-pass hygiene + antipodal ($\overline{L}$) audits. |
+| **[heylook-provider](skills/heylook-provider/)** | `0.23.1` | Antigravity, Claude Code, Gemini Spark | Skill (`heylook-provider`), References (`wire_reference.md`, `older_servers.md`, `openai_wire.md`, `embeddings.md`, `routes.md`, `gemini_migration.md`, `client_recipes.md`), CLI (`scripts/probe.py`), Tests (`tests/`), Icon (`assets/logo.svg`) | **Local Apple Silicon multimodal LLM server (`heylookitsanllm`) integration & capability discovery**: wires an application to `heylook`'s Anthropic Messages-conformant `/v1/messages` endpoint and `/v1/embeddings` (verified against `heylookitsanllm 2.0.223`), covering runtime discovery of install-local model IDs (`probe.py`), per-model capability and thinking-depth gating, client-side image resize + `/v1/models/{id}/image-plan`, 503 queue backpressure, `X-Request-ID` cancellation, porting off the removed OpenAI route, and side-by-side Gemini migration. |
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Skill (`hypothetical-diff`), References (`simulation-engine.md`, `domain-playbooks.md`, `hyde-theory-and-patterns.md`), Icon (`assets/logo.svg`) | Generalizes **HyDE** (*Hypothetical Document Embeddings*, Gao et al. 2023) from static documents to universal **Before/After diffs ($\hat{\Delta}$)** across any non-coding or coding domain—simulating anything at any granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match. |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Skill (`path-privacy`), Hooks (`SessionStart`, `PreToolUse`), Git Hooks (`pre-commit`, `commit-msg`), Synchronizer (`sync-peer.sh`), Icon (`assets/logo.svg`) | Keeps personal identifiers and external paths out of repository files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to repo-relative form and hard-blocks external paths and the git `user.name` full name across both Antigravity and Claude Code. |
 | **[sparring-partner](skills/sparring-partner/)** | `0.1.2` | Antigravity, Gemini Spark | Skill (`sparring-partner`), References (`counterparty-archetypes.md`, `hidden-state-and-debrief.md`), Icon (`assets/logo.svg`) | Live 1-on-1 **in-character roleplay and conversation flight simulator** across negotiations, difficult personal/workplace talks, interviews, sales objections, and crisis Q&A. Silently locks a **Hidden Counterparty Card** (secret BATNA, unspoken fear, triggers, and `Trust`/`Patience` meters) under Fog of War until the **Flight-Recorder Debrief**. |
@@ -29,6 +30,7 @@ Plugins installed into `~/.gemini/config/plugins/` are shared automatically betw
 # Option A: Install a single plugin directly from GitHub (no manual git clone needed)
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/council-of-rivals
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/epistemic-fork
+agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/heylook-provider
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
@@ -40,6 +42,7 @@ agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skill
 # Option C: Install from a local checkout of fb-gemini-plugins
 agy plugin install ./skills/council-of-rivals
 agy plugin install ./skills/epistemic-fork
+agy plugin install ./skills/heylook-provider
 agy plugin install ./skills/hypothetical-diff
 agy plugin install ./skills/path-privacy
 agy plugin install ./skills/sparring-partner
@@ -51,6 +54,7 @@ agy plugin list
 # Validate plugin manifests, skills, and hooks against the runtime loader
 agy plugin validate ./skills/council-of-rivals --strict
 agy plugin validate ./skills/epistemic-fork --strict
+agy plugin validate ./skills/heylook-provider --strict
 agy plugin validate ./skills/hypothetical-diff --strict
 agy plugin validate ./skills/path-privacy --strict
 agy plugin validate ./skills/sparring-partner --strict
@@ -227,6 +231,8 @@ fb-gemini-plugins/
 │   └── plugins.json             # Workspace plugin registry
 ├── skills/
 │   ├── council-of-rivals/       # Adversarial multi-persona collision arena & Double-Crux extractor (v0.1.2)
+│   ├── epistemic-fork/          # Specification & Judgment Matrix engine (Herdağdelen et al. 2026) (v0.1.0)
+│   ├── heylook-provider/        # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.23.1)
 │   ├── hypothetical-diff/       # Multi-granularity (L0-L4) Before/After diff & simulation plugin (v0.3.0)
 │   ├── path-privacy/            # Dual-harness Antigravity & Claude Code path/author privacy plugin (v0.22.0)
 │   ├── sparring-partner/        # Live 1-on-1 in-character flight simulator with Sealed Envelope debrief (v0.1.2)
@@ -245,6 +251,8 @@ Requires Google Antigravity CLI `v1.4.0+` (`agy`), `ripgrep` (`rg`), and `jq`.
 ```bash
 # Validate plugin manifests and components
 agy plugin validate skills/council-of-rivals --strict --json
+agy plugin validate skills/epistemic-fork --strict --json
+agy plugin validate skills/heylook-provider --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json

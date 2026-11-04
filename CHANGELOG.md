@@ -1,6 +1,18 @@
 # Changelog
 
+<!-- path-privacy: skip-file -->
+
 All notable changes to `fb-gemini-plugins` are documented in this file.
+
+## [0.32.0] - 2026-11-04
+
+### Added
+
+- **`heylook-provider` (`v0.23.1` — Local Apple Silicon Multimodal LLM Server Integration & Capability Probe, verified against `heylookitsanllm 2.0.223`)**:
+  - Ported [`skills/heylook-provider/`](skills/heylook-provider/) from `fb-claude-skills` for **Google Antigravity**, **Gemini CLI**, **Gemini Spark**, and **Claude Code**.
+  - **Core `/v1/messages` & Single-User Local Server Contract (`SKILL.md`)**: Covers runtime model discovery against install-local model IDs (`/v1/models` and `/v1/capabilities`), capability and `engine` fact gating (`context.length`, `thinking.depth.values`, `decoding.request_fields`), handling late streaming refusals (`event: error` with `invalid_request_error`), client-side image downscaling and `/v1/models/{id}/image-plan`, optional `max_tokens` cascade semantics, `503` + `Retry-After` queue backpressure, pre-warming via `POST /v1/models/{id}/load`, per-request `X-Request-ID` cancellation (`DELETE /v1/requests/{id}`) and early thinking termination (`POST /v1/requests/{id}/reasoning-end`), and `generation_duration_ms` throughput telemetry.
+  - **Progressive-Disclosure Reference Suite (`references/`)**: Ships [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md), [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md), [`openai_wire.md`](skills/heylook-provider/skills/heylook-provider/references/openai_wire.md), [`embeddings.md`](skills/heylook-provider/skills/heylook-provider/references/embeddings.md) (`POST /v1/embeddings`), [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md) (including the `/v1/conversations` store and `/v1/presets`), [`gemini_migration.md`](skills/heylook-provider/skills/heylook-provider/references/gemini_migration.md) (field-by-field mapping and 5 provider-abstraction seams alongside Gemini `generateContent`), and [`client_recipes.md`](skills/heylook-provider/skills/heylook-provider/references/client_recipes.md) (verified Python/TypeScript streaming clients and Pillow/sharp resize recipes).
+  - **Zero-Dependency Capability Probe CLI (`scripts/probe.py`) & Test Suite (`tests/`)**: Resolves served models, providers, context lengths, thinking-depth vocabularies, and capabilities from a live server (`--base`, `--need`, `--json`, `--api-key`), backed by 43 unit tests in `tests/test_probe.py` and `tests/test_image_recipe.py`.
 
 ## [0.31.0] - 2026-10-28
 

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="chip" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="wire" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="24" fill="url(#bg)" stroke="#334155" stroke-width="3"/>
+  <!-- Silicon pins top & bottom -->
+  <line x1="48" y1="22" x2="48" y2="34" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="64" y1="22" x2="64" y2="34" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="80" y1="22" x2="80" y2="34" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="48" y1="94" x2="48" y2="106" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="64" y1="94" x2="64" y2="106" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <line x1="80" y1="94" x2="80" y2="106" stroke="#64748b" stroke-width="3" stroke-linecap="round"/>
+  <!-- Incoming /v1/messages wire & capability probe -->
+  <path d="M 18 52 L 34 52" stroke="url(#wire)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 18 76 L 34 76" stroke="#f59e0b" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 4"/>
+  <!-- Outgoing stream events -->
+  <path d="M 94 52 L 110 52" stroke="#38bdf8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M 94 76 L 110 76" stroke="#818cf8" stroke-width="4" stroke-linecap="round"/>
+  <!-- Local Apple Silicon / MLX + GGUF core -->
+  <rect x="34" y="34" width="60" height="60" rx="12" fill="#0f172a" stroke="url(#chip)" stroke-width="3.5"/>
+  <!-- Capability matrix indicators inside core -->
+  <circle cx="50" cy="50" r="5" fill="#10b981"/>
+  <circle cx="64" cy="50" r="5" fill="#38bdf8"/>
+  <circle cx="78" cy="50" r="5" fill="#f59e0b"/>
+  <rect x="45" y="64" width="38" height="6" rx="3" fill="#38bdf8" opacity="0.85"/>
+  <rect x="45" y="75" width="26" height="6" rx="3" fill="#818cf8" opacity="0.85"/>
+</svg>

@@ -1,0 +1,21 @@
+{
+  "name": "heylook-provider",
+  "version": "0.23.1",
+  "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: the Anthropic Messages-conformant /v1/messages wire, runtime capability discovery, porting off the removed OpenAI route, and the deliberate differences from Anthropic's spec",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "heylook",
+    "heylookitsanllm",
+    "local-llm",
+    "mlx",
+    "gguf",
+    "anthropic-messages",
+    "embeddings",
+    "antigravity",
+    "gemini-spark"
+  ]
+}

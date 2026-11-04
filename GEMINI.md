@@ -41,6 +41,29 @@ fb-gemini-plugins/
 │   │   │       └── scripts/                 # Zero-dependency stdlib multiverse & audit CLI
 │   │   │           └── spec_matrix.py
 │   │   └── README.md                        # Plugin and multi-platform documentation
+│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.23.1)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── skills/
+│   │   │   └── heylook-provider/
+│   │   │       ├── SKILL.md                 # Self-contained skill (verified against heylookitsanllm 2.0.223)
+│   │   │       ├── references/              # Wire reference, version boundaries, routes, embeddings, recipes & migrations
+│   │   │       │   ├── client_recipes.md
+│   │   │       │   ├── embeddings.md
+│   │   │       │   ├── gemini_migration.md
+│   │   │       │   ├── older_servers.md
+│   │   │       │   ├── openai_wire.md
+│   │   │       │   ├── routes.md
+│   │   │       │   └── wire_reference.md
+│   │   │       └── scripts/                 # Stdlib live server capability matrix probe
+│   │   │           └── probe.py
+│   │   ├── tests/
+│   │   │   ├── test_image_recipe.py
+│   │   │   └── test_probe.py
+│   │   └── README.md                        # Plugin and multi-platform documentation
 │   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.3.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── assets/
@@ -341,6 +364,8 @@ Run these checks before committing any changes:
 ```bash
 # 1. Validate plugin structures and manifests against the Antigravity runtime loader
 agy plugin validate skills/council-of-rivals --strict --json
+agy plugin validate skills/epistemic-fork --strict --json
+agy plugin validate skills/heylook-provider --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json
