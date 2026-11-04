@@ -3,7 +3,7 @@
   "name": "hypothetical-diff",
   "displayName": "Hypothetical Diff",
   "version": "0.3.0",
-  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across any non-coding or coding domain—writing, difficult conversations, negotiation, learning & mental models, habits, policy counterfactuals, strategy, calendars, contracts, spreadsheets, and code. Simulates anything at any granularity (L0 atomic micro-choices to L4 macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match.",
+  "description": "Generalizes Hypothetical Document Embeddings (HyDE) from static documents to universal Before/After diffs across writing, difficult conversations, negotiation, mental models, habits, policy counterfactuals, strategy, contracts, and code. Simulates scenarios at any granularity (L0 atomic micro-choices to L4 macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes) in any user-set tone with interactive zoom and hunk mix-and-match.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"

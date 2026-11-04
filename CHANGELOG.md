@@ -11,7 +11,8 @@ All notable changes to `fb-gemini-plugins` are documented in this file.
 - **`heylook-provider` (`v0.23.1` $\rightarrow$ `v0.23.2`, verified against `heylookitsanllm 2.0.224`)**:
   - Updated [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md): `POST /v1/conversations/{id}/generate/reasoning-end` now answers `{"signalled": 1, "conversation_id"}`, matching the request route's shape.
   - Updated [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md): clarified that the streamed "omitted, never null" rule covers `performance`'s own top-level keys only, while nested `cache` and `speculative` carry `null` in both modes for fields that do not apply.
-- **`README.md`**: Condensed the repository catalog, installation commands, and validation instructions, removing duplicated per-plugin deep dives.
+- **`README.md` & `GEMINI.md`**: Condensed the repository catalog, installation commands, and validation instructions; removed duplicate version copies in `skills/heylook-provider/README.md` and `GEMINI.md` so `plugin.json` and `SKILL.md` (`metadata.verified_against`) remain the single sources of truth.
+- **Cross-Vendor `SKILL.md` & Manifest Schema Alignment**: Trimmed `SKILL.md` frontmatter `description` fields in `epistemic-fork` and `hypothetical-diff` under the 1,024-character Agent Skills spec cap, removed angle brackets and added explicit `Use when...` triggers in `video-understanding`, and trimmed `plugin.json` descriptions in `epistemic-fork` and `hypothetical-diff` under the 500-character limit so all 7 skills pass `skill-maintain validate --all --strict --verbose` with zero errors and zero warnings.
 
 ## [0.32.0] - 2026-11-04
 

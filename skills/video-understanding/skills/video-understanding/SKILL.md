@@ -1,14 +1,17 @@
 ---
 name: video-understanding
 description: >-
-  Route video, image, and audio inspection with a strict Native-First Gate
-  inside the Antigravity (agy) harness — always using built-in read_file
-  (.1fps.<first>-<last>.mp4 frame-held companions, <100 MB video/audio clips,
-  .png/.jpg stills) and local Python tools (encode-1fps, crop, PIL/cv2/numpy)
-  at $0 API spend first, and calling gemini-api ONLY for capabilities agy
-  cannot perform natively (>100 MB master videos, server-side frame-span
-  slicing, opt-in agentic timeline navigation, 0..1000 box_2d and polygon mask
-  grounding, agentic code-execution zoom, and visual speaker transcription).
+  Route and inspect video, image, and audio media with a strict Native-First
+  Gate inside the Antigravity (agy) harness — using built-in read_file
+  (.1fps frame-held companions, video/audio clips under 100 MB, .png/.jpg stills)
+  and local Python tools (encode-1fps, crop, PIL/cv2/numpy) at $0 API spend
+  first, and calling gemini-api only for capabilities agy cannot perform natively
+  (master videos over 100 MB, server-side frame-span slicing, opt-in agentic
+  timeline navigation, 0..1000 box_2d and polygon mask grounding, agentic
+  code-execution zoom, and visual speaker transcription). Use when inspecting
+  video frames, encoding .1fps companions, detecting 2D bounding boxes or
+  segmentation masks, slicing or navigating long videos, zooming dense grids,
+  or transcribing multi-speaker clips.
 ---
 
 # Video, Image, and Audio Understanding Router

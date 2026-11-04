@@ -4,18 +4,16 @@ description: >-
   Operationalizes Herdagdelen, Joren, & Tamkin (2026, "Who's Aligned to Whom?
   How AI Agents Shape Experts' Research Judgment Calls") into a 4-mode
   Specification & Judgment Matrix engine across ML/video pipelines, software
-  architecture, empirical data science, and strategy. Separates verifiable
-  procedural hygiene from underdetermined judgment axes, maps N-way, continuous,
-  and hybrid choices in a 6-column Contrastive Judgment & Sensitivity Matrix
-  (Level-2 structural worldviews, failure modes, discriminating observable
-  diagnostics, and marginal leverage), decomposes multiverse variance via
-  scripts/spec_matrix.py, enforces zero-advocacy execution lock when a user
-  declares a spec, and runs two-pass hygiene + antipodal stress-test audits.
-  Use when user says "epistemic fork", "spec matrix", "judgment matrix",
-  "contrastive fork", "specification curve", "multiverse sweep", "fork leverage",
-  "lock my spec", "zero advocacy build", "antipodal audit", "two-pass audit",
-  "what are the underdetermined choices", or wants to surface hidden upstream
-  assumptions before locking in a single implementation or analytical path.
+  architecture, data science, and strategy. Separates verifiable procedural
+  hygiene from underdetermined judgment axes, maps N-way, continuous, and hybrid
+  choices in a 6-column Contrastive Judgment Matrix (worldviews, failure modes,
+  discriminating diagnostics, and leverage), decomposes multiverse variance via
+  scripts/spec_matrix.py, enforces zero-advocacy execution lock, and runs
+  two-pass hygiene + antipodal audits. Use when user says "epistemic fork",
+  "spec matrix", "judgment matrix", "contrastive fork", "specification curve",
+  "multiverse sweep", "fork leverage", "lock my spec", "zero advocacy build",
+  "antipodal audit", "two-pass audit", or wants to surface hidden upstream
+  assumptions before locking a single implementation or analytical path.
 ---
 
 # Epistemic Fork & Specification Matrix (`epistemic-fork`)

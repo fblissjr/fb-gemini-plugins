@@ -49,7 +49,7 @@ fb-gemini-plugins/
 │   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
 │   │   ├── skills/
 │   │   │   └── heylook-provider/
-│   │   │       ├── SKILL.md                 # Self-contained skill (verified against heylookitsanllm 2.0.224)
+│   │   │       ├── SKILL.md                 # Self-contained skill (Antigravity + Gemini Spark + Claude Code)
 │   │   │       ├── references/              # Wire reference, version boundaries, routes, embeddings, recipes & migrations
 │   │   │       │   ├── client_recipes.md
 │   │   │       │   ├── embeddings.md
@@ -350,7 +350,7 @@ Every file created or modified inside this repository MUST obey these rules:
 ### 8. Version Cascade
 
 When updating a plugin's version, keep these locations in sync:
-1. `skills/<name>/plugin.json` (`version`), `skills/<name>/README.md`, and `skills/path-privacy/.claude-plugin/plugin.json` (`version`)
+1. `skills/<name>/plugin.json` (`version`), `skills/<name>/.claude-plugin/plugin.json` (`version`, when present), and `skills/<name>/README.md` (if versioned)
 2. `README.md` (catalog table and plugin sections)
 3. `GEMINI.md` / `AGENTS.md` (Repository Structure version comments)
 4. `CHANGELOG.md` (new release section)

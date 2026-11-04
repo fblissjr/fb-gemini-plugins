@@ -2,23 +2,18 @@
 name: hypothetical-diff
 description: >-
   Generalizes Hypothetical Document Embeddings (HyDE, Gao et al. 2023) from
-  static documents to universal Before/After diffs across any non-coding or
-  coding domain—writing, tone/voice rewrites, difficult conversations and
-  negotiations, learning and mental models, habits and travel, creative
-  storytelling, policy/history counterfactuals, strategy, calendars, contracts,
-  spreadsheets, research, and code. Simulates anything at any granularity
-  (from sub-second L0 micro-choices and turn-by-turn dialogue rallies up to L4
-  multi-year/historical cascades and Monte Carlo branching envelopes) in any
-  user-set tone, enforces resource/energy conservation, and supports interactive
-  zoom, curveball perturbation, and mix-and-match hunk selection. Use when user
-  says "hypothetical diff", "hydiff", "HyDE diff", "show me the diff if", "what
-  would actually change if", "counterfactual diff", "simulate a diff", "zoom in
-  on this diff", "zoom out", "telescoping diff", "simulate turn by turn",
-  "timeline diff", "Monte Carlo diff", "diff this in the tone of", "script and
-  subtext diff", "mental model diff", "ripple diff", "diff my options", "search
-  using a hypothetical diff", "redline this hypothetically", "stress-test this
-  decision with a diff", "reverse-diff this problem", or wants a concrete
-  Before/After preview before committing to a change.
+  static documents to universal Before/After diffs across writing, tone/voice
+  rewrites, difficult conversations, negotiations, mental models, habits,
+  strategy, policy/history counterfactuals, contracts, research, and code.
+  Simulates scenarios at any granularity (from sub-second L0 micro-choices and
+  turn-by-turn dialogue rallies up to L4 multi-year cascades and Monte Carlo
+  branching envelopes) in any user-set tone, enforces resource conservation, and
+  supports interactive zoom, curveballs, and hunk selection. Use when user says
+  "hypothetical diff", "hydiff", "HyDE diff", "show me the diff if", "what would
+  actually change if", "counterfactual diff", "simulate a diff", "telescoping
+  diff", "simulate turn by turn", "timeline diff", "Monte Carlo diff", "script
+  and subtext diff", "mental model diff", "ripple diff", "diff my options", or
+  wants a concrete Before/After preview before committing to a change.
 ---
 
 # Hypothetical Diff (`hypothetical-diff`)

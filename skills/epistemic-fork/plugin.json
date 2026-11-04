@@ -3,7 +3,7 @@
   "name": "epistemic-fork",
   "displayName": "Epistemic Fork & Specification Matrix",
   "version": "0.1.0",
-  "description": "Operationalizes Herdagdelen, Joren, & Tamkin (2026, 'Who\\'s Aligned to Whom? How AI Agents Shape Experts\\' Research Judgment Calls') into a 4-mode Specification & Judgment Matrix engine (matrix, sweep, lock, audit). Separates verifiable procedural hygiene from underdetermined judgment axes, maps N-way and continuous choices across Level-2 structural worldviews, failure modes, discriminating diagnostics, and marginal leverage, and provides zero-advocacy execution lock plus two-pass antipodal stress-testing.",
+  "description": "Operationalizes Herdagdelen, Joren, & Tamkin (2026) into a 4-mode Specification & Judgment Matrix engine (matrix, sweep, lock, audit). Separates verifiable procedural hygiene from underdetermined judgment axes, maps N-way and continuous choices across Level-2 structural worldviews, failure modes, discriminating diagnostics, and marginal leverage, and provides zero-advocacy execution lock plus two-pass antipodal stress-testing.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"
