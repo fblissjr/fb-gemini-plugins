@@ -4,6 +4,15 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.32.1] - 2026-11-04
+
+### Changed
+
+- **`heylook-provider` (`v0.23.1` $\rightarrow$ `v0.23.2`, verified against `heylookitsanllm 2.0.224`)**:
+  - Updated [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md): `POST /v1/conversations/{id}/generate/reasoning-end` now answers `{"signalled": 1, "conversation_id"}`, matching the request route's shape.
+  - Updated [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md): clarified that the streamed "omitted, never null" rule covers `performance`'s own top-level keys only, while nested `cache` and `speculative` carry `null` in both modes for fields that do not apply.
+- **`README.md`**: Condensed the repository catalog, installation commands, and validation instructions, removing duplicated per-plugin deep dives.
+
 ## [0.32.0] - 2026-11-04
 
 ### Added
