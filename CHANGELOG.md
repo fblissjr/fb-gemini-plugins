@@ -4,6 +4,17 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.32.2] - 2026-11-05
+
+### Changed
+
+- **`heylook-provider` (`v0.23.2` $\rightarrow$ `v0.23.3`, verified against `heylookitsanllm 2.0.242`)**:
+  - Updated [`embeddings.md`](skills/heylook-provider/skills/heylook-provider/references/embeddings.md): documented `engine.embedding.video_windows` (`{max_seconds, sampling, default_sampling}`) and `engine.embedding.limits` (`{items, blocks_per_item, text_chars, media_bytes: {image, audio, video}, request_media_bytes}`), MLX windowed video embeddings (`windows: {seconds?, sampling?: "content"|"fps"}` on a video block and `data[].windows: [{start, end, frame_times, embedding}]`), and the `256 MiB` video block and total request media limits.
+  - Updated [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md): updated `sampler_defaults` on `/v1/models` to the flat map shape (`enable_thinking` matching `thinking_default`), set `engine.image` to `null` in the discovery example, and noted that interleaved `text` and `image` blocks in a user message preserve their order on both engines.
+  - Updated [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md) and [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md): added version boundaries for `2.0.33` (`sampler_defaults` flattening), `2.0.207` (interleaved MLX user-turn images), and `2.0.233`/`2.0.236`/`2.0.238` (windowed video embeddings, `256 MiB` video cap, and `engine.embedding.limits`), plus `POST /v1/admin/models/{id}/reload[?warm=true]` load-setting body notes.
+- **Antigravity Marketplace & CLI/App Installation Docs (`README.md`, `GEMINI.md`, and `skills/*/README.md`)**:
+  - Updated installation and plugin management instructions across [`README.md`](README.md), [`GEMINI.md`](GEMINI.md), and all plugin `README.md` files to match the latest [Google Antigravity Marketplace documentation](https://antigravity.google/docs/marketplace/), covering shell `agy plugin` commands (`install`, `list [--json]`, `enable`, `disable`, `uninstall`, `validate --strict`, and `@antigravity-plugins-official`), interactive TUI `/plugin` (alias `/plugins`) **Installed** / **Discover** tabs and inline `/plugin` slash commands, and Antigravity App **Customizations $\rightarrow$ Marketplace / Installed** workflows with automatic cross-surface synchronization.
+
 ## [0.32.1] - 2026-11-04
 
 ### Changed

@@ -59,20 +59,26 @@ Full rules: [skills/path-privacy/references/patterns.md](skills/path-privacy/ref
 
 ### 1A. Install in Antigravity CLI (`agy`) & App
 
-Plugins installed under `~/.gemini/config/plugins/` are active in both **Antigravity CLI (`agy`)** and **Antigravity App (`v2.24.0+`)**.
+Plugins installed under `~/.gemini/config/plugins/` are active and automatically synchronized across both **Antigravity CLI (`agy`)** and **Antigravity App (`v2.24.0+`)** ([Marketplace docs](https://antigravity.google/docs/marketplace/)).
 
-```bash
-# Install directly from GitHub (no manual git clone needed)
-agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
+- **From your shell (`agy plugin`)**:
+  ```bash
+  # Install directly from GitHub (no manual git clone needed)
+  agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/path-privacy
 
-# Or install from a local checkout
-agy plugin install ./skills/path-privacy
+  # Or install from a local checkout
+  agy plugin install ./skills/path-privacy
 
-# Validate the plugin manifest, skill, and hooks
-agy plugin validate ./skills/path-privacy --strict
-```
-
-In the `agy` interactive TUI, you can also run `/plugin`, switch to **Discover**, and select **+ Install from local directory...**.
+  # List, toggle, uninstall, or validate
+  agy plugin list
+  agy plugin enable path-privacy
+  agy plugin disable path-privacy
+  agy plugin validate ./skills/path-privacy --strict
+  ```
+- **Inside the `agy` interactive CLI (`/plugin` / `/plugins`)**:
+  - Run `/plugin install ./skills/path-privacy` inline, or run `/plugin` (alias `/plugins`), press `Tab` to switch to **Discover**, and select **`+ Install from local directory...`** (`Space` toggles enable/disable in **Installed**; `Ctrl+S` installs/uninstalls).
+- **In the Antigravity App**:
+  - Open **Customizations** in the left sidebar $\rightarrow$ **Marketplace** (to browse and click **Add** / **`+`**) or **Installed** (where plugins installed via `agy` appear automatically; use the **`⋮`** menu or detail card to enable/disable, launch suggested starter prompt chips, or uninstall).
 
 ### 1B. Install in Claude Code
 

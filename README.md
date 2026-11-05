@@ -10,7 +10,7 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 |--------|---------|-----------|-------------|
 | **[council-of-rivals](skills/council-of-rivals/)** | `0.1.2` | Antigravity, Gemini Spark | Adversarial multi-persona collision arena & Double-Crux extractor: casts 3–5 conflicting minds with incompatible incentives to cross-examine your idea and isolate the **Crux Map ($\mathcal{C}$)** and 24-hour decisive test. |
 | **[epistemic-fork](skills/epistemic-fork/)** | `0.1.0` | Antigravity, Claude Code, Gemini Spark | Specification & Judgment Matrix engine (Herdağdelen, Joren, & Tamkin 2026): separates verifiable procedural hygiene from underdetermined judgment axes across 4 modes (`matrix`, `sweep`, `lock`, `audit`) with a stdlib multiverse CLI (`scripts/spec_matrix.py`). |
-| **[heylook-provider](skills/heylook-provider/)** | `0.23.2` | Antigravity, Claude Code, Gemini Spark | Local Apple Silicon multimodal LLM server ([`heylookitsanllm`](https://github.com/fblissjr/heylookitsanllm)) integration & capability probe (`scripts/probe.py`): covers the `/v1/messages` wire, `/v1/embeddings`, runtime model discovery, capability gating, client-side image resize, and porting off the removed OpenAI route. |
+| **[heylook-provider](skills/heylook-provider/)** | `0.23.3` | Antigravity, Claude Code, Gemini Spark | Local Apple Silicon multimodal LLM server ([`heylookitsanllm`](https://github.com/fblissjr/heylookitsanllm)) integration & capability probe (`scripts/probe.py`): covers the `/v1/messages` wire, `/v1/embeddings`, runtime model discovery, capability gating, client-side image resize, and porting off the removed OpenAI route. |
 | **[hypothetical-diff](skills/hypothetical-diff/)** | `0.3.0` | Antigravity, Gemini Spark | Generalizes HyDE (Gao et al. 2023) to universal **Before/After diffs ($\hat{\Delta}$)** across any domain, tone, and granularity (`L0` atomic micro-choices to `L4` macro eras, turn-by-turn rallies, multi-horizon timelines, and Monte Carlo envelopes). |
 | **[path-privacy](skills/path-privacy/)** | `0.22.0` | Antigravity, Claude Code | Keeps personal identifiers and external paths out of repo files, commit messages, PR descriptions, and branch names. Auto-rewrites in-repo absolute paths to relative form and blocks external paths and the git `user.name` full name via `PreToolUse` and git hooks. |
 | **[sparring-partner](skills/sparring-partner/)** | `0.1.2` | Antigravity, Gemini Spark | Live 1-on-1 in-character roleplay and conversation flight simulator across negotiations, interviews, sales objections, and difficult talks. Locks a **Sealed Envelope** (secret BATNA, triggers, and `Trust`/`Patience` meters) under Fog of War until the debrief. |
@@ -20,7 +20,9 @@ Native plugins, skills, and hooks for **Google Antigravity** (`agy` CLI v1.4.0+ 
 
 ### 1. Google Antigravity (`agy` CLI & Antigravity App)
 
-Plugins installed into `~/.gemini/config/plugins/` are shared between `agy` CLI and Antigravity App. Opening this repository as a workspace also auto-registers all plugins via `.agents/plugins.json`.
+Plugins installed in **Antigravity App** and **Antigravity CLI (`agy`)** share `~/.gemini/config/plugins/` and **automatically synchronize across both surfaces** ([Marketplace docs](https://antigravity.google/docs/marketplace/)). Opening this repository as a workspace also auto-registers all plugins via `.agents/plugins.json`.
+
+#### A. From Your Shell (`agy plugin`)
 
 ```bash
 # Install a single plugin directly from GitHub (replace <plugin> with any name above)
@@ -29,9 +31,40 @@ agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skill
 # Bulk-install all plugins in this repo from GitHub
 agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills
 
-# Or install from a local checkout
+# Install from a local checkout
 agy plugin install ./skills/<plugin>
+
+# Install an official Marketplace plugin (@antigravity-plugins-official is the default)
+agy plugin install <plugin-name>@antigravity-plugins-official
+
+# List, enable, disable, or uninstall plugins
+agy plugin list [--json]
+agy plugin enable <plugin>
+agy plugin disable <plugin>
+agy plugin uninstall <plugin>
 ```
+
+#### B. Inside the `agy` Interactive CLI (`/plugin` / `/plugins`)
+
+- **Interactive Plugin Manager UI**: Run `/plugin` (or `/plugins`) to open the TUI manager:
+  - Press `Tab` to switch between **Installed** and **Discover** tabs, start typing to search/filter, and press `Enter` to expand plugin details.
+  - In **Discover**, highlight **`+ Install from local directory...`** and press `Enter` to enter `./skills/<plugin>` (or press `Ctrl+S` on a Marketplace entry to install/uninstall).
+  - In **Installed**, press `Space` to toggle enable/disable (prompts for required MCP credentials if needed) or `Ctrl+S` to uninstall.
+- **Inline `/plugin` slash commands**:
+  ```text
+  /plugin install ./skills/<plugin>
+  /plugin install <plugin-name>@antigravity-plugins-official
+  /plugin list
+  /plugin enable <plugin>
+  /plugin disable <plugin>
+  /plugin uninstall <plugin>
+  ```
+
+#### C. In the Antigravity App (`Customizations > Marketplace` & `Installed`)
+
+1. In the left sidebar, click **Customizations** (below *Automations*).
+2. **Marketplace tab**: Browse or search curated Marketplace plugins; click any card to inspect its details and click **Add** (or click **`+`** in the list) to install.
+3. **Installed tab**: Plugins installed via `agy plugin install` or `/plugin` appear here automatically. Click the **`⋮`** menu beside any plugin (or open its detail card) to **enable/disable**, configure API keys/OAuth, launch **suggested starter prompt chips**, or **Uninstall**.
 
 ### 2. Gemini CLI
 

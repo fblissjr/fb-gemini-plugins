@@ -27,9 +27,11 @@ modalities it takes, with **no `chat`**. So:
 | `prompts` | Prompt name to prefix, from the checkpoint's sentence-transformers config |
 | `normalization` | `l2` |
 | `video_audio` | `separate_audio_block`: a video embeds frames only |
+| `video_windows` | MLX video models (`null` on gguf): `{max_seconds, sampling, default_sampling}` for windowed video embeddings |
+| `limits` | `{items, blocks_per_item, text_chars, media_bytes: {image, audio, video}, request_media_bytes}`, built from the schema the server enforces; read caps here rather than copying them |
 | `load_profile` | gguf only: the context and batch it loads with |
 
-Pick prompt names and widths from this object, never from an example.
+Pick prompt names, widths, and limits from this object, never from an example.
 
 ## Request
 
@@ -41,7 +43,9 @@ Pick prompt names and widths from this object, never from an example.
     {"prompt_name": "SearchQuery",
      "content": [{"type": "text", "text": "a dog on a beach"}]},
     {"content": [{"type": "image", "source": {"type": "base64",
-      "media_type": "image/jpeg", "data": "<base64, no data: prefix>"}}]}
+      "media_type": "image/jpeg", "data": "<base64, no data: prefix>"}}]},
+    {"content": [{"type": "video", "windows": {}, "source": {"type": "url",
+      "media_type": "video/mp4", "url": "https://example.org/clip.mp4"}}]}
   ]
 }
 ```
@@ -52,6 +56,13 @@ Pick prompt names and widths from this object, never from an example.
 - Blocks are `text`, or `image` / `audio` / `video` with a nested `source`
   (`base64` with `data`, or `url` with an http(s) `url`). A video's
   soundtrack needs its own `audio` block.
+- **Windowed video embeddings (MLX only; check `engine.embedding.video_windows`; gguf answers 400):**
+  To search inside a long video, add `"windows": {}` (or `{"seconds": N, "sampling": "content" | "fps"}`)
+  to its video block. `seconds` omitted uses and caps at `video_windows.max_seconds` (32 s on
+  EmbeddingGemma 2). `sampling` defaults to `"content"` (evenly spaced anchors plus the frames least
+  like them from 4 fps candidates, catching brief moments a fixed 1 fps grid steps over); `"fps"` takes
+  frames at the model's own rate (decoding about a quarter as many frames). A windowed item must hold
+  **only** that video block (422 otherwise); `windows` on a non-video block is a 422.
 - Omit `prompt_name` for no prefix; a named one is applied once, before the
   content.
 - **The body is strict.** Any field beyond `model`, `input` and `dimensions`
@@ -60,9 +71,13 @@ Pick prompt names and widths from this object, never from an example.
 
 ## Response
 
-`{model, dimensions, data: [{index, embedding, prompt_name}], input_tokens,
+`{model, dimensions, data: [{index, embedding, prompt_name, windows}], input_tokens,
 request_id, elapsed_ms}`. Read `data` in `index` order. Vectors are truncated
 to `dimensions`, then L2-normalized, so a dot product is a cosine similarity.
+When `windows` was requested on a video block, the row keeps its whole-video
+`embedding` and adds `windows: [{start, end, frame_times, embedding}]` (null
+otherwise), one L2-normalized vector per consecutive window: rank windows
+against a query to find the moment and seek to `start`.
 Store the model id, engine, prompt name and width beside an index: equal
 widths do not make two checkpoints, or the same weights on two engines,
 interchangeable. The server stores neither inputs nor vectors.
@@ -72,17 +87,18 @@ interchangeable. The server stores neither inputs nor vectors.
 | Code | Condition |
 |---|---|
 | 404 | Unknown embedding model (the generation route says 400 for this) |
-| 400 | A modality, width or prompt name the model does not offer; undecodable media; input over the context |
+| 400 | A modality, width, prompt name or `windows` (on gguf) the model does not offer; undecodable media; input over the context |
 | 409 | Cancelled cooperatively |
-| 422 | Schema violation, including any extra field |
+| 422 | Schema violation, including any extra field, `windows` on a non-video block, or a windowed video item with other blocks |
 | 503 | Queue full: the same backpressure envelope and `Retry-After` as generation |
 | 500 | Backend failure |
 
 A failure is atomic: no partial result.
 
-Limits (`schema/embeddings.py` in the heylook repo): 16 items, 32 blocks per
-item, 131072 characters per text block, 32 MiB decoded per media block, 64 MiB
-of media in total.
+Limits (`engine.embedding.limits`, from `schema/embeddings.py` in the heylook
+repo): 16 items, 32 blocks per item, 131072 characters per text block, 32 MiB
+decoded per image or audio block, 256 MiB per video block, and 256 MiB of media
+in total.
 
 ## Operations
 

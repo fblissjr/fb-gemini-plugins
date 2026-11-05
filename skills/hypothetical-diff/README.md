@@ -77,18 +77,26 @@ You can ask `hypothetical-diff` to simulate or rewrite **anything in any tone**â
 
 ### 1. Google Antigravity (`agy` CLI v1.4.0+ & Antigravity App v2.24.0+)
 
-Plugins installed into `~/.gemini/config/plugins/` are automatically shared between the **Antigravity CLI (`agy`)** and the **Antigravity App**.
+Plugins installed into `~/.gemini/config/plugins/` are automatically shared and synchronized between the **Antigravity CLI (`agy`)** and the **Antigravity App** ([Marketplace docs](https://antigravity.google/docs/marketplace/)).
 
-```bash
-# Install directly from GitHub
-agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
+- **From your shell (`agy plugin`)**:
+  ```bash
+  # Install directly from GitHub
+  agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/hypothetical-diff
 
-# Or install from a local checkout of fb-gemini-plugins
-agy plugin install ./skills/hypothetical-diff
+  # Or install from a local checkout of fb-gemini-plugins
+  agy plugin install ./skills/hypothetical-diff
 
-# Validate plugin manifest and skill structure
-agy plugin validate ./skills/hypothetical-diff --strict
-```
+  # List, toggle, uninstall, or validate
+  agy plugin list
+  agy plugin enable hypothetical-diff
+  agy plugin disable hypothetical-diff
+  agy plugin validate ./skills/hypothetical-diff --strict
+  ```
+- **Inside the `agy` interactive CLI (`/plugin` / `/plugins`)**:
+  - Run `/plugin install ./skills/hypothetical-diff` inline, or run `/plugin` (alias `/plugins`), press `Tab` to switch to **Discover**, and select **`+ Install from local directory...`** (`Space` toggles enable/disable in **Installed**; `Ctrl+S` installs/uninstalls).
+- **In the Antigravity App**:
+  - Open **Customizations** in the left sidebar $\rightarrow$ **Marketplace** (to browse and click **Add** / **`+`**) or **Installed** (where plugins installed via `agy` appear automatically; use the **`â‹®`** menu or detail card to enable/disable, run suggested starter prompt chips, or uninstall).
 
 ### 2. Gemini Spark & Gemini App (`Customize > Skills`)
 

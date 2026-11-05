@@ -132,14 +132,14 @@ so absent fields still fall to the server cascade.
 
 | Route | Purpose |
 |---|---|
-| `GET/POST /v1/admin/models`, `GET/PATCH/DELETE /v1/admin/models/{id}` | Per-model config in `heylook.toml`; PATCH reports which fields need a reload |
+| `GET/POST /v1/admin/models`, `GET/PATCH/DELETE /v1/admin/models/{id}` | Per-model config in the model's `model.heylook.toml` sidecar (or `heylook.toml` entry); PATCH reports which fields need a reload |
 | `POST /v1/admin/models/validate` | Validate a config without saving |
 | `GET /v1/admin/model-options` | Every settable field per provider, and when a change takes effect |
 | `GET/PUT /v1/admin/models/scan-config` | The folders models are discovered from |
 | `POST /v1/admin/models/{id}/fit` | Whether it fits memory, with optional candidate edits |
 | `GET /v1/admin/models/{id}/status` | Loaded state, memory, context use, requests active and queued |
 | `POST /v1/admin/models/{id}/unload` | Unload (409 while it is generating) |
-| `POST /v1/admin/models/{id}/reload` | Unload, then load and warm, as one operation |
+| `POST /v1/admin/models/{id}/reload[?warm=true]` | Unload then load (and optionally warm) as one operation; optional JSON body `{ctx_size, flash_attn}` |
 | `GET/PUT/DELETE /v1/admin/models/{id}/chat-template` | Read, override or reset the chat template in force |
 | `GET/PUT /v1/admin/config`, `DELETE /v1/admin/config/{key}` | Server operational settings |
 | `GET /v1/admin/config/logs?stream={events\|metrics}&limit=` | Recent observability JSONL records, newest first (`limit` 1-500) |

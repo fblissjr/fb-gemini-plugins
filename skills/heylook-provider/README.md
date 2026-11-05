@@ -1,6 +1,6 @@
 # heylook-provider
 
-*Last updated: 2026-11-04*
+*Last updated: 2026-11-05*
 
 Integration knowledge and runtime capability discovery for [heylook](https://github.com/fblissjr/heylookitsanllm) (`heylookitsanllm`), a local multimodal LLM server on Apple Silicon serving MLX and gguf models. Built for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Gemini CLI**, **Gemini Spark** (`Customize > Skills`), and **Claude Code** when applications add `heylook` as an inference provider — not for working inside the server codebase.
 
@@ -8,16 +8,26 @@ Integration knowledge and runtime capability discovery for [heylook](https://git
 
 ### 1. Google Antigravity (`agy` CLI & Antigravity App)
 
-```bash
-# Install directly from GitHub
-agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/heylook-provider
+Plugins installed in **Antigravity CLI (`agy`)** and **Antigravity App** share `~/.gemini/config/plugins/` and synchronize automatically across both surfaces ([Marketplace docs](https://antigravity.google/docs/marketplace/)).
 
-# Or install from a local checkout of fb-gemini-plugins
-agy plugin install ./skills/heylook-provider
+- **From your shell (`agy plugin`)**:
+  ```bash
+  # Install directly from GitHub
+  agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/heylook-provider
 
-# Validate plugin manifest and skill structure
-agy plugin validate ./skills/heylook-provider --strict
-```
+  # Or install from a local checkout of fb-gemini-plugins
+  agy plugin install ./skills/heylook-provider
+
+  # List, toggle, uninstall, or validate
+  agy plugin list
+  agy plugin enable heylook-provider
+  agy plugin disable heylook-provider
+  agy plugin validate ./skills/heylook-provider --strict
+  ```
+- **Inside the `agy` interactive CLI (`/plugin` / `/plugins`)**:
+  - Run `/plugin install ./skills/heylook-provider` inline, or run `/plugin` (alias `/plugins`), press `Tab` to switch to **Discover**, and select **`+ Install from local directory...`** (`Space` toggles enable/disable in **Installed**; `Ctrl+S` installs/uninstalls).
+- **In the Antigravity App**:
+  - Open **Customizations** in the left sidebar $\rightarrow$ **Marketplace** (to browse and click **Add** / **`+`**) or **Installed** (where plugins installed via `agy` appear automatically; use the **`⋮`** menu or detail card to enable/disable, run suggested starter prompt chips, or uninstall).
 
 ### 2. Gemini CLI
 

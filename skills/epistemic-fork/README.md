@@ -53,12 +53,30 @@ python3 skills/epistemic-fork/scripts/spec_matrix.py lint-neutrality --file draf
 
 ## Installation
 
-### Google Antigravity (`agy`)
-```bash
-agy plugin install ./skills/epistemic-fork
-```
+### 1. Google Antigravity (`agy` CLI & Antigravity App)
 
-### Gemini CLI
+Plugins installed in **Antigravity CLI (`agy`)** and **Antigravity App** share `~/.gemini/config/plugins/` and synchronize automatically across both surfaces ([Marketplace docs](https://antigravity.google/docs/marketplace/)).
+
+- **From your shell (`agy plugin`)**:
+  ```bash
+  # Install directly from GitHub
+  agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/epistemic-fork
+
+  # Or install from a local checkout
+  agy plugin install ./skills/epistemic-fork
+
+  # List, toggle, or validate
+  agy plugin list
+  agy plugin enable epistemic-fork
+  agy plugin disable epistemic-fork
+  agy plugin validate ./skills/epistemic-fork --strict
+  ```
+- **Inside the `agy` interactive CLI (`/plugin` / `/plugins`)**:
+  - Run `/plugin install ./skills/epistemic-fork` inline, or run `/plugin` (alias `/plugins`), press `Tab` to switch to **Discover**, and select **`+ Install from local directory...`** (`Space` toggles enable/disable in **Installed**; `Ctrl+S` installs/uninstalls).
+- **In the Antigravity App**:
+  - Open **Customizations** in the left sidebar $\rightarrow$ **Marketplace** (to browse and click **Add** / **`+`**) or **Installed** (where plugins installed via `agy` appear automatically; use the **`⋮`** menu or detail card to enable/disable, run suggested starter prompt chips, or uninstall).
+
+### 2. Gemini CLI
 ```bash
 gemini skills install https://github.com/fblissjr/fb-gemini-plugins.git --path skills/epistemic-fork/skills/epistemic-fork
 ```

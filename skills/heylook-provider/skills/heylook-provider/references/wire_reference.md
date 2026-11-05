@@ -190,7 +190,9 @@ Prefer the nested form: heylook's `/v1/conversations` store accepts only that
 shape. Explicit `null` flat fields beside a nested `source` (what a generated
 or `model_dump()`-based client emits) are treated as absent. A flat field that
 is set wins over the nested object; the nested object is ignored wholesale only
-when the two spellings disagree about the kind of source.
+when the two spellings disagree about the kind of source. Interleaved `text`
+and `image` blocks inside a user turn preserve their exact order in the
+rendered prompt on both engines.
 
 A block with a source type but no `data` and no `url` is a 422 naming the
 missing field. An image that cannot be decoded is a 400, or an in-band
@@ -453,7 +455,7 @@ reported `stop_sequence`. It is indistinguishable from budget exhaustion:
     "modalities": ["text", "vision"],
     "capabilities": ["chat", "vision", "thinking", "reasoning_effort"],
     "thinking_default": true,
-    "sampler_defaults": { "off": {"temperature": 1.0, "top_k": 64}, "on": {"...": 0} },
+    "sampler_defaults": { "temperature": 1.0, "top_p": 0.95, "top_k": 64, "enable_thinking": true },
     "sampler_sources":  { "...": "model | vendor | default" },
     "engine": {
       "runtime":  { "value": "mlx-vlm", "provenance": "...", "source": "..." },
@@ -464,7 +466,7 @@ reported `stop_sequence`. It is indistinguishable from budget exhaustion:
       "thinking": { "switch": "...", "depth": { "variable", "values", "aliases", "default",
                                                 "unknown", "changes_prefix", "off" },
                     "budget": { "enforced", "reason" }, "template": "..." },
-      "image":    { "...": "image geometry" },
+      "image":    null,
       "speculative": { "drafter", "type", "in_force" },
       "decoding": { "mode": { "value": "autoregressive" }, "request_fields": { "value": null } },
       "steering": null,
@@ -484,8 +486,8 @@ An embedding model's row lists `embedding` plus its input modalities (`text`,
 The `engine` object has one shape on every engine and answers for unloaded
 models too. `runtime`, `context`, `settings`, `cache`, `decoding` and
 `speculative` hold **facts**, `{value, provenance, source}`: read `.value`
-through one helper rather than at each call site. `thinking` and `image` are
-plain objects, read directly (`client_recipes.md`, Thinking control, gives the
+through one helper rather than at each call site. `thinking` is a
+plain object, read directly (`client_recipes.md`, Thinking control, gives the
 `thinking` shape). What a client gates on:
 
 - `engine.context.length.value`: the model's window (null where the files do
@@ -502,9 +504,9 @@ plain objects, read directly (`client_recipes.md`, Thinking control, gives the
   loaded gguf model; `unknown` (null) while unloaded, `not_applicable` on MLX.
 
 `thinking_default` is what thinking resolves to when the request says nothing;
-label a "model default" control with it. `sampler_defaults` is what every
-sampler key resolves to for a silent request, keyed by the thinking state
-(`off` / `on`) because the anti-loop overlay changes the numbers.
+label a "model default" control with it. `sampler_defaults` is a flat map of
+what every sampler key resolves to for a silent request (its `enable_thinking`
+equals `thinking_default`).
 
 MLX's `vision` capability and its refusal come from one resolver, so they
 cannot disagree. Three arms stay open, so handle the refusal regardless:

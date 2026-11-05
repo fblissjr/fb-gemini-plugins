@@ -53,16 +53,26 @@ Use these commands at any point during a sparring match:
 
 ### 1. Google Antigravity (`agy` CLI v1.4.0+ & Antigravity App v2.24.0+)
 
-```bash
-# Install directly from GitHub
-agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
+Plugins installed in **Antigravity CLI (`agy`)** and **Antigravity App** share `~/.gemini/config/plugins/` and synchronize automatically across both surfaces ([Marketplace docs](https://antigravity.google/docs/marketplace/)).
 
-# Or install from a local checkout of fb-gemini-plugins
-agy plugin install ./skills/sparring-partner
+- **From your shell (`agy plugin`)**:
+  ```bash
+  # Install directly from GitHub
+  agy plugin install https://github.com/fblissjr/fb-gemini-plugins/tree/main/skills/sparring-partner
 
-# Validate plugin manifest and skill structure
-agy plugin validate ./skills/sparring-partner --strict
-```
+  # Or install from a local checkout of fb-gemini-plugins
+  agy plugin install ./skills/sparring-partner
+
+  # List, toggle, uninstall, or validate
+  agy plugin list
+  agy plugin enable sparring-partner
+  agy plugin disable sparring-partner
+  agy plugin validate ./skills/sparring-partner --strict
+  ```
+- **Inside the `agy` interactive CLI (`/plugin` / `/plugins`)**:
+  - Run `/plugin install ./skills/sparring-partner` inline, or run `/plugin` (alias `/plugins`), press `Tab` to switch to **Discover**, and select **`+ Install from local directory...`** (`Space` toggles enable/disable in **Installed**; `Ctrl+S` installs/uninstalls).
+- **In the Antigravity App**:
+  - Open **Customizations** in the left sidebar $\rightarrow$ **Marketplace** (to browse and click **Add** / **`+`**) or **Installed** (where plugins installed via `agy` appear automatically; use the **`⋮`** menu or detail card to enable/disable, run suggested starter prompt chips, or uninstall).
 
 ### 2. Gemini Spark & Gemini App (`Customize > Skills`)
 

@@ -33,7 +33,9 @@ the range spans.
   hidden-states and embeddings routes existed.
 - **Before 2.0.121** an image that could not be decoded was silently replaced
   rather than refused. **Before 2.0.128** MLX accepted a local file path as an
-  image source.
+  image source. **Before 2.0.207** the MLX vision adapter hoisted every image
+  block in a user turn ahead of the concatenated text rather than preserving
+  interleaved text and image order.
 
 ## Request fields
 
@@ -136,7 +138,8 @@ the range spans.
   one resolver answers both.
 - `thinking_default` arrived in **1.79.63**, a top-level `context_length` in
   **1.79.65**, and `sampler_defaults` in **2.0.21** (gguf values corrected in
-  2.0.25).
+  2.0.25; nested `{"off": {...}, "on": {...}}` until **2.0.33**, when removing
+  the thinking anti-loop overlay collapsed it to one flat object).
 - **Before 2.0.18** a vision-capable MLX model accepted an image on a
   non-user turn and mlx-vlm silently moved it to the last user turn.
 - **Before 2.0.73** a row carried top-level `context_length`,
@@ -157,6 +160,11 @@ the range spans.
   did not bump the version past 2.0.204, so treat 2.0.205 as the first build
   that is sure to have it, or probe for `engine.embedding`.
 - **Before 2.0.216** `engine.template` had no `caps`.
+- **Before 2.0.233** `/v1/embeddings` had no windowed video embeddings
+  (`windows` on a video block and `engine.embedding.video_windows`). **Before
+  2.0.236** video blocks were capped at 32 MiB (64 MiB request media total)
+  instead of 256 MiB. **Before 2.0.238** `engine.embedding` carried no
+  `limits` object.
 
 ## Access
 

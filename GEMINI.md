@@ -41,7 +41,7 @@ fb-gemini-plugins/
 │   │   │       └── scripts/                 # Zero-dependency stdlib multiverse & audit CLI
 │   │   │           └── spec_matrix.py
 │   │   └── README.md                        # Plugin and multi-platform documentation
-│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.23.2)
+│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.23.3)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
@@ -206,7 +206,13 @@ Every file created or modified inside this repository MUST obey these rules:
   - `disabled` (optional boolean to ship turned off by default)
   - Metadata fields (`author`, `repository`, `homepage`, `license`, `keywords`) are also permitted for catalog/GitHub metadata.
 - **Workspace discovery**: `.agents/plugins.json` (`{"entries": [{"path": "skills"}]}`) registers all plugins in this repository for workspace sessions. **Do NOT also symlink plugin skills into `.agents/skills/`**, as Antigravity does not deduplicate skills across `.agents/skills/` and `.agents/plugins.json` and would inject every skill twice into the system prompt.
-- **Install directories**: Global plugins live in `~/.gemini/config/plugins/<dir>/` (or `~/.gemini/antigravity-cli/plugins/<dir>/` when staged by `agy` CLI). Marketplace installs use a signed 64-bit hash for `<dir>` rather than `plugin.json`'s `name`.
+- **Install directories & Cross-Surface Sync ([Marketplace docs](https://antigravity.google/docs/marketplace/))**:
+  - Global plugins live in `~/.gemini/config/plugins/<dir>/` (or `~/.gemini/antigravity-cli/plugins/<dir>/` when staged by `agy` CLI) and **synchronize automatically** between the **Antigravity App** (`Customizations > Installed`) and **Antigravity CLI** (`/plugin` $\rightarrow$ `Installed` tab). Marketplace installs use a signed 64-bit hash for `<dir>` rather than `plugin.json`'s `name`.
+  - **Antigravity App**: Sidebar $\rightarrow$ **Customizations** $\rightarrow$ **Marketplace** (click card $\rightarrow$ **Add**, or click `+`) and **Installed** (`⋮` menu or detail view to toggle enable/disable, configure API tokens/OAuth, run `suggestedPrompts` chips, or uninstall).
+  - **Antigravity CLI (`agy`)**:
+    - Interactive TUI manager via `/plugin` (or `/plugins`): `Tab` cycles `Installed` $\leftrightarrow$ `Discover`, typing filters, `Enter` expands details or selects `+ Install from local directory...` in `Discover`, `Space` toggles enable/disable in `Installed`, and `Ctrl+S` installs/uninstalls.
+    - Inline TUI commands: `/plugin install <local-path>`, `/plugin install <name>@antigravity-plugins-official`, `/plugin list`, `/plugin enable|disable|uninstall <name>`.
+    - Shell CLI commands: `agy plugin install <github-url|local-path|name[@antigravity-plugins-official]>`, `agy plugin list [--json]`, `agy plugin enable|disable|uninstall <name>`, `agy plugin validate [path] [--strict] [--json]`.
 
 ### 2. Hooks Configuration (`hooks.json`)
 
