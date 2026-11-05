@@ -76,7 +76,23 @@ fb-gemini-plugins/
 │   │   │           ├── domain-playbooks.md
 │   │   │           └── hyde-theory-and-patterns.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
-│   └── path-privacy/                        # Path & author privacy plugin (v0.22.0)
+│   ├── omni-flash-prompting/                # Gemini Omni 1.2 Flash prompting & storyboard linter/compiler (v0.1.0)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── skills/
+│   │   │   └── omni-flash-prompting/
+│   │   │       ├── SKILL.md                 # Self-contained 5-mode skill (Antigravity + Gemini Spark)
+│   │   │       ├── references/              # 6-Layer spec, Minimal Delta + Anchor, and 8 domain playbooks
+│   │   │       │   ├── prompt-architecture-and-tags.md
+│   │   │       │   ├── editing-extension-and-multiturn.md
+│   │   │       │   └── domain-prompt-playbooks.md
+│   │   │       └── scripts/                 # Zero-dependency stdlib compiler, 12-rule linter & cost CLI
+│   │   │           └── omni_prompt.py
+│   │   └── README.md                        # Plugin and multi-platform documentation
+│   ├── path-privacy/                        # Path & author privacy plugin (v0.22.0)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
 │       ├── .claude-plugin/
 │       │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
@@ -373,6 +389,7 @@ agy plugin validate skills/council-of-rivals --strict --json
 agy plugin validate skills/epistemic-fork --strict --json
 agy plugin validate skills/heylook-provider --strict --json
 agy plugin validate skills/hypothetical-diff --strict --json
+agy plugin validate skills/omni-flash-prompting --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json
 agy plugin validate skills/video-understanding --strict --json

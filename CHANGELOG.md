@@ -4,6 +4,21 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.33.0] - 2026-11-05
+
+### Added
+
+- **`omni-flash-prompting` (`v0.1.0` — Structured Prompting, Storyboard Choreography & Deterministic Linter/Compiler for Gemini Omni 1.2 Flash)**:
+  - Added [`skills/omni-flash-prompting/`](skills/omni-flash-prompting/) for **Google Antigravity**, **Claude Code**, **Gemini CLI**, and **Gemini Spark**, targeting **Google Gemini Omni 1.2 Flash (`gemini-omni-1.2-flash`)** on the Gemini Interactions API.
+  - **5 Operational Modes (`SKILL.md`)**:
+    1. `generate`: Assembles the **6-Layer Cinematic Spec** for native `3s–15s` video generation (`1s` increments, +50% ceiling over 1.1)—covering single-shot continuity locks vs. multi-shot rhythms, subject/costume/packaging micro-detail, `[0-5s] / [5-10s] / [10-15s]` timecode beat choreography, continuous FPV/orbital camera trajectories, `"quoted"` on-screen typography, and inline audio/negative guardrails.
+    2. `edit`: Enforces the **Minimal Delta + Anchor Rule** (`[Imperative Target Modification] + "Keep everything else the same."`) to eliminate over-description drift, paired with the **Audio Stream Gate** (preserving existing audio vs. mandatory `ffmpeg -an` audio stripping to force full soundtrack regeneration).
+    3. `extend`: Crafts `3s–10s` per-turn horizon extensions (up to `30s–40s` total using the final `10s` as context) with the **Prompt-Only Extension Unlock** (omitting `task="extend"` so `<IMAGE_REF_0..5>` and `<VIDEO_REF_0..2>` can inject new characters and motion into extended timelines) and relative `0s` timecode alignment.
+    4. `multiturn`: Choreographs the **720p Stateful Draft (\$0.07/s, -30% vs. 1.1) $\rightarrow$ Conversational `previous_interaction_id` Refine $\rightarrow$ 1080p/4K `URI` Upscale Loop**, including multi-turn voice/dialogue extension rules.
+    5. `lint`: Audits draft prompts and configs against 12 Gemini Omni 1.2 Flash failure modes (`R01`–`R12`).
+  - **Progressive-Disclosure Reference Suite (`references/`)**: Ships [`prompt-architecture-and-tags.md`](skills/omni-flash-prompting/skills/omni-flash-prompting/references/prompt-architecture-and-tags.md), [`editing-extension-and-multiturn.md`](skills/omni-flash-prompting/skills/omni-flash-prompting/references/editing-extension-and-multiturn.md), and [`domain-prompt-playbooks.md`](skills/omni-flash-prompting/skills/omni-flash-prompting/references/domain-prompt-playbooks.md) (8 production playbooks).
+  - **Zero-Dependency Stdlib CLI (`scripts/omni_prompt.py`)**: Provides `compile` (role-tagged prompt + `google-genai` Interactions API Python snippet), `lint` (12-rule validator), `cost` (draft-to-upscale budget & 30% savings calculator), and `--self-test`.
+
 ## [0.32.2] - 2026-11-05
 
 ### Changed

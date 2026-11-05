@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- 10% margin frame: content within 14..114 -->
+  <rect x="14" y="14" width="100" height="100" rx="22" fill="#0F172A" stroke="#334155" stroke-width="3"/>
+  <!-- Clapperboard / Storyboard Header -->
+  <path d="M26 36C26 31.5817 29.5817 28 34 28H94C98.4183 28 102 31.5817 102 36V44H26V36Z" fill="#1E293B" stroke="#38BDF8" stroke-width="2.5"/>
+  <line x1="40" y1="28" x2="34" y2="44" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="58" y1="28" x2="52" y2="44" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="76" y1="28" x2="70" y2="44" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="94" y1="28" x2="88" y2="44" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Main Viewport Frame -->
+  <rect x="26" y="44" width="76" height="46" rx="4" fill="#0EA5E9" fill-opacity="0.12" stroke="#38BDF8" stroke-width="2.5"/>
+  <!-- Gemini Spark / Flash Star in Viewport -->
+  <path d="M54 53C54 60.5 47.5 67 40 67C47.5 67 54 73.5 54 81C54 73.5 60.5 67 68 67C60.5 67 54 60.5 54 53Z" fill="#FBBF24" fill-opacity="0.85" stroke="#FDE68A" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 15s Badge Pill -->
+  <rect x="70" y="56" width="24" height="16" rx="4" fill="#A855F7" fill-opacity="0.3" stroke="#C084FC" stroke-width="2"/>
+  <circle cx="77" cy="64" r="2.5" fill="#F472B6"/>
+  <line x1="83" y1="64" x2="89" y2="64" stroke="#E9D5FF" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 3-Beat 15s Timeline Track (0-5s, 5-10s, 10-15s) -->
+  <line x1="28" y1="100" x2="100" y2="100" stroke="#475569" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="32" cy="100" r="4" fill="#38BDF8"/>
+  <circle cx="54" cy="100" r="4" fill="#C084FC"/>
+  <circle cx="76" cy="100" r="4" fill="#FBBF24"/>
+  <circle cx="96" cy="100" r="4" fill="#34D399"/>
+</svg>

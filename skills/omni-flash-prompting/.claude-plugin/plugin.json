@@ -1,0 +1,21 @@
+{
+  "name": "omni-flash-prompting",
+  "version": "0.1.0",
+  "description": "Structured prompting, storyboard choreography, and prompt linter/compiler for Gemini Omni 1.2 Flash (gemini-omni-1.2-flash). Covers 3s-15s native video generation, multi-turn conversational editing, Minimal Delta + Anchor locks, up to 6 image and 3 video reference tags, audio stripping vs. preservation, and 720p-to-4K draft-to-upscale workflows.",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "gemini-omni-1.2-flash",
+    "omni-flash-prompting",
+    "video-generation",
+    "video-editing",
+    "prompt-engineering",
+    "interactions-api",
+    "multimodal",
+    "antigravity",
+    "gemini-spark"
+  ]
+}
