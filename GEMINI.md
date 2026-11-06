@@ -133,6 +133,25 @@ fb-gemini-plugins/
 │   │   │           ├── counterparty-archetypes.md
 │   │   │           └── hidden-state-and-debrief.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
+│   ├── swift-lsp/                           # SourceKit-LSP MCP bridge & macOS/iOS 27.2+ SDK inspector (v0.1.1)
+│   │   ├── plugin.json                      # Native Antigravity plugin manifest
+│   │   ├── .claude-plugin/
+│   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
+│   │   ├── mcp_config.json                  # Stdio MCP server configuration (swift-lsp-sourcekit)
+│   │   ├── assets/
+│   │   │   └── logo.svg                     # 128x128 square SVG icon for App/Marketplace cards
+│   │   ├── tests/
+│   │   │   └── test_sourcekit_mcp.py        # Unit & mock-LSP round-trip test suite
+│   │   ├── skills/
+│   │   │   └── swift-lsp/
+│   │   │       ├── SKILL.md                 # Self-contained skill (Antigravity + Gemini Spark + Claude Code)
+│   │   │       ├── references/              # Indexing, dual-SDK 27.2+ & Swift 6 concurrency playbooks
+│   │   │       │   ├── sourcekit-lsp-and-indexing.md
+│   │   │       │   ├── dual-sdk-macos-ios-27.md
+│   │   │       │   └── swift6-concurrency-diagnostics.md
+│   │   │       └── scripts/                 # Zero-dependency stdlib MCP stdio server & CLI bridge
+│   │   │           └── sourcekit_mcp.py
+│   │   └── README.md                        # Plugin and multi-platform documentation
 │   └── video-understanding/                 # Video, image & audio understanding router & CLI toolkit (v0.1.0)
 │       ├── plugin.json                      # Native Antigravity plugin manifest
 │       ├── .claude-plugin/
@@ -392,6 +411,7 @@ agy plugin validate skills/hypothetical-diff --strict --json
 agy plugin validate skills/omni-flash-prompting --strict --json
 agy plugin validate skills/path-privacy --strict --json
 agy plugin validate skills/sparring-partner --strict --json
+agy plugin validate skills/swift-lsp --strict --json
 agy plugin validate skills/video-understanding --strict --json
 
 # 2. Check git hook installation health and dual-harness alignment

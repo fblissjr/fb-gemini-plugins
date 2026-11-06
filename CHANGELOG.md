@@ -4,6 +4,23 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.34.0] - 2026-11-06
+
+### Added
+
+- **`swift-lsp` (`v0.1.1` — SourceKit-LSP MCP Bridge & Xcode macOS 27.2+ / iOS 27.2+ `.swiftinterface` SDK Inspector)**:
+  - Added [`skills/swift-lsp/`](skills/swift-lsp/) for **Google Antigravity** (`agy` CLI and Antigravity App), **Claude Code**, **Gemini CLI**, and **Gemini Spark**, targeting **Swift 6**, **macOS 27.2+**, and **iOS 27.2+** development.
+  - **7 MCP Tools (`mcp_config.json` $\rightarrow$ `swift-lsp-sourcekit`) & Stdlib CLI (`scripts/sourcekit_mcp.py`)**:
+    1. `swift_toolchain_probe` (`probe`): Inspects active Xcode toolchain, `xcrun sourcekit-lsp`, `Package.swift` vs. `buildServer.json` (`xcode-build-server`) layout, `IndexStoreDB` readiness, and installed `macosx` / `iphonesimulator` SDK versions.
+    2. `swift_diagnostics` (`diagnostics`): Runs sandbox-free incremental diagnostics via warm `sourcekit-lsp` (`textDocument/diagnostic` & `publishDiagnostics`) and dual-platform `xcrun swiftc -typecheck` across `macos` (`arm64-apple-macosx27.2`), `ios` (`arm64-apple-ios27.2-simulator`), or `both` (verifying both `#if os(macOS)` and `#if os(iOS)` branches).
+    3. `swift_hover` (`hover`): Symbol-name-anchored `textDocument/hover` (auto-resolving exact UTF-16 column offsets on `line ± 3`, including across surrogate-pair Unicode/emoji literals and leading-dot member syntax) for compiler-inferred types and `@MainActor` / `Sendable` isolation.
+    4. `swift_definition` (`definition`): Symbol-name-anchored `textDocument/definition`, `typeDefinition`, and `implementation` navigation with inline target source snippets.
+    5. `swift_references` (`references`): Symbol-name-anchored `textDocument/references` across the workspace `IndexStoreDB` with 1-line call-site previews and cold-index warnings.
+    6. `swift_symbols` (`symbols`): Hierarchical file outlines (`textDocument/documentSymbol`) and workspace symbol search (`workspace/symbol`).
+    7. `swift_sdk_interface` (`sdk`): Direct search and extraction of public declarations and `@available(macOS 27..., iOS 27..., *)` attributes from installed Xcode `.swiftinterface` files (`SwiftUI` + `SwiftUICore`, `AppKit`, `UIKit`, `Observation`, `Foundation` + `FoundationEssentials`, `FoundationModels`, `Metal`, `SwiftData`), filtering out Mac Catalyst (`macabi`) headers on macOS and ranking exact primary type declarations at `#1`.
+  - **Two-Tier Execution Engine (`SourceKitLspSession` + `swiftc -dump-ast` Sandbox Fallback)**: Runs persistent `xcrun sourcekit-lsp` (`--scratch-path /tmp/swift-lsp-scratch -Xswiftc -module-cache-path -Xswiftc /tmp/swift-lsp-module-cache`) in Tier 1, detects `SOURCEKITD FATAL ERROR: Service is invalid` on `stderr` in `<5ms` inside Mach-restricted sandboxes, and automatically falls back to multi-file `xcrun swiftc -dump-ast` / `-typecheck` in Tier 2.
+  - **Progressive-Disclosure Reference Suite (`references/`) & Unit Tests (`tests/`)**: Ships [`sourcekit-lsp-and-indexing.md`](skills/swift-lsp/skills/swift-lsp/references/sourcekit-lsp-and-indexing.md), [`dual-sdk-macos-ios-27.md`](skills/swift-lsp/skills/swift-lsp/references/dual-sdk-macos-ios-27.md), [`swift6-concurrency-diagnostics.md`](skills/swift-lsp/skills/swift-lsp/references/swift6-concurrency-diagnostics.md), `--self-test` (17 assertions including a mock `sourcekit-lsp` JSON-RPC + MCP stdio round-trip), and `tests/test_sourcekit_mcp.py` (7 unit + live Swift 6.4.2 / SDK 27.2 integration tests).
+
 ## [0.33.0] - 2026-11-05
 
 ### Added

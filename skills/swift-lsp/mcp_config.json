@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "swift-lsp-sourcekit": {
+      "command": "python3",
+      "args": [
+        "-c",
+        "import pathlib, runpy, sys; h = pathlib.Path.home(); c = [pathlib.Path('skills/swift-lsp/scripts/sourcekit_mcp.py'), pathlib.Path('skills/swift-lsp/skills/swift-lsp/scripts/sourcekit_mcp.py'), h / '.gemini/config/plugins/swift-lsp/skills/swift-lsp/scripts/sourcekit_mcp.py', *h.glob('.gemini/config/plugins/*/skills/swift-lsp/scripts/sourcekit_mcp.py'), *h.glob('.gemini/antigravity-cli/plugins/*/skills/swift-lsp/scripts/sourcekit_mcp.py')]; s = next((p for p in c if p.is_file()), None); sys.exit('swift-lsp: sourcekit_mcp.py not found') if not s else (setattr(sys, 'argv', [str(s), 'mcp']), runpy.run_path(str(s), run_name='__main__'))"
+      ]
+    }
+  }
+}

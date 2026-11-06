@@ -1,0 +1,24 @@
+{
+  "name": "swift-lsp",
+  "version": "0.1.1",
+  "description": "SourceKit-LSP (xcrun sourcekit-lsp) MCP bridge, multi-file swiftc -dump-ast sandbox fallback, and SDK interface inspector for Swift 6, macOS 27.2+, and iOS 27.2+ development in Antigravity App and CLI. Provides symbol-anchored hover, definition, references, workspace symbols, dual-platform (macOS + iOS simulator) live diagnostics, and direct Xcode .swiftinterface lookup without cold-build or sandbox overhead.",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "swift-lsp",
+    "sourcekit-lsp",
+    "swift-6",
+    "macos-27",
+    "ios-27",
+    "swiftui",
+    "appkit",
+    "xcode",
+    "mcp",
+    "antigravity",
+    "gemini-spark"
+  ]
+}

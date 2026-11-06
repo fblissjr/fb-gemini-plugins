@@ -1,0 +1,32 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "swift-lsp",
+  "displayName": "Swift LSP & 27.2+ SDK Inspector",
+  "version": "0.1.1",
+  "description": "SourceKit-LSP (xcrun sourcekit-lsp) MCP bridge, multi-file swiftc -dump-ast sandbox fallback, and SDK interface inspector for Swift 6, macOS 27.2+, and iOS 27.2+ development in Antigravity App and CLI. Provides symbol-anchored hover, definition, references, workspace symbols, dual-platform (macOS + iOS simulator) live diagnostics, and direct Xcode .swiftinterface lookup without cold-build or sandbox overhead.",
+  "logo": "assets/logo.svg",
+  "author": {
+    "name": "fblissjr"
+  },
+  "repository": "https://github.com/fblissjr/fb-gemini-plugins",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "swift-lsp",
+    "sourcekit-lsp",
+    "swift-6",
+    "macos-27",
+    "ios-27",
+    "swiftui",
+    "appkit",
+    "xcode",
+    "mcp",
+    "antigravity",
+    "gemini-spark"
+  ],
+  "suggestedPrompts": [
+    "Probe the active Xcode toolchain, SourceKit-LSP status, IndexStoreDB health, and installed macOS 27.2+ / iOS 27.2+ SDKs in this workspace",
+    "Run dual-platform Swift diagnostics across both macOS 27.2 and iOS 27.2 simulator targets on our modified Swift files",
+    "Look up the exact macOS 27.2+ and iOS 27.2+ .swiftinterface signatures and @MainActor / Sendable annotations in SwiftUI"
+  ]
+}

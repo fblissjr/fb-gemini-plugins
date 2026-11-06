@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- 10% margin frame: content within 14..114 -->
+  <rect x="14" y="14" width="100" height="100" rx="22" fill="#0F172A" stroke="#334155" stroke-width="3"/>
+  <!-- Warm Swift Orange/Coral Gradient Accent Backdrop -->
+  <rect x="24" y="24" width="80" height="80" rx="16" fill="#F97316" fill-opacity="0.12" stroke="#FB923C" stroke-width="2"/>
+  <!-- Stylized Swift Bird Wing / Trajectory -->
+  <path d="M78 36C85 45 88 56 84 66C84 66 91 71 93 78C86 77 79 74 74 70C65 75 52 75 41 67C35 63 31 57 30 52C38 58 49 61 59 59C48 52 40 43 36 35C45 42 56 48 66 50C59 43 54 36 52 30C61 36 71 43 77 48C79 44 79 40 78 36Z" fill="#F97316" stroke="#FDBA74" stroke-width="2" stroke-linejoin="round"/>
+  <!-- LSP Semantic Graph Nodes & 27.2 Badge Bar -->
+  <line x1="34" y1="90" x2="94" y2="90" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="38" cy="90" r="4.5" fill="#38BDF8"/>
+  <circle cx="64" cy="90" r="4.5" fill="#F97316" stroke="#FED7AA" stroke-width="1.5"/>
+  <circle cx="90" cy="90" r="4.5" fill="#34D399"/>
+</svg>
