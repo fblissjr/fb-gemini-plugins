@@ -1,8 +1,8 @@
 # swift-lsp
 
-last updated: 2026-11-06
+last updated: 2026-11-07
 
-A **SourceKit-LSP (`xcrun sourcekit-lsp`) MCP Bridge & Xcode 27.2+ SDK `.swiftinterface` Inspector Plugin** (`v0.1.1`) for **Swift 6, macOS 27.2+, and iOS 27.2+** development across **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Claude Code**, **Gemini CLI**, and **Gemini Spark** (`Customize > Skills` and Gemini Enterprise).
+A **SourceKit-LSP (`xcrun sourcekit-lsp`) MCP Bridge & Xcode 27.2+ SDK `.swiftinterface` Inspector Plugin** (`v0.1.2`) for **Swift 6, macOS 27.2+, and iOS 27.2+** development across **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Claude Code**, **Gemini CLI**, and **Gemini Spark** (`Customize > Skills` and Gemini Enterprise).
 
 ---
 
@@ -128,9 +128,9 @@ Plugins installed in **Antigravity CLI (`agy`)** and **Antigravity App** share `
 
 ```text
 skills/swift-lsp/
-├── plugin.json                                         # Native Antigravity plugin manifest (v0.1.1)
+├── plugin.json                                         # Native Antigravity plugin manifest (v0.1.2)
 ├── .claude-plugin/
-│   └── plugin.json                                     # Claude Code plugin manifest (v0.1.1)
+│   └── plugin.json                                     # Claude Code plugin manifest (v0.1.2)
 ├── mcp_config.json                                     # Stdio MCP server configuration (swift-lsp-sourcekit)
 ├── assets/
 │   └── logo.svg                                        # 128x128 square SVG icon for App/Marketplace cards

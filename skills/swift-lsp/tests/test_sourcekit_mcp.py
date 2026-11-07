@@ -217,8 +217,28 @@ time.sleep(30)
                     pool, files=[str(f_runner)], platform="both"
                 )
                 self.assertEqual(diags["error_count"], 0)
+
+                # Verify relative file paths resolve via pool.last_workspace even when cwd is outside the workspace
+                rel_hov = sourcekit_mcp.query_hover(
+                    pool,
+                    file_path="Sources/Demo/Runner.swift",
+                    line=6,
+                    symbol="fetchModels",
+                )
+                self.assertIn("(ModelService) -> (Int) -> [String]", rel_hov["hover"] or "")
             finally:
                 pool.close_all()
+
+    def test_mcp_config_declares_eager_tools(self) -> None:
+        import json
+
+        mcp_cfg_path = SCRIPT_PATH.parent.parent.parent.parent / "mcp_config.json"
+        cfg = json.loads(mcp_cfg_path.read_text(encoding="utf-8"))
+        tools_cfg = cfg["mcpServers"]["swift-lsp-sourcekit"]["tools"]
+        expected_tools = {t["name"] for t in sourcekit_mcp.MCP_TOOLS_SCHEMA}
+        self.assertEqual(set(tools_cfg.keys()), expected_tools)
+        for tool_name, meta in tools_cfg.items():
+            self.assertTrue(meta.get("eager"), f"Expected eager=True for {tool_name}")
 
     def test_full_self_test_suite(self) -> None:
         self.assertEqual(sourcekit_mcp._run_self_tests(), 0)

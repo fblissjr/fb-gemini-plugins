@@ -36,7 +36,7 @@ DEFAULT_MIN_OS_VERSION = "27.2"
 DEFAULT_MODULE_CACHE_DIR = "/tmp/swift-lsp-module-cache"
 DEFAULT_SCRATCH_DIR = "/tmp/swift-lsp-scratch"
 SERVER_NAME = "swift-lsp-sourcekit"
-SERVER_VERSION = "0.1.1"
+SERVER_VERSION = "0.1.2"
 
 LSP_SYMBOL_KINDS: Dict[int, str] = {
     1: "File",
@@ -314,9 +314,17 @@ def resolve_sdk_info(sdk_name: str) -> Dict[str, Any]:
 def probe_toolchain_and_workspace(
     workspace: Optional[str] = None,
     min_version: str = DEFAULT_MIN_OS_VERSION,
+    pool: Optional["LspSessionPool"] = None,
 ) -> Dict[str, Any]:
     """Inspect Xcode toolchain, SourceKit-LSP, SDKs (macOS/iOS 27.2+), and project layout."""
-    ws_root = discover_swift_workspace(workspace or os.getcwd())
+    if workspace:
+        ws_root = discover_swift_workspace(os.path.expanduser(workspace))
+        if pool is not None:
+            pool.record_workspace(ws_root)
+    elif pool is not None and pool.last_workspace is not None:
+        ws_root = pool.last_workspace
+    else:
+        ws_root = discover_swift_workspace(os.getcwd())
     rc_lsp, lsp_path, lsp_err = _run_cmd_capture(["xcrun", "--find", "sourcekit-lsp"])
     rc_swift, swift_ver, _ = _run_cmd_capture(["xcrun", "swift", "--version"])
 
@@ -767,6 +775,16 @@ class LspSessionPool:
         self._lock = threading.Lock()
         self._sessions: Dict[str, SourceKitLspSession] = {}
         self._custom_command = custom_command
+        self._last_workspace: Optional[pathlib.Path] = None
+
+    @property
+    def last_workspace(self) -> Optional[pathlib.Path]:
+        with self._lock:
+            return self._last_workspace
+
+    def record_workspace(self, ws_root: pathlib.Path) -> None:
+        with self._lock:
+            self._last_workspace = ws_root
 
     def get_for_path(
         self,
@@ -776,6 +794,7 @@ class LspSessionPool:
         ws_root = discover_swift_workspace(workspace or target_path)
         key = str(ws_root)
         with self._lock:
+            self._last_workspace = ws_root
             session = self._sessions.get(key)
             if session is None:
                 session = SourceKitLspSession(
@@ -791,6 +810,43 @@ class LspSessionPool:
             self._sessions.clear()
         for s in sessions:
             s.close()
+
+
+def resolve_file_path(
+    file_path: str | pathlib.Path,
+    workspace: Optional[str] = None,
+    pool: Optional[LspSessionPool] = None,
+) -> str:
+    """Resolve `file_path` against `workspace` or `pool.last_workspace` when relative.
+
+    When spawned as a global plugin MCP server, the process `cwd` is the plugin install
+    directory rather than the user's Swift project root. Resolving relative paths against
+    `workspace` (or the pool's last active Swift workspace) ensures relative file paths
+    like `Sources/App/ContentView.swift` resolve to the active Swift project.
+    """
+    raw = os.path.expanduser(os.fspath(file_path))
+    if os.path.isabs(raw):
+        abs_p = os.path.abspath(raw)
+        if pool is not None:
+            pool.record_workspace(discover_swift_workspace(abs_p))
+        return abs_p
+
+    if workspace:
+        ws_expanded = os.path.abspath(os.path.expanduser(workspace))
+        ws_root = discover_swift_workspace(ws_expanded)
+        if pool is not None:
+            pool.record_workspace(ws_root)
+        cand = os.path.join(ws_expanded, raw)
+        if os.path.exists(cand) or not os.path.exists(os.path.join(str(ws_root), raw)):
+            return os.path.abspath(cand)
+        return os.path.abspath(os.path.join(str(ws_root), raw))
+
+    if pool is not None and pool.last_workspace is not None:
+        cand = pool.last_workspace / raw
+        if cand.exists() or not pathlib.Path(raw).exists():
+            return os.path.abspath(os.fspath(cand))
+
+    return os.path.abspath(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -1250,7 +1306,7 @@ def query_hover(
     column: Optional[int] = None,
     workspace: Optional[str] = None,
 ) -> Dict[str, Any]:
-    abs_path = os.path.abspath(file_path)
+    abs_path = resolve_file_path(file_path, workspace=workspace, pool=pool)
     text = pathlib.Path(abs_path).read_text(encoding="utf-8")
     pos = resolve_symbol_position(text, line_1based=line, symbol=symbol, column_0based=column)
     engine = "sourcekit-lsp"
@@ -1297,7 +1353,7 @@ def query_definition(
         "implementation": "textDocument/implementation",
     }
     method = method_map.get(kind, "textDocument/definition")
-    abs_path = os.path.abspath(file_path)
+    abs_path = resolve_file_path(file_path, workspace=workspace, pool=pool)
     text = pathlib.Path(abs_path).read_text(encoding="utf-8")
     pos = resolve_symbol_position(text, line_1based=line, symbol=symbol, column_0based=column)
     engine = "sourcekit-lsp"
@@ -1337,7 +1393,7 @@ def query_references(
     include_declaration: bool = False,
     workspace: Optional[str] = None,
 ) -> Dict[str, Any]:
-    abs_path = os.path.abspath(file_path)
+    abs_path = resolve_file_path(file_path, workspace=workspace, pool=pool)
     text = pathlib.Path(abs_path).read_text(encoding="utf-8")
     pos = resolve_symbol_position(text, line_1based=line, symbol=symbol, column_0based=column)
     ws_root = discover_swift_workspace(workspace or abs_path)
@@ -1441,7 +1497,7 @@ def query_symbols(
     workspace: Optional[str] = None,
 ) -> Dict[str, Any]:
     if file_path:
-        abs_path = os.path.abspath(file_path)
+        abs_path = resolve_file_path(file_path, workspace=workspace, pool=pool)
         try:
             session = pool.get_for_path(abs_path, workspace=workspace)
             uri, _ = session.sync_file(abs_path)
@@ -1460,7 +1516,8 @@ def query_symbols(
         except SourceKitUnavailableError:
             return ast_fallback_symbols(abs_path, query=query, workspace=workspace)
 
-    session = pool.get_for_path(workspace or os.getcwd(), workspace=workspace)
+    ws_target = workspace or (str(pool.last_workspace) if pool.last_workspace else os.getcwd())
+    session = pool.get_for_path(ws_target, workspace=workspace)
     session.start()
     raw = session.request("workspace/symbol", {"query": query or ""})
     items = raw if isinstance(raw, list) else []
@@ -1560,7 +1617,7 @@ def query_diagnostics(
     if not files:
         raise ValueError("At least one .swift file path is required for diagnostics")
 
-    abs_files = [os.path.abspath(f) for f in files]
+    abs_files = [resolve_file_path(f, workspace=workspace, pool=pool) for f in files]
     ws_root = discover_swift_workspace(workspace or abs_files[0])
     lsp_diagnostics: List[Dict[str, Any]] = []
     lsp_note: Optional[str] = None
@@ -2121,6 +2178,7 @@ def dispatch_mcp_tool_call(
         return probe_toolchain_and_workspace(
             workspace=arguments.get("workspace"),
             min_version=str(arguments.get("min_version", DEFAULT_MIN_OS_VERSION)),
+            pool=pool,
         )
     if name == "swift_diagnostics":
         return query_diagnostics(
@@ -2525,7 +2583,7 @@ while True:
                             "method": "tools/call",
                             "params": {
                                 "name": "swift_symbols",
-                                "arguments": {"file": str(swift_file)},
+                                "arguments": {"file": "ContentView.swift"},
                             },
                         }),
                     ]
@@ -2560,7 +2618,17 @@ while True:
             check(
                 sym_payload["symbols"][0]["name"] == "ContentView"
                 and sym_payload["symbols"][0]["kind"] == "Struct",
-                "Mock sourcekit-lsp documentSymbol round-trip via MCP tools/call",
+                "Mock sourcekit-lsp documentSymbol round-trip via relative file + pool.last_workspace",
+            )
+            check(
+                os.path.realpath(resolve_file_path("ContentView.swift", workspace=str(tmp_path)))
+                == os.path.realpath(str(swift_file)),
+                "resolve_file_path joins relative file with explicit workspace",
+            )
+            check(
+                os.path.realpath(resolve_file_path("ContentView.swift", pool=pool))
+                == os.path.realpath(str(swift_file)),
+                "resolve_file_path joins relative file with pool.last_workspace",
             )
         finally:
             pool.close_all()
@@ -2575,7 +2643,7 @@ while True:
         json.dumps(
             {
                 "status": "ok",
-                "self_tests_passed": 17,
+                "self_tests_passed": 19,
                 "server": SERVER_NAME,
                 "version": SERVER_VERSION,
             },

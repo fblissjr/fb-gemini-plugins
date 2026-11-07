@@ -19,8 +19,8 @@ When working in a Swift workspace targeting **macOS 27.2+** and **iOS 27.2+** (S
 
 ### Rule 2 — Symbol-Anchored LSP Queries Over Regex `grep`
 - Never guess raw 0-indexed UTF-16 character column numbers when calling `swift_hover`, `swift_definition`, or `swift_references`.
-- Always pass **`file` + 1-based `line` + `symbol`** (e.g., `{"file": "Sources/App/HUDPanel.swift", "line": 48, "symbol": "NSPanel"}` or `symbol: ".borderedProminent"`).
-- `sourcekit_mcp.py` automatically searches `line ± 3`, strips leading dots or trailing argument parens, and computes the exact UTF-16 character offset (even across emoji/Unicode literals) before querying `sourcekit-lsp`.
+- Always pass **`file` + 1-based `line` + `symbol`** (e.g., `{"file": "Sources/App/HUDPanel.swift", "line": 48, "symbol": "NSPanel"}` or `symbol: ".borderedProminent"`), plus `workspace` (or an absolute `file` path) on the first call in a session so the MCP server binds to the active Swift repository root.
+- `sourcekit_mcp.py` automatically resolves relative `file` paths against `workspace` (or the session's active Swift workspace), searches `line ± 3`, strips leading dots or trailing argument parens, and computes the exact UTF-16 character offset (even across emoji/Unicode literals) before querying `sourcekit-lsp`.
 
 ### Rule 3 — Ground-Truth `.swiftinterface` Lookup Before Guessing 27.2 APIs
 - Model training weights lag behind **macOS 27.2** and **iOS 27.2** SDK additions and updated `@MainActor` / `Sendable` annotations.
@@ -49,7 +49,7 @@ When working in a Swift workspace targeting **macOS 27.2+** and **iOS 27.2+** (S
 ## Standard 4-Step Swift Development Loop
 
 1. **Preflight Probe (Once per Workspace)**:
-   Call `swift_toolchain_probe` to verify the workspace type (`swiftpm` via `Package.swift`, `xcode-bsp` via `buildServer.json`, or `xcodeproj-unconfigured`), confirm whether `.build/*/index/store` is populated, and verify the installed `macosx` and `iphonesimulator` SDK versions.
+   Call `swift_toolchain_probe` with `workspace` set to the active Swift repository path to verify the workspace type (`swiftpm` via `Package.swift`, `xcode-bsp` via `buildServer.json`, or `xcodeproj-unconfigured`), confirm whether `.build/*/index/store` is populated, and verify the installed `macosx` and `iphonesimulator` SDK versions.
 2. **Navigate & Ground Against 27.2 SDKs**:
    - Use `swift_symbols` (`file`) to inspect file structure without reading entire large files.
    - Use `swift_definition` and `swift_references` (`file`, `line`, `symbol`) before changing protocol requirements or method signatures.

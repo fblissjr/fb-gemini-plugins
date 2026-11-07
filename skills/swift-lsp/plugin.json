@@ -2,7 +2,7 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "swift-lsp",
   "displayName": "Swift LSP & 27.2+ SDK Inspector",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "SourceKit-LSP (xcrun sourcekit-lsp) MCP bridge, multi-file swiftc -dump-ast sandbox fallback, and SDK interface inspector for Swift 6, macOS 27.2+, and iOS 27.2+ development in Antigravity App and CLI. Provides symbol-anchored hover, definition, references, workspace symbols, dual-platform (macOS + iOS simulator) live diagnostics, and direct Xcode .swiftinterface lookup without cold-build or sandbox overhead.",
   "logo": "assets/logo.svg",
   "author": {

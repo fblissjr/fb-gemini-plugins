@@ -4,6 +4,14 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.34.1] - 2026-11-07
+
+### Changed
+
+- **`swift-lsp` (`v0.1.1` $\rightarrow$ `v0.1.2` — Eager MCP Tool Registration & Cross-Workspace Relative Path Resolution)**:
+  - Updated [`mcp_config.json`](skills/swift-lsp/mcp_config.json): marked all 7 `swift-lsp-sourcekit` tools (`swift_toolchain_probe`, `swift_diagnostics`, `swift_hover`, `swift_definition`, `swift_references`, `swift_symbols`, `swift_sdk_interface`) as `"eager": true` so Antigravity mounts them as direct native tools rather than lazy schema-loaded tools, and added `.claude/plugins/**/skills/swift-lsp/scripts/sourcekit_mcp.py` to the entrypoint discovery list.
+  - Updated [`sourcekit_mcp.py`](skills/swift-lsp/skills/swift-lsp/scripts/sourcekit_mcp.py): added `resolve_file_path` and active-workspace tracking (`LspSessionPool.last_workspace`) so relative `file` / `files` arguments and `swift_toolchain_probe` calls resolve against the active Swift project workspace even when the MCP server process is spawned with `cwd` set to `~/.gemini/config/plugins/swift-lsp`.
+
 ## [0.34.0] - 2026-11-06
 
 ### Added
