@@ -264,12 +264,15 @@ final class CanvasDocument: Document {
   Apply `.swipeActions { ... }` to rows inside a custom `ScrollView` / `LazyVStack` and attach `.swipeActionsContainer()` to the parent scroll container so opening one row's swipe actions automatically closes others.
 - **Item-Bound & Error-Bound Alerts**:
   Use `.alert("Delete?", item: $selectedItem) { item in ... } message: { item in ... }`, `.confirmationDialog("Options", item: $selectedItem) { ... }`, or `.alert(error: $lastError)` (accepts any `LocalizedError` binding without manual boolean state).
-- **`AsyncImage(request: URLRequest)`**:
+- **AsyncImage(`request: URLRequest`)**:
   Pass custom `URLRequest` headers directly via `AsyncImage(request: request)` and configure the hierarchy's session via `.asyncImageURLSession(customSession)`.
+- **Xcode 27.3 (`MacOSX27.3.sdk` / `iPhoneSimulator27.3.sdk`) Additions**:
+  - **`ToolbarContainerBehavior` & `.toolbarContainerBehavior(_:)` (`27.3+`)**: Controls whether a descendant view hierarchy uses the global window toolbar or a local container toolbar. **Dual-SDK caveat**: `ToolbarContainerBehavior.local` is `@available(iOS 27.3, *) @available(macOS, unavailable)`—guard `.toolbarContainerBehavior(.local)` with `#if os(iOS)`.
+  - **`draggable(_:containerNamespace:preview:)` (`27.3+`)**: Drag an `Identifiable & Transferable` item directly within a `@Namespace` container (`@available(iOS 27.3, macOS 27.3, visionOS 27.3, *)`).
 
 ---
 
-## 7. AppKit 27.0 Interop, Touch on Mac & 13 SDK-27 Runtime Behavior Changes
+## 7. AppKit 27.0 Interop, Touch on Mac (`macos-touch-gestures`) & 13 SDK-27 Runtime Behavior Changes
 
 ### A. AppKit $\leftrightarrow$ SwiftUI Bridging in macOS 27
 1. **`NSHostingSceneRepresentation` (`NSApp.addSceneRepresentation`)**:
@@ -296,10 +299,18 @@ final class CanvasDocument: Document {
 5. **Typed Concurrency-Safe Notifications (`NotificationCenter.MainActorMessage`)**:
    Use `NotificationCenter.default.addObserver(of: subject, for: NSWindow.DidBecomeKeyMessage.self) { message in ... }` to receive `@MainActor`-isolated notifications without `Sendable` warnings.
 
-### B. Touch on Mac (`GestureInputKinds` & 36pt Minimum Hit Targets)
-- **36pt Hit Targets**: Ensure interactive controls in macOS 27 toolbars and lists provide at least a `36x36pt` hit target (use `.padding()` before `.contentShape(.rect)`).
-- **Never Gate Actions Behind Hover Alone**: `.onHover` must only provide visual enhancement; every action must be reachable via direct tap, context menu, or swipe.
-- **AppKit Direct Touch**: Raw `NSView.mouseDown(with:)` only receives synthesized events for primary single-finger taps; use `NSGestureRecognizer` with `allowedTouchTypes = [.direct, .indirect]` for multi-touch, pan, and magnification on Mac touch displays.
+### B. Touch on Mac (`macos-touch-gestures` in Xcode 27.3 & `GestureInputKinds`)
+Verified from Apple's bundled `macos-touch-gestures` skill (12 task guides in Xcode 27.3):
+- **AppKit's 16pt Touch Forgiveness Radius & 24pt `NSControl` Auto-Growth**:
+  - When a direct touch begins on macOS, AppKit hit-testing automatically searches within a **16pt forgiveness radius** and grows enabled `NSControl` instances whose width or height is smaller than **24pt** up to **24pt** around their center.
+  - **Custom `NSView` caveat**: Plain `NSView` subclasses (that do not inherit from `NSControl`) do **not** get automatic 24pt touch target expansion! Either subclass `NSControl`, ensure the view's frame is $\ge 24\times 24\text{pt}$ (ideally $36\times 36\text{pt}$ in toolbars), or override `hitTest(_:)`.
+- **Replace `event.clickCount == 2` with `NSClickGestureRecognizer`**:
+  - On touch displays, double-taps have wider spatial tolerance than mouse double-clicks; manually checking `NSEvent.clickCount == 2` in `mouseDown(with:)` misses valid double-taps. Attach an `NSClickGestureRecognizer` with `numberOfClicksRequired = 2`.
+- **Never Rely on `NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown)` for Outside-Tap Dismissal**:
+  - Touch taps outside a custom floating view or popover do **not** always emit `.leftMouseDown` events to local mouse monitors. Present transient popups with `NSPopover` (`popover.behavior = .transient`) so AppKit dismisses them on both pointer clicks and outside touch taps.
+- **Keep `NSView.menu(for:)` Side-Effect-Free**:
+  - On touch input, AppKit may call `menu(for:)` early during touch-down to probe for context-menu support without actually displaying the menu. Mutating selection or model state inside `menu(for:)` corrupts state on normal taps—move side effects into `NSMenuDelegate.menuWillOpen(_:)`.
+- **Never Gate Actions Behind Hover Alone**: `.onHover` / `NSTrackingArea` (`mouseEntered`/`mouseExited`) must only provide visual enhancement; every action must be reachable via direct tap, context menu, or swipe.
 - **Differentiating Pointer vs. Touch in SwiftUI**: Check `GestureInputKinds` (`.pointer`, `.touch`) when customizing gesture feedback.
 
 ### C. 13 SDK-27 Runtime Behavior Changes Checklist
@@ -403,11 +414,13 @@ func runEmbeddingModel(compiledBundleURL: URL, inputFloats: [Float]) throws -> [
 - Outside SwiftUI views (e.g., in `@Observable` services or background actors), observe live query diffs using `ResultsObserver<Model>` and transaction history using `HistoryObserver` instead of polling `ModelContext.fetch`.
 - Use `try modelContext.fetchCount(descriptor)` and `try modelContext.fetchIdentifiers(descriptor)` to count or paginate large datasets without fault-instantiating full `@Model` objects.
 
-### D. `Testing`, `Evaluations`, and `AppIntentsTesting` (`Developer/Library/Frameworks`)
+### D. `Testing` (`_Testing_AppKit` / `_Testing_UIKit`), `Evaluations` (`SiriEvaluations`), and Siri Tool Intents (`27.3+`)
 - `swift_sdk_interface` indexes `Developer/Library/Frameworks/` automatically:
-  - Query `module: "Testing"` for Swift Testing (`@Test`, `#expect`, `#require`, `Confirmation`, `@Test(arguments:)`).
-  - Query `module: "Evaluations"` for LLM/generative evaluation suites (`Evaluation`, `Judge`, `KeywordMatchJudge`).
+  - Query `module: "Testing"` for Swift Testing (`@Test`, `#expect`, `#require`, `Confirmation`, `@Test(arguments:)`), plus Xcode 27.3's visual attachment companion modules (`_Testing_AppKit`, `_Testing_UIKit`, `_Testing_CoreGraphics`, `_Testing_CoreImage` providing `AttachableImageFormat` to attach `NSImage`/`NSView`/`UIView` snapshots directly to `@Test` results).
+  - Query `module: "Evaluations"` for LLM/generative evaluation suites (`Evaluation`, `Judge`, `KeywordMatchJudge`) and Xcode 27.3's `SiriEvaluations` (`SiriScenario`, `SiriExpectationEvaluator`).
   - Query `module: "AppIntentsTesting"` for deterministic unit tests of `AppIntent` and `AppEntity` implementations.
+- **Siri Tool Intents & `Skills.skillsbundle` (`siri-app-integration` in 27.3+)**:
+  - Annotate intents exposed as LLM tools to Siri with `@AppIntent(.tool)` (or `@AppIntent(.tool, schema:)`), entities with `@AppEntity(.generable)` and `@Property(description:, visibility: .internal)`, package app-specific agent skills in `Skills.skillsbundle` containing `SKILL.md` files, and validate metadata with `xcrun sirimetadataanalyzer`.
 
 ---
 

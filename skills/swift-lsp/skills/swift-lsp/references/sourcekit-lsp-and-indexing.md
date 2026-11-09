@@ -103,15 +103,17 @@ For standalone macOS desktop apps (`NavigationSplitView`, `NSPanel`, `MenuBarExt
 
 ---
 
-## 4. How `swift-lsp` Complements `xcrun mcpbridge` and `xcrun agent skills`
+## 4. How `swift-lsp` Complements `xcrun mcp-server`, `xcrun mcpbridge`, `xcrun lldb-mcp`, and `xcrun agent skills`
 
-Xcode 27.2 ships two additional CLI tools inside `/Applications/Xcode.app/Contents/Developer/usr/bin/` (reported by `swift_toolchain_probe` under `apple_intelligence_and_docs`):
+Xcode 27.2 and Xcode 27.3 ship additional CLI tools inside `<Xcode.app>/Contents/Developer/usr/bin/` (all reported by `swift_toolchain_probe` under `apple_intelligence_and_docs`):
 
 | Tool | When It Works | How `swift-lsp` Complements It |
 | :--- | :--- | :--- |
-| **`swift-lsp` (`sourcekit_mcp.py`)** | **Always works (100% headless & sandboxed)** — requires only `/Applications/Xcode.app` on disk; no running Xcode GUI needed. | Provides persistent `sourcekit-lsp`, dual-SDK (`macos` + `ios`) macro-capable `swiftc -typecheck`, `.swiftinterface` inspection, and headless search over Xcode's bundled `*.md.packaged` skills and `AdditionalDocumentation/*.md`. |
-| **`xcrun mcpbridge`** | **Only when Xcode GUI is open** with the workspace loaded and Xcode Settings $\rightarrow$ Intelligence MCP enabled. | Exposes Xcode's internal GUI tools (`XcodePreview`, `ExecuteSnippet`, `DocumentationSearch`). Use alongside `swift-lsp` when interactive canvas previews are needed. |
-| **`xcrun agent skills export <dir>`** | Exports Xcode 27.2's 11 bundled Apple skills (`swiftui-whats-new-27`, `swiftui-specialist`, `building-document-based-swiftui-applications`, `modernize-tests`, etc.) to a directory. | `swift_sdk_interface` (`module: "XcodeSkills"` or `include_guides: true`) already indexes these exact `.md.packaged` files directly from `Xcode.app` without polluting global `~/.agents/skills/` prompts. |
+| **`swift-lsp` (`sourcekit_mcp.py`)** | **Always works (100% headless & sandboxed)** — requires only Xcode 27.x on disk; no running Xcode GUI or root daemon needed. | Provides persistent `sourcekit-lsp`, dual-SDK (`macos` + `ios`) macro-capable `swiftc -typecheck`, `.swiftinterface` inspection, and headless search over Xcode's bundled `*.md.packaged` / `*.idechatprompttemplate` skills and `AdditionalDocumentation/*.md`. |
+| **`xcrun mcp-server`** *(New in Xcode 27.3)* | **Headless Xcode MCP server manager** (`sudo xcrun mcp-server enable`, `sudo xcrun mcp-server allow-folder <path> --always`, `xcrun mcp-server open <path>`, `xcrun mcp-server status --format json`). | Manages background headless Xcode project sessions for Xcode's built-in MCP server in 27.3 without manually opening the Xcode GUI window first. |
+| **`xcrun lldb-mcp`** *(New in Xcode 27.3)* | **Headless stdio LLDB MCP server** (`xcrun lldb-mcp`). | Exposes live LLDB debugger inspection over MCP stdio when debugging processes or crash dumps. |
+| **`xcrun mcpbridge`** | Connects to Xcode's MCP server (requires either the Xcode GUI open in 27.2, or `xcrun mcp-server enable` + `open` in 27.3). | Exposes Xcode's internal build/preview tools (`XcodePreview`, `ExecuteSnippet`, `DocumentationSearch`). Use alongside `swift-lsp` when interactive canvas previews are needed. |
+| **`xcrun agent skills export <dir>`** | Exports Xcode 27.x's bundled Apple skills (11 skills in 27.2; **14 skills in 27.3** adding `macos-touch-gestures`, `siri-app-integration`, `siri-evaluations`, `device-interaction`) to a directory. | `swift_sdk_interface` (`module: "XcodeSkills"` or `include_guides: true`) already indexes these exact `.idechatprompttemplate` and `.md.packaged` files directly from the active `Xcode.app` without polluting global `~/.agents/skills/` prompts. |
 
 ---
 

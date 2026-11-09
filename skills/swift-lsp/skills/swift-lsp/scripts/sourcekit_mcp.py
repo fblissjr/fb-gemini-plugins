@@ -75,7 +75,7 @@ LSP_SEVERITY_NAMES: Dict[int, str] = {
 }
 
 COMPANION_EXPORTED_MODULES: Dict[str, List[str]] = {
-    "SwiftUI": ["SwiftUI", "SwiftUICore", "DeveloperToolsSupport"],
+    "SwiftUI": ["SwiftUI", "SwiftUICore", "DeveloperToolsSupport", "_DataDetection_SwiftUI"],
     "Foundation": ["Foundation", "FoundationEssentials", "FoundationInternationalization"],
     "Swift": ["Swift", "_Concurrency", "Synchronization"],
     "CoreAI": [
@@ -87,8 +87,18 @@ COMPANION_EXPORTED_MODULES: Dict[str, List[str]] = {
         "CoreAICompiler",
         "CoreAICommon",
     ],
-    "FoundationModels": ["FoundationModels", "_Vision_FoundationModels"],
+    "FoundationModels": ["FoundationModels", "FoundationModelsCore", "_Vision_FoundationModels"],
     "SwiftData": ["SwiftData", "_SwiftData_SwiftUI"],
+    "Testing": [
+        "Testing",
+        "_Testing_Foundation",
+        "_Testing_AppKit",
+        "_Testing_UIKit",
+        "_Testing_CoreGraphics",
+        "_Testing_CoreImage",
+        "_Testing_CoreTransferable",
+    ],
+    "Evaluations": ["Evaluations", "SiriEvaluations"],
 }
 
 VIRTUAL_DOC_MODULES = {"XcodeSkills", "XcodeDocs", "AdditionalDocumentation", "SwiftDiagnostics"}
@@ -333,12 +343,12 @@ def resolve_developer_dir(sdk_path: Optional[str] = None) -> Optional[pathlib.Pa
         for anc in pathlib.Path(sdk_path).parents:
             if anc.name == "Developer" and anc.parent.name == "Contents":
                 return anc
-    default_dev = pathlib.Path("/Applications/Xcode.app/Contents/Developer")
-    if default_dev.is_dir():
-        return default_dev
     rc, p_out, _ = _run_cmd_capture(["xcode-select", "-p"])
     if rc == 0 and p_out and os.path.isdir(p_out):
         return pathlib.Path(p_out)
+    default_dev = pathlib.Path("/Applications/Xcode.app/Contents/Developer")
+    if default_dev.is_dir():
+        return default_dev
     return None
 
 
@@ -360,11 +370,24 @@ def discover_xcode_knowledge_resources(sdk_path: Optional[str] = None) -> Dict[s
             / "Resources"
         )
         if chat_res.is_dir():
-            skill_files.extend(sorted(chat_res.glob("*SKILL.md.idechatprompttemplate")))
+            for p in sorted(chat_res.glob("*.idechatprompttemplate")):
+                if p.stem.islower() or p.name.endswith("SKILL.md.idechatprompttemplate"):
+                    skill_files.append(p)
             skill_files.extend(sorted(chat_res.glob("*.md.packaged")))
             add_docs_dir = chat_res / "AdditionalDocumentation"
             if add_docs_dir.is_dir():
                 additional_doc_files.extend(sorted(add_docs_dir.glob("*.md")))
+
+        test_plan_res = (
+            contents_dir
+            / "PlugIns"
+            / "IDETestPlanEditor.framework"
+            / "Versions"
+            / "A"
+            / "Resources"
+        )
+        if test_plan_res.is_dir():
+            skill_files.extend(sorted(test_plan_res.glob("*.md.packaged")))
 
         xcstrings_skills = (
             contents_dir
@@ -376,7 +399,7 @@ def discover_xcode_knowledge_resources(sdk_path: Optional[str] = None) -> Dict[s
             / "Skills"
         )
         if xcstrings_skills.is_dir():
-            skill_files.extend(sorted(xcstrings_skills.rglob("*.md")))
+            skill_files.extend(sorted(xcstrings_skills.rglob("*.md*")))
 
         diag_dir = (
             dev_dir
@@ -561,6 +584,9 @@ def probe_toolchain_and_workspace(
     rc_swift, swift_ver, _ = _run_cmd_capture(["xcrun", "swift", "--version"])
     rc_agent, agent_path, _ = _run_cmd_capture(["xcrun", "--find", "agent"])
     rc_mcpb, mcpb_path, _ = _run_cmd_capture(["xcrun", "--find", "mcpbridge"])
+    rc_mcps, mcps_path, _ = _run_cmd_capture(["xcrun", "--find", "mcp-server"])
+    rc_lldb_mcp, lldb_mcp_path, _ = _run_cmd_capture(["xcrun", "--find", "lldb-mcp"])
+    rc_siri_ma, siri_ma_path, _ = _run_cmd_capture(["xcrun", "--find", "sirimetadataanalyzer"])
 
     macos_sdk = resolve_sdk_info("macosx")
     ios_sim_sdk = resolve_sdk_info("iphonesimulator")
@@ -647,13 +673,25 @@ def probe_toolchain_and_workspace(
                 "available": rc_mcpb == 0 and bool(mcpb_path),
                 "path": mcpb_path if rc_mcpb == 0 else None,
             },
+            "xcrun_mcp_server": {
+                "available": rc_mcps == 0 and bool(mcps_path),
+                "path": mcps_path if rc_mcps == 0 else None,
+            },
+            "xcrun_lldb_mcp": {
+                "available": rc_lldb_mcp == 0 and bool(lldb_mcp_path),
+                "path": lldb_mcp_path if rc_lldb_mcp == 0 else None,
+            },
+            "xcrun_sirimetadataanalyzer": {
+                "available": rc_siri_ma == 0 and bool(siri_ma_path),
+                "path": siri_ma_path if rc_siri_ma == 0 else None,
+            },
             "fm_cli": {
                 "available": fm_cli_path is not None,
                 "path": fm_cli_path,
             },
             "xcode_bundled_skill_files_count": len(xcode_docs["skill_files"]),
             "xcode_additional_docs_count": len(xcode_docs["additional_doc_files"]),
-            "swift_diagnostic_docs_count": len(xcode_docs["swift_diag_files"]),
+            "swift_diagnostic_docs_count": len(xcode_docs["swift_diagnostic_docs"]) if "swift_diagnostic_docs" in xcode_docs else len(xcode_docs["swift_diag_files"]),
         },
         "recommendations": recommendations,
     }
@@ -2292,6 +2330,7 @@ def search_xcode_guides(
     category: str = "all",
     max_results: int = 10,
     sdk_path: Optional[str] = None,
+    full_content: bool = False,
 ) -> List[Dict[str, Any]]:
     """Search bundled Xcode 27 Agent Skills (`*.md.packaged`), `AdditionalDocumentation/*.md`, and Swift 6.4 diagnostic docs."""
     resources = discover_xcode_knowledge_resources(sdk_path)
@@ -2309,6 +2348,7 @@ def search_xcode_guides(
 
     q_lower = query.lower().strip() if query else ""
     q_tokens = [tok for tok in re.split(r"[\s._-]+", q_lower) if tok]
+    include_full = full_content or max_results <= 3
     scored: List[Tuple[int, str, Dict[str, Any]]] = []
 
     for corpus_label, fpath in candidate_files:
@@ -2329,6 +2369,14 @@ def search_xcode_guides(
             if s.startswith("name:"):
                 title = s.split(":", 1)[1].strip()
 
+        headings: List[str] = []
+        for idx_h, raw_h in enumerate(lines):
+            sh = raw_h.strip()
+            if sh.startswith(("# ", "## ", "### ")):
+                headings.append(f"L{idx_h + 1}: {sh}")
+                if len(headings) >= 15:
+                    break
+
         fname_lower = fpath.name.lower()
         fname_norm = re.sub(r"[-_.]", " ", fname_lower)
         title_lower = title.lower()
@@ -2336,20 +2384,20 @@ def search_xcode_guides(
         text_lower = text.lower()
 
         if not q_lower:
-            preview = "\n".join(lines[:18]).strip()
-            scored.append(
-                (
-                    1,
-                    fpath.name,
-                    {
-                        "corpus": corpus_label,
-                        "file": str(fpath),
-                        "title": title,
-                        "line": 1,
-                        "snippet": preview,
-                    },
-                )
-            )
+            preview = "\n".join(lines[:35]).strip()
+            entry: Dict[str, Any] = {
+                "corpus": corpus_label,
+                "file": str(fpath),
+                "title": title,
+                "line": 1,
+                "total_lines": len(lines),
+                "section_headings": headings,
+                "snippet": preview,
+                "read_file_hint": "Call read_file on 'file' (or pass full_content=true) to read the complete guide.",
+            }
+            if include_full:
+                entry["content"] = "\n".join(lines[:500])
+            scored.append((1, fpath.name, entry))
             continue
 
         score = 0
@@ -2379,22 +2427,22 @@ def search_xcode_guides(
                 best_line = idx + 1
                 break
 
-        start_idx = max(0, best_line - 3)
-        end_idx = min(len(lines), best_line + 15)
+        start_idx = max(0, best_line - 5)
+        end_idx = min(len(lines), best_line + 40)
         snippet = "\n".join(lines[start_idx:end_idx]).strip()
-        scored.append(
-            (
-                score,
-                fpath.name,
-                {
-                    "corpus": corpus_label,
-                    "file": str(fpath),
-                    "title": title,
-                    "line": best_line,
-                    "snippet": snippet,
-                },
-            )
-        )
+        match_entry: Dict[str, Any] = {
+            "corpus": corpus_label,
+            "file": str(fpath),
+            "title": title,
+            "line": best_line,
+            "total_lines": len(lines),
+            "section_headings": headings,
+            "snippet": snippet,
+            "read_file_hint": "Call read_file on 'file' (or pass full_content=true) to read the complete guide.",
+        }
+        if include_full:
+            match_entry["content"] = "\n".join(lines[:500])
+        scored.append((score, fpath.name, match_entry))
 
     scored.sort(key=lambda item: (-item[0], item[1]))
     return [item[2] for item in scored[:max_results]]
@@ -2408,6 +2456,7 @@ def search_sdk_interface(
     max_results: int = 25,
     sdk_path_override: Optional[str] = None,
     include_guides: bool = False,
+    full_content: bool = False,
 ) -> Dict[str, Any]:
     """Search installed Xcode `.swiftinterface` headers (and optionally bundled Xcode 27 skills/guides)."""
     sdk_name = "macosx" if platform == "macos" else "iphonesimulator"
@@ -2425,6 +2474,7 @@ def search_sdk_interface(
             category=module_name,
             max_results=max_results,
             sdk_path=sdk_path,
+            full_content=full_content,
         )
         return {
             "module": module_name,
@@ -2432,6 +2482,7 @@ def search_sdk_interface(
             "sdk_path": sdk_path,
             "sdk_version": sdk_info.get("version"),
             "symbol_query": symbol_query,
+            "full_content": full_content,
             "count": len(guide_matches),
             "matches": guide_matches,
         }
@@ -2530,8 +2581,190 @@ def search_sdk_interface(
             category="all",
             max_results=5,
             sdk_path=sdk_path,
+            full_content=full_content,
         )
     return result
+
+
+def _collect_sdk_framework_names(dev_dir: pathlib.Path) -> Dict[str, List[str]]:
+    """Collect framework names across System/Library/Frameworks, SubFrameworks, and Developer/Library/Frameworks."""
+    macos_sdk_dir = dev_dir / "Platforms" / "MacOSX.platform" / "Developer" / "SDKs" / "MacOSX.sdk"
+    macos_dev_dir = dev_dir / "Platforms" / "MacOSX.platform" / "Developer"
+    sys_fws: List[str] = []
+    sub_fws: List[str] = []
+    dev_fws: List[str] = []
+    if (macos_sdk_dir / "System" / "Library" / "Frameworks").is_dir():
+        sys_fws = sorted(
+            p.stem for p in (macos_sdk_dir / "System" / "Library" / "Frameworks").glob("*.framework")
+        )
+    if (macos_sdk_dir / "System" / "Library" / "SubFrameworks").is_dir():
+        sub_fws = sorted(
+            p.stem for p in (macos_sdk_dir / "System" / "Library" / "SubFrameworks").glob("*.framework")
+        )
+    if (macos_dev_dir / "Library" / "Frameworks").is_dir():
+        dev_fws = sorted(
+            p.stem for p in (macos_dev_dir / "Library" / "Frameworks").glob("*.framework")
+        )
+    return {
+        "system_frameworks": sys_fws,
+        "sub_frameworks": sub_fws,
+        "developer_frameworks": dev_fws,
+    }
+
+
+def _read_xcode_bundle_version(dev_dir: pathlib.Path) -> Dict[str, Optional[str]]:
+    """Read `Contents/version.plist` from an Xcode bundle if present."""
+    ver_plist = dev_dir.parent / "version.plist"
+    short_ver: Optional[str] = None
+    build_ver: Optional[str] = None
+    if ver_plist.is_file():
+        try:
+            import plistlib
+
+            with ver_plist.open("rb") as fp:
+                data = plistlib.load(fp)
+            short_ver = data.get("CFBundleShortVersionString")
+            build_ver = data.get("ProductBuildVersion")
+        except Exception:
+            pass
+    return {
+        "app_bundle": str(dev_dir.parent.parent),
+        "developer_dir": str(dev_dir),
+        "xcode_version": short_ver,
+        "build_version": build_ver,
+    }
+
+
+def audit_xcode_installation(
+    compare_xcode_path: Optional[str] = None,
+    availability_filter: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Audit the active Xcode installation and optionally diff skills, docs, frameworks, and new SDK declarations against a baseline Xcode."""
+    macos_sdk = resolve_sdk_info("macosx")
+    ios_sdk = resolve_sdk_info("iphonesimulator")
+    active_dev = resolve_developer_dir(macos_sdk.get("path"))
+    if active_dev is None:
+        return {"error": "Could not resolve active Xcode Developer directory"}
+
+    active_info = _read_xcode_bundle_version(active_dev)
+    active_res = discover_xcode_knowledge_resources(macos_sdk.get("path"))
+    active_fws = _collect_sdk_framework_names(active_dev)
+
+    # Check if any SubFrameworks or _<Module>_* Developer frameworks are not in COMPANION_EXPORTED_MODULES
+    mapped_companions = {
+        m for mods in COMPANION_EXPORTED_MODULES.values() for m in mods
+    }
+    unmapped_Testing_or_eval_fws = [
+        fw
+        for fw in active_fws["developer_frameworks"]
+        if (fw.startswith("_Testing_") or "Evaluation" in fw)
+        and fw not in mapped_companions
+    ]
+    unmapped_coreai_sub_fws = [
+        fw
+        for fw in active_fws["sub_frameworks"]
+        if fw.startswith("CoreAI") and fw not in mapped_companions
+    ]
+
+    # Auto-detect comparison Xcode if not specified and active Xcode is not `/Applications/Xcode.app`
+    comp_dev: Optional[pathlib.Path] = None
+    if compare_xcode_path:
+        cand = pathlib.Path(os.path.expanduser(compare_xcode_path))
+        if (cand / "Contents" / "Developer").is_dir():
+            comp_dev = cand / "Contents" / "Developer"
+        elif cand.name == "Developer" and cand.is_dir():
+            comp_dev = cand
+    else:
+        default_app_dev = pathlib.Path("/Applications/Xcode.app/Contents/Developer")
+        if default_app_dev.is_dir() and os.path.realpath(str(default_app_dev)) != os.path.realpath(str(active_dev)):
+            comp_dev = default_app_dev
+
+    diff_report: Optional[Dict[str, Any]] = None
+    if comp_dev is not None and comp_dev.is_dir():
+        comp_info = _read_xcode_bundle_version(comp_dev)
+        comp_sdk_dummy = str(comp_dev / "Platforms" / "MacOSX.platform" / "Developer" / "SDKs" / "MacOSX.sdk")
+        comp_res = discover_xcode_knowledge_resources(comp_sdk_dummy)
+        comp_fws = _collect_sdk_framework_names(comp_dev)
+
+        def _file_map(paths: List[pathlib.Path]) -> Dict[str, pathlib.Path]:
+            return {p.name: p for p in paths}
+
+        def _diff_file_sets(
+            cur_list: List[pathlib.Path], old_list: List[pathlib.Path]
+        ) -> Dict[str, List[str]]:
+            cur_map = _file_map(cur_list)
+            old_map = _file_map(old_list)
+            added = sorted(k for k in cur_map if k not in old_map)
+            removed = sorted(k for k in old_map if k not in cur_map)
+            modified: List[str] = []
+            for k in sorted(set(cur_map) & set(old_map)):
+                try:
+                    h_cur = hashlib.sha256(cur_map[k].read_bytes()).hexdigest()
+                    h_old = hashlib.sha256(old_map[k].read_bytes()).hexdigest()
+                    if h_cur != h_old:
+                        modified.append(k)
+                except OSError:
+                    pass
+            return {"added": added, "modified": modified, "removed": removed}
+
+        diff_report = {
+            "baseline_xcode": comp_info,
+            "skill_files_diff": _diff_file_sets(active_res["skill_files"], comp_res["skill_files"]),
+            "additional_docs_diff": _diff_file_sets(
+                active_res["additional_doc_files"], comp_res["additional_doc_files"]
+            ),
+            "swift_diagnostics_diff": _diff_file_sets(
+                active_res["swift_diag_files"], comp_res["swift_diag_files"]
+            ),
+            "new_system_frameworks": sorted(
+                set(active_fws["system_frameworks"]) - set(comp_fws["system_frameworks"])
+            ),
+            "new_sub_frameworks": sorted(
+                set(active_fws["sub_frameworks"]) - set(comp_fws["sub_frameworks"])
+            ),
+            "new_developer_frameworks": sorted(
+                set(active_fws["developer_frameworks"]) - set(comp_fws["developer_frameworks"])
+            ),
+        }
+
+    avail_target = availability_filter or macos_sdk.get("version") or "27.3"
+    key_modules = ["SwiftUI", "AppKit", "FoundationModels", "CoreAI", "SwiftData", "Testing", "Evaluations"]
+    new_api_highlights: Dict[str, Any] = {}
+    for mod in key_modules:
+        res_mod = search_sdk_interface(
+            module_name=mod,
+            availability_filter=avail_target,
+            max_results=10,
+        )
+        matches = res_mod.get("matches", [])
+        if matches:
+            new_api_highlights[mod] = [
+                f"{m.get('kind')} {m.get('name')} ({m.get('module', mod)})"
+                for m in matches
+            ]
+
+    return {
+        "active_xcode": active_info,
+        "sdks": {
+            "macosx": macos_sdk,
+            "iphonesimulator": ios_sdk,
+        },
+        "counts": {
+            "skill_files": len(active_res["skill_files"]),
+            "additional_docs": len(active_res["additional_doc_files"]),
+            "swift_diagnostic_docs": len(active_res["swift_diag_files"]),
+            "system_frameworks": len(active_fws["system_frameworks"]),
+            "sub_frameworks": len(active_fws["sub_frameworks"]),
+            "developer_frameworks": len(active_fws["developer_frameworks"]),
+        },
+        "unmapped_companion_modules": {
+            "developer_frameworks": unmapped_Testing_or_eval_fws,
+            "coreai_sub_frameworks": unmapped_coreai_sub_fws,
+        },
+        "comparison_diff": diff_report,
+        "availability_highlights_version": avail_target,
+        "availability_highlights": new_api_highlights,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -2736,6 +2969,11 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
                     "default": False,
                     "description": "When true, also searches Xcode 27's bundled Agent Skills (`*.md.packaged`) and `AdditionalDocumentation` guides.",
                 },
+                "full_content": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "When true on `XcodeSkills` / `XcodeDocs` / `SwiftDiagnostics` queries, returns the full guide markdown (up to 500 lines) in addition to `snippet`.",
+                },
             },
             "required": ["module"],
         },
@@ -2806,6 +3044,7 @@ def dispatch_mcp_tool_call(
             availability_filter=arguments.get("availability_filter"),
             max_results=int(arguments.get("max_results", 25)),
             include_guides=bool(arguments.get("include_guides", False)),
+            full_content=bool(arguments.get("full_content", False)),
         )
     raise ValueError(f"Unknown tool: {name}")
 
@@ -3347,9 +3586,27 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p_sdk.add_argument("module", help="Module/framework name (e.g. SwiftUI, AppKit, CoreAI, XcodeSkills, XcodeDocs).")
     p_sdk.add_argument("--symbol", default=None, help="Symbol or modifier substring.")
     p_sdk.add_argument("--platform", choices=["macos", "ios"], default="macos")
-    p_sdk.add_argument("--available", default=None, help="Availability substring filter (e.g. 27.0, 27.2, anyAppleOS).")
+    p_sdk.add_argument("--available", "--availability", dest="available", default=None, help="Availability substring filter (e.g. 27.0, 27.2, anyAppleOS).")
     p_sdk.add_argument("--max-results", type=int, default=25)
     p_sdk.add_argument("--guides", action="store_true", help="Also search bundled Xcode 27 Agent Skills and AdditionalDocumentation.")
+    p_sdk.add_argument("--full-content", action="store_true", help="Return full guide markdown (up to 500 lines) for XcodeSkills/XcodeDocs.")
+
+    p_audit = sub.add_parser(
+        "audit-xcode",
+        help="Audit active Xcode skills, docs, frameworks, and new SDK @available symbols (optionally diffing against another Xcode.app).",
+    )
+    p_audit.add_argument(
+        "--compare",
+        default=None,
+        help="Optional baseline Xcode.app path to diff against (auto-detects /Applications/Xcode.app when running on a Beta bundle).",
+    )
+    p_audit.add_argument(
+        "--available",
+        "--availability",
+        dest="available",
+        default=None,
+        help="Optional @available version substring to highlight across key frameworks (defaults to active macOS SDK version, e.g. 27.3).",
+    )
 
     return parser
 
@@ -3427,6 +3684,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                 availability_filter=args.available,
                 max_results=args.max_results,
                 include_guides=args.guides,
+                full_content=args.full_content,
+            )
+        elif args.subcommand == "audit-xcode":
+            res = audit_xcode_installation(
+                compare_xcode_path=args.compare,
+                availability_filter=args.available,
             )
         else:
             parser.print_help()

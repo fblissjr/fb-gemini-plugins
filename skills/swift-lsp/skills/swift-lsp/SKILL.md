@@ -30,7 +30,8 @@ When working in a Swift workspace targeting **macOS 27.2+ ("Golden Gate")** and 
 ### Rule 3 — Ground-Truth `.swiftinterface` & Bundled Apple Skill Lookup Before Guessing 27.2 APIs
 - Model training weights lag behind **macOS 27.2 ("Golden Gate")**, **iOS 27.2**, and **Swift 6.4.2** SDK additions, SubFrameworks, and `@available(macOS, unavailable)` annotations.
 - Whenever you are unsure of a modifier signature, initializer label, or platform availability in `SwiftUI`, `AppKit`, `UIKit`, `Observation`, `FoundationModels` (including `_Vision_FoundationModels`), `CoreAI` (`CoreAIRuntime`, `CoreAIDelegates`), `SwiftData`, `Testing`, `Evaluations`, or `AppIntentsTesting`, call **`swift_sdk_interface`** to read the exact declaration from the installed Xcode `.swiftinterface` on disk.
-- Set `include_guides: true` or query virtual modules `module: "XcodeSkills"`, `"XcodeDocs"`, or `"SwiftDiagnostics"` in `swift_sdk_interface` to search Apple's bundled Xcode 27 Agent Skills (`swiftui-whats-new-27`, `swiftui-specialist`, `building-document-based-swiftui-applications`, etc.), `AdditionalDocumentation` guides (Liquid Glass, New Toolbar Features, `Span`/`InlineArray`, `FoundationModels`), and Swift 6.4 compiler diagnostic docs—100% headlessly without needing Xcode GUI open.
+- Set `include_guides: true` or query virtual modules `module: "XcodeSkills"`, `"XcodeDocs"`, or `"SwiftDiagnostics"` in `swift_sdk_interface` to search Apple's bundled Xcode 27 Agent Skills (`swiftui-whats-new-27`, `swiftui-specialist`, `building-document-based-swiftui-applications`, `macos-touch-gestures`, `siri-app-integration`, `siri-evaluations`, etc.), `AdditionalDocumentation` guides (Liquid Glass, New Toolbar Features, `Span`/`InlineArray`, `FoundationModels`), and Swift 6.4 compiler diagnostic docs—100% headlessly without needing Xcode GUI open.
+- **Always read the full task reference when a skill guide matches**: When `swift_sdk_interface(module: "XcodeSkills" | "XcodeDocs")` returns a match, either pass `full_content: true` (with `max_results: 3`) or call `read_file` on the returned `"file"` path in `/Applications/Xcode*.app/...` whenever you need the full skill decision tree or complete reference guide beyond the snippet.
 
 ### Rule 4 — Dual-Platform (`macos` + `ios`) Diagnostics Before `swift build`
 - On macOS, a default `swift build` or single-target `sourcekit-lsp` session only compiles the host platform (`arm64-apple-macosx27.2`), leaving `#if os(iOS)` blocks and platform-exclusive SwiftUI modifiers (such as iOS/visionOS-only `ToolbarOverflowMenu` and `.topBarPinnedTrailing`, or macOS-only `Settings` and `NSHostingMenu`) unchecked.
@@ -48,7 +49,8 @@ When working in a Swift workspace targeting **macOS 27.2+ ("Golden Gate")** and 
 | Jump to symbol declaration, type definition, or protocol witness | `swift_definition` | `definition` | `file`, `line`, `symbol`, `kind: "definition" \| "typeDefinition" \| "implementation"` |
 | Find all semantic callers across the Swift workspace | `swift_references` | `references` | `file`, `line`, `symbol`, `include_declaration: false` |
 | Get file outline (`Struct`/`Actor`/`Protocol`/`Method`) or search workspace | `swift_symbols` | `symbols` | `file?`, `query?` |
-| Inspect Xcode 27.2 `.swiftinterface` headers or bundled Apple Agent Skills / Guides | `swift_sdk_interface` | `sdk` | `module`, `symbol?`, `platform: "macos" \| "ios"`, `availability_filter?`, `include_guides?` |
+| Inspect Xcode 27.2+ `.swiftinterface` headers or bundled Apple Agent Skills / Guides | `swift_sdk_interface` | `sdk` | `module`, `symbol?`, `platform: "macos" \| "ios"`, `availability_filter?`, `include_guides?`, `full_content?` |
+| Audit active Xcode skills, docs, frameworks & `@available` additions against a baseline Xcode | *(CLI)* | `audit-xcode` | `--compare?`, `--available?` |
 
 ---
 
@@ -92,7 +94,10 @@ python3 "$SWIFT_LSP_PY" references Sources/App/ContentView.swift --line 42 --sym
 # 4. Search installed Xcode SDK .swiftinterface headers & bundled Xcode 27 guides
 python3 "$SWIFT_LSP_PY" sdk SwiftUI --symbol glassEffect --platform macos --guides
 python3 "$SWIFT_LSP_PY" sdk CoreAI --symbol NDArray --platform macos
-python3 "$SWIFT_LSP_PY" sdk XcodeSkills --symbol "State macro"
+python3 "$SWIFT_LSP_PY" sdk XcodeSkills --symbol "State macro" --full-content --max-results 2
+
+# 5. Audit a newly installed Xcode Beta against /Applications/Xcode.app
+python3 "$SWIFT_LSP_PY" audit-xcode --compare /Applications/Xcode.app
 ```
 
 ---
