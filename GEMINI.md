@@ -133,7 +133,7 @@ fb-gemini-plugins/
 │   │   │           ├── counterparty-archetypes.md
 │   │   │           └── hidden-state-and-debrief.md
 │   │   └── README.md                        # Plugin and dual-platform documentation
-│   ├── swift-lsp/                           # SourceKit-LSP MCP bridge & macOS/iOS 27.2+ SDK inspector (v0.1.2)
+│   ├── swift-lsp/                           # SourceKit-LSP MCP bridge & macOS/iOS 27.2+ SDK inspector (v0.2.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)

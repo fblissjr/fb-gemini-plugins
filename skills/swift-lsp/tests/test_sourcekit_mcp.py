@@ -76,6 +76,7 @@ class TestSourceKitMcp(unittest.TestCase):
         self.assertIn("arm64-apple-macosx27.2", macos_cmd)
         self.assertIn("arm64-apple-ios27.2-simulator", ios_cmd)
         self.assertIn(sourcekit_mcp.DEFAULT_MODULE_CACHE_DIR, macos_cmd)
+        self.assertIn("-disable-sandbox", macos_cmd)
 
     def test_swiftinterface_declaration_parser_and_ranking(self) -> None:
         sample = "\n".join(
@@ -83,8 +84,15 @@ class TestSourceKitMcp(unittest.TestCase):
                 "@available(macOS 15.0, *)",
                 "nonisolated public func meshFloatingPanelStyle(_ s: Int) -> some View",
                 "@available(macOS 27.2, iOS 27.2, *)",
-                "@MainActor @preconcurrency public struct MeshFloatingPanel : SwiftUI.Scene {",
-                "  public init(id: Swift.String)",
+                "@_Concurrency::MainActor @preconcurrency public struct MeshFloatingPanel : SwiftUI::Scene {",
+                "  @_Concurrency::MainActor @preconcurrency public static var _propertyStorageSize: Swift::Int { get }",
+                "  public typealias Body = Swift::Never",
+                "  public init(id: Swift::String)",
+                "  public subscript(index: Swift::Int) -> Swift::String { get }",
+                "}",
+                "@available(anyAppleOS 27.0, *)",
+                "extension Observation::ObservationTracking {",
+                "  @safe nonisolated(nonsending) public func withContinuousObservation() -> Swift::Void",
                 "}",
             ]
         )
@@ -96,6 +104,65 @@ class TestSourceKitMcp(unittest.TestCase):
         self.assertEqual(matches[0]["name"], "MeshFloatingPanel")
         self.assertEqual(matches[0]["kind"], "struct")
         self.assertIn("@available(macOS 27.2, iOS 27.2, *)", matches[0]["declaration"])
+
+        ext_matches = sourcekit_mcp.parse_swiftinterface_declarations(
+            sample,
+            symbol_query="withContinuousObservation",
+            availability_filter="anyAppleOS 27.0",
+        )
+        self.assertEqual(len(ext_matches), 1)
+        self.assertEqual(
+            ext_matches[0].get("extended_type"),
+            "Observation.ObservationTracking",
+        )
+
+        all_decls = sourcekit_mcp.parse_swiftinterface_declarations(sample, max_results=20)
+        names = [d["name"] for d in all_decls]
+        self.assertNotIn("_propertyStorageSize", names)
+        self.assertNotIn("Body", names)
+        self.assertIn("init", names)
+        self.assertIn("subscript", names)
+
+    def test_extract_package_swift_flags_per_target(self) -> None:
+        with tempfile.TemporaryDirectory(dir="/tmp") as tmpdir:
+            root = pathlib.Path(tmpdir)
+            (root / "Package.swift").write_text(
+                "// swift-tools-version: 6.4\n"
+                "import PackageDescription\n"
+                "let package = Package(\n"
+                '    name: "MultiTargetPkg",\n'
+                "    platforms: [.macOS(.v27)],\n"
+                "    targets: [\n"
+                '        .executableTarget(name: "AppUI", swiftSettings: [\n'
+                "            .defaultIsolation(MainActor.self),\n"
+                "            .strictMemorySafety(),\n"
+                '            .enableUpcomingFeature("NonisolatedNonsendingByDefault")\n'
+                "        ]),\n"
+                '        .target(name: "EngineCore", swiftSettings: [\n'
+                "            .strictMemorySafety()\n"
+                "        ])\n"
+                "    ]\n"
+                ")\n",
+                encoding="utf-8",
+            )
+            ui_dir = root / "Sources" / "AppUI"
+            core_dir = root / "Sources" / "EngineCore"
+            ui_dir.mkdir(parents=True)
+            core_dir.mkdir(parents=True)
+            ui_file = ui_dir / "WorkspaceView.swift"
+            core_file = core_dir / "Inference.swift"
+            ui_file.write_text("import SwiftUI\n", encoding="utf-8")
+            core_file.write_text("import Foundation\n", encoding="utf-8")
+
+            ui_flags = sourcekit_mcp.extract_package_swift_flags(root, source_file=ui_file)
+            core_flags = sourcekit_mcp.extract_package_swift_flags(root, source_file=core_file)
+
+            self.assertIn("-default-isolation", ui_flags)
+            self.assertIn("MainActor", ui_flags)
+            self.assertIn("-strict-memory-safety", ui_flags)
+            self.assertIn("NonisolatedNonsendingByDefault", ui_flags)
+            self.assertNotIn("-default-isolation", core_flags)
+            self.assertIn("-strict-memory-safety", core_flags)
 
     def test_instant_xpc_fatal_error_detection_no_timeout_hang(self) -> None:
         """Verify that if sourcekit-lsp emits `SOURCEKITD FATAL ERROR: Service is invalid` without exiting,
@@ -144,16 +211,35 @@ time.sleep(30)
         if not probe["sdks"]["macosx"]["available"]:
             self.skipTest("macOS SDK not available on this host")
 
-        # 1. Test live SDK .swiftinterface search & exact-type ranking on SwiftUI
+        # 1. Test live SDK .swiftinterface search & exact-type ranking on SwiftUI, CoreAI SubFrameworks, and XcodeSkills
         sdk_res = sourcekit_mcp.search_sdk_interface(
             module_name="SwiftUI",
             symbol_query="NavigationSplitView",
             platform="macos",
             max_results=3,
+            include_guides=True,
         )
         self.assertGreaterEqual(sdk_res["count"], 1)
         self.assertEqual(sdk_res["matches"][0]["name"], "NavigationSplitView")
         self.assertEqual(sdk_res["matches"][0]["kind"], "struct")
+        self.assertIn("guide_matches", sdk_res)
+
+        coreai_res = sourcekit_mcp.search_sdk_interface(
+            module_name="CoreAI",
+            symbol_query="NDArray",
+            platform="macos",
+            max_results=3,
+        )
+        self.assertGreaterEqual(coreai_res["count"], 1)
+        self.assertEqual(coreai_res["matches"][0]["name"], "NDArray")
+
+        skills_res = sourcekit_mcp.search_sdk_interface(
+            module_name="XcodeSkills",
+            symbol_query="State macro",
+            max_results=3,
+        )
+        self.assertGreaterEqual(skills_res["count"], 1)
+        self.assertIn("state-macro", skills_res["matches"][0]["file"])
 
         # 2. Test multi-file SwiftPM target symbols, hover (with cross-file docstring), definition, references, and dual-SDK diagnostics
         with tempfile.TemporaryDirectory(dir="/tmp") as tmpdir:

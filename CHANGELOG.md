@@ -4,6 +4,21 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.35.0] - 2026-11-09
+
+### Changed
+
+- **`swift-lsp` (`v0.1.2` $\rightarrow$ `v0.2.0` — macOS 27.x "Golden Gate", Swift 6.4.2, Macro-Safe Sandboxed Diagnostics & Bundled Xcode 27 Agent Skills Search)**:
+  - **Engine Upgrades ([`scripts/sourcekit_mcp.py`](skills/swift-lsp/skills/swift-lsp/scripts/sourcekit_mcp.py))**:
+    1. **Sandboxed Swift 6.4 Macro Expansion (`-disable-sandbox`)**: Added `-disable-sandbox` to `xcrun swiftc -typecheck` and `-dump-ast` so `swift-plugin-server` expands `@State`, `@Observable`, `@Generable`, `@Model`, and `#Preview` macros cleanly inside outer Seatbelt sandboxes without failing on nested `sandbox_apply`.
+    2. **Per-Target `Package.swift` Flag Inference (`extract_package_swift_flags`)**: Parses `.target(...)` / `.executableTarget(...)` / `.testTarget(...)` blocks in `Package.swift` so UI targets with `.defaultIsolation(MainActor.self)` receive `-default-isolation MainActor`, while nonisolated compute/server targets in the same package receive only their own `swiftSettings` (`-swift-version 6`, `-strict-memory-safety`, `-enable-upcoming-feature <Name>`).
+    3. **Swift 6.4 `.swiftinterface` Parser & SubFrameworks / Developer Frameworks Discovery**: Added support for Swift 6.4 module selector syntax (`::`, e.g., `@_Concurrency::MainActor`, `SwiftUI::View`), `@safe nonisolated(nonsending)`, `public init(...)` / `subscript(...)`, inherited `@available(anyAppleOS 27.0, *)` from enclosing `extension` blocks, witness noise filtering (`_propertyStorageSize`, `Body = Swift::Never`), `System/Library/SubFrameworks/` (`CoreAIRuntime`, `CoreAIDelegates`, `CoreAIAsset`, `CoreAICache`, `CoreAICompiler`, `CoreAICommon`), `Developer/Library/Frameworks/` (`Testing`, `Evaluations`, `AppIntentsTesting`, `XCUIAutomation`), and `PackageDescription`.
+    4. **Headless Xcode 27 Agent Skills & `AdditionalDocumentation` Search**: Added `apple_intelligence_and_docs` discovery (`xcrun agent`, `xcrun mcpbridge`, `/usr/bin/fm`, and bundled guide counts) to `swift_toolchain_probe` and virtual module / `include_guides` (`--guides`) search (`XcodeSkills`, `XcodeDocs`, `SwiftDiagnostics`) to `swift_sdk_interface`.
+  - **Reference Playbook Upgrades ([`SKILL.md`](skills/swift-lsp/skills/swift-lsp/SKILL.md) & `references/`)**:
+    - Updated [`dual-sdk-macos-ios-27.md`](skills/swift-lsp/skills/swift-lsp/references/dual-sdk-macos-ios-27.md) with compiler-verified (`rc=0` on `MacOSX27.2.sdk`) sections covering the Golden Gate 4-layer Liquid Glass hierarchy (`GlassEffectContainer`, `.glassEffect`, `.backgroundExtensionEffect`), `@State` macro rules & `@ContentBuilder` (`TupleContent`/`EmptyContent`), SwiftUI view invalidation (`@Observable` pointer identity vs. closure props, `deprecated: 100000.0` soft deprecations), the overhauled asynchronous `@Observable` `Document` protocol (`Subprogress.start(totalCount:)`, `DocumentCreationContext.creationSource`, mandatory `UndoManager` registration for autosave), AppKit 27.0 interop (`NSHostingSceneRepresentation`, `NSHostingMenu`, Touch on Mac, 13 SDK-27 runtime behavior changes including `NSMenuItem.preferredImageVisibility = .visible`), and `FoundationModels` / `CoreAI` / `SwiftData` 27.0 patterns.
+    - Updated [`swift6-concurrency-diagnostics.md`](skills/swift-lsp/skills/swift-lsp/references/swift6-concurrency-diagnostics.md) for Swift 6.4.2 Approachable Concurrency (`SE-0461`, `SE-0466`, `SE-0470`), `~Sendable` (`SE-0518`), `await` inside `defer` (`SE-0493`) + `await withTaskCancellationShield` (`SE-0504`), move-only `Continuation`, `Observation` 27.0 (`withContinuousObservation`), and `InlineArray` / `Span` / `UniqueArray`.
+    - Updated [`sourcekit-lsp-and-indexing.md`](skills/swift-lsp/skills/swift-lsp/references/sourcekit-lsp-and-indexing.md) for `swift-tools-version: 6.4`, Xcode 27 linker rules (`ld-27106.1` `-Wl,-ld64` removal, unique Clang module names, avoiding `27.1` macOS deployment target), and companion `xcrun mcpbridge` / `xcrun agent skills` workflows.
+
 ## [0.34.1] - 2026-11-07
 
 ### Changed

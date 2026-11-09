@@ -1,46 +1,140 @@
-# Resolving Swift 6 Strict Concurrency Diagnostics with `swift-lsp`
+# Resolving Swift 6.4+ Concurrency, Observation 27.0 & Memory-Safe Stdlib Diagnostics
 
-Swift 6 strict concurrency (`-swift-version 6`) enforces data-race safety at compile time. When building standalone macOS 27.2+ and iOS 27.2+ apps (e.g., streaming SSE `/v1/messages` responses on background tasks while driving `@MainActor` `@Observable` state and `SwiftUI` / `AppKit` views), use `swift_hover`, `swift_definition`, and `swift_diagnostics` to inspect compiler-inferred isolation rather than guessing annotations.
-
----
-
-## 1. Diagnosing Actor Isolation Mismatches via `swift_hover`
-
-When `swift_diagnostics` reports:
-- `Main actor-isolated property '...' can not be referenced from a nonisolated context`
-- `Main actor-isolated instance method '...' cannot be called from outside of the actor`
-- `Call to main actor-isolated initializer '...' in a synchronous nonisolated context`
-
-### Resolution Protocol
-1. **Do not blindly slap `@unchecked Sendable` or `nonisolated(unsafe)` on types.**
-2. Call **`swift_hover`** on:
-   - The **caller** function or closure symbol (`file`, `line`, `symbol`), and
-   - The **callee** property, method, or protocol requirement.
-3. Inspect the hover signature returned by `sourcekit-lsp`:
-   - `SwiftUI.View` (`macOS 27.2+` / `iOS 27.2+`), `NSView`, `NSViewController`, `NSWindowController`, `NSPanel`, and `UIViewController` are **`@MainActor`-isolated as a whole**.
-   - If a view model or store drives UI state (`@Observable final class ChatStore`), mark the class **`@MainActor`** at the declaration level so all its properties and methods share `@MainActor` isolation with the views that observe it.
+Swift 6.4 (`-swift-version 6`) enforces compile-time data-race safety while introducing **Approachable Concurrency (`SE-0461`, `SE-0466`, `SE-0470`)**, **Resource & Lifetime Safety (`SE-0493`, `SE-0504`, `SE-0518`)**, **`Observation` 27.0 (`withContinuousObservation`)**, and **memory-safe contiguous containers (`InlineArray`, `Span`, `UniqueArray`)**. Use `swift_hover`, `swift_definition`, `swift_sdk_interface`, and `swift_diagnostics` to inspect compiler-inferred isolation rather than guessing annotations.
 
 ---
 
-## 2. Diagnosing `Sendable` & Region-Based Isolation (`sending`) Errors
+## 1. Swift 6.4 Approachable Concurrency (`SE-0461`, `SE-0466`, `SE-0470`)
 
-When `swift_diagnostics` reports:
-- `Sending 'self.stream' risks causing data races`
-- `Capture of '...' with non-sendable type '...' in a '@Sendable' closure`
-- `Non-sendable type '...' returned by implicitly asynchronous call to nonisolated function cannot cross actor boundary`
+### A. Per-Target Default MainActor Isolation (`SE-0466`)
+In Swift 6.4 (`swift-tools-version: 6.4`), targets can opt into `.defaultIsolation(MainActor.self)` in `Package.swift` (or `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` in Xcode):
+- **UI / App targets**: All declarations in the target default to `@MainActor` unless explicitly marked `nonisolated` or `@concurrent`.
+- **Compute / Server / Parser targets**: Typically remain `nonisolated` by default.
+- `sourcekit_mcp.py` automatically parses per-target `swiftSettings` in `Package.swift` so `swift_diagnostics` passes `-default-isolation MainActor` only for files belonging to `@MainActor`-default targets.
 
-### Resolution Protocol
-1. Call **`swift_hover`** on the captured variable or return value to check its inferred type and whether it is a reference type (`class`), closure, or value type (`struct`/`enum`) containing a non-`Sendable` field.
-2. Call **`swift_definition`** (`kind: "typeDefinition"`) to inspect the type's stored properties:
-   - **Wire DTOs, SSE events, and configuration structs**: Make them immutable `struct` or `enum` values conforming to `Sendable` (`public struct MessageChunk: Sendable, Codable`).
-   - **Streaming network / local LLM clients (`URLSession.AsyncBytes`)**: Keep the raw `URLSession` byte parsing inside a `nonisolated` `async` function or dedicated `actor`, and yield only immutable `Sendable` value events across an `AsyncThrowingStream<StreamEvent, Error>` to the `@MainActor` store.
-   - **Transferring ownership across isolation regions (`sending`)**: In Swift 6, use `sending` parameters/returns when a non-`Sendable` value is uniquely owned and handed off once to another isolation domain without retaining a local alias.
+### B. `nonisolated(nonsending)` by Default vs. `@concurrent` (`SE-0461`)
+- **`nonisolated(nonsending)` (`NonisolatedNonsendingByDefault`)**: `nonisolated async` functions inherit the caller's actor executor instead of automatically hopping to the global concurrent executor. If called from `@MainActor`, they execute on the main actor without requiring non-`Sendable` arguments to cross an isolation boundary.
+- **`@concurrent`**: When a function performs CPU-heavy work (e.g., JSON/SSE parsing, image resizing, `CoreAI` tensor prep, or `DocumentReader`/`DocumentWriter` I/O) and **must** hop off the caller's actor onto the global concurrent pool, annotate it with `@concurrent`:
+  ```swift
+  @concurrent
+  func decodeLargePayload(_ data: Data) async throws -> ParsedDocument {
+      try JSONDecoder().decode(ParsedDocument.self, from: data)
+  }
+  ```
+
+### C. Global-Actor Isolated Protocol Conformances (`SE-0470`)
+When a `@MainActor` class conforms to a protocol (`Equatable`, `Hashable`, `Codable`, or a custom protocol):
+- Use **isolated conformances** (`structOrClass: @MainActor Equatable`) when equality/hashing reads `@MainActor`-isolated stored properties:
+  ```swift
+  @MainActor
+  @Observable
+  final class LayerModel: @MainActor Equatable {
+      var id: UUID
+      var name: String
+      init(id: UUID = UUID(), name: String) {
+          self.id = id
+          self.name = name
+      }
+      static func == (lhs: LayerModel, rhs: LayerModel) -> Bool {
+          lhs.id == rhs.id && lhs.name == rhs.name
+      }
+  }
+  ```
+- Conversely, if a type inside a `.defaultIsolation(MainActor.self)` target is a pure wire DTO that needs background `Codable` synthesis, mark its conformance **`nonisolated Codable, Sendable`**.
 
 ---
 
-## 3. Protocol Witness & Delegate Conformance Isolation Traps
+## 2. Resource & Lifetime Safety (`SE-0493`, `SE-0504`, `SE-0518`)
 
-When implementing `AppKit` / `UIKit` / `Foundation` delegates (`NSWindowDelegate`, `NSTextViewDelegate`, `URLSessionTaskDelegate`) in Swift 6:
-1. Call **`swift_sdk_interface`** (`module: "AppKit"`, `symbol: "protocol NSWindowDelegate"`) or **`swift_definition`** on the protocol name to see whether each protocol method is `@MainActor` or `nonisolated` in the 27.2 SDK.
-2. If a `@MainActor` class implements a `nonisolated` delegate requirement that only passes `Sendable` parameters, mark that witness `nonisolated` and hop via `Task { @MainActor in ... }` if needed.
-3. If the delegate requirement is already `@MainActor` in the 27.2 SDK `.swiftinterface`, implement it directly on your `@MainActor` class without `nonisolated`.
+### A. `await` Inside `defer` (`SE-0493`) + `withTaskCancellationShield` (`SE-0504`)
+In Swift 6.4, standard `defer { ... }` blocks inside `async` functions can contain `await` expressions. When an `async` function is cancelled, any `await` inside `defer` would immediately fail if the cleanup call checks `Task.isCancelled`. Pair `defer` with **`await withTaskCancellationShield { ... }`**:
+
+> [!IMPORTANT]
+> - There is **no** `async defer` keyword (`async defer` is a syntax error). Write a standard `defer { ... }` block containing `await`.
+> - Always **`await` `withTaskCancellationShield`** inside an async cleanup block; omitting `await` selects the synchronous overload and fails with `error: 'async' call in a function that does not support concurrency`.
+
+```swift
+actor TelemetryBuffer {
+    func flushToDisk() async throws {}
+    func closeFileDescriptor() async {}
+}
+
+func processStream(buffer: TelemetryBuffer) async throws {
+    defer {
+        await withTaskCancellationShield {
+            try? await buffer.flushToDisk()
+            await buffer.closeFileDescriptor()
+        }
+    }
+    try await Task.sleep(for: .milliseconds(50))
+}
+```
+
+### B.Explicit `@MainActor` State Lockout (`~Sendable`, `SE-0518`)
+To guarantee at compile time that an `@MainActor` state container can **never** be sent across actor boundaries (even if all its stored fields are value types), suppress `Sendable` synthesis with `~Sendable`:
+
+```swift
+@MainActor
+@Observable
+final class WindowWorkspaceState: ~Sendable {
+    var selectedTabID: String = "home"
+    var isInspectorOpen: Bool = true
+}
+```
+
+### C. Move-Only `Continuation<Success, Failure>: ~Copyable` (Stdlib 27.0)
+In SDK 27.0 (`_Concurrency`), `withContinuation` / `withThrowingContinuation` provide a move-only `Continuation<T, E>: ~Copyable` whose `resume(returning:)` is a `consuming` method—turning double-resumption or forgotten-resumption bugs from runtime crashes into compile-time ownership errors.
+
+---
+
+## 3. `Observation` 27.0 (`withContinuousObservation`)
+
+In macOS 27.0 / iOS 27.0 (`@available(anyAppleOS 27.0, *)`), `Observation` replaces one-shot `withObservationTracking` loops with **`withContinuousObservation`**, returning a move-only `ObservationTracking.Token: ~Copyable` that automatically cancels observation when deinitialized:
+
+```swift
+import Observation
+
+@MainActor
+@Observable
+final class AudioMeterModel {
+    var peakDecibels: Float = -60.0
+}
+
+@MainActor
+final class StatusBarBridge {
+    private var observationToken: ObservationTracking.Token?
+
+    func bind(to meter: AudioMeterModel) {
+        observationToken = withContinuousObservation(options: [.didSet]) {
+            _ = meter.peakDecibels
+        } onChange: { event in
+            // React to `.willSet`, `.didSet`, or `.deinit` events
+            _ = event
+        }
+    }
+}
+```
+
+---
+
+## 4. Memory-Safe Contiguous Stdlib Types (`InlineArray`, `Span`, `UniqueArray`)
+
+Swift 6.4 (`@available(anyAppleOS 27.0, *)`) ships safe stack/inline and non-escapable contiguous memory primitives (`--strict-memory-safety`):
+
+| Type | Characteristics | Primary Use Case |
+| :--- | :--- | :--- |
+| **`InlineArray<let count: Int, Element>`** | Fixed-size, stack/inline value buffer (`~Copyable` / `~Escapable` compatible); zero heap allocation | Small lookup tables, fixed-dimension vectors, audio/DSP filter state, shader uniforms (`var weights: InlineArray<4, Float> = [0.25, 0.25, 0.25, 0.25]`). |
+| **`Span<Element>` / `RawSpan`** | Non-escapable (`~Escapable`) bounds-checked read-only view over contiguous memory | Zero-copy parsing, reading `CoreAI.NDArray.View.contiguousElements`, and replacing `UnsafeBufferPointer` under `.strictMemorySafety()`. |
+| **`MutableSpan<Element>` / `OutputSpan<Element>`** | Non-escapable (`~Escapable`) mutable or uninitialized output buffer view | Filling buffers safely in-place without `UnsafeMutableBufferPointer`. |
+| **`UniqueArray<Element>: ~Copyable`** | Move-only heap array with guaranteed unique ownership (zero COW refcount overhead) | High-throughput buffers transferred across pipeline stages without accidental copy-on-write cloning. |
+
+---
+
+## 5. Diagnosing Actor Isolation & `Sendable` Mismatches via `swift-lsp`
+
+1. **Inspect Compiler-Inferred Isolation**:
+   Call `swift_hover` on both the **caller** and **callee** symbols (`file`, `line`, `symbol`) to see whether the symbol is `@MainActor`, `nonisolated(nonsending)`, or `@concurrent`.
+2. **Lookup Official Swift 6.4 Compiler Diagnostic Guides**:
+   Call `swift_sdk_interface` with `module: "SwiftDiagnostics"` and `symbol` set to the diagnostic topic (e.g., `"conformance-isolation"`, `"isolated-conformances"`, `"nonisolated-nonsending-by-default"`, `"strict-memory-safety"`, `"sending-risks-data-race"`, `"use-any-apple-os-availability"`).
+3. **Check Delegate Witness Isolation in SDK 27.2**:
+   Call `swift_sdk_interface` (`module: "AppKit"`, `symbol: "NSWindowDelegate"`) before implementing `AppKit` / `UIKit` delegates to check whether the method is already `@MainActor` in `MacOSX27.2.sdk`.

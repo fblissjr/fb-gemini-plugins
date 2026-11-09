@@ -36,7 +36,7 @@ DEFAULT_MIN_OS_VERSION = "27.2"
 DEFAULT_MODULE_CACHE_DIR = "/tmp/swift-lsp-module-cache"
 DEFAULT_SCRATCH_DIR = "/tmp/swift-lsp-scratch"
 SERVER_NAME = "swift-lsp-sourcekit"
-SERVER_VERSION = "0.1.2"
+SERVER_VERSION = "0.2.0"
 
 LSP_SYMBOL_KINDS: Dict[int, str] = {
     1: "File",
@@ -75,10 +75,23 @@ LSP_SEVERITY_NAMES: Dict[int, str] = {
 }
 
 COMPANION_EXPORTED_MODULES: Dict[str, List[str]] = {
-    "SwiftUI": ["SwiftUI", "SwiftUICore"],
+    "SwiftUI": ["SwiftUI", "SwiftUICore", "DeveloperToolsSupport"],
     "Foundation": ["Foundation", "FoundationEssentials", "FoundationInternationalization"],
     "Swift": ["Swift", "_Concurrency", "Synchronization"],
+    "CoreAI": [
+        "CoreAI",
+        "CoreAIDelegates",
+        "CoreAIRuntime",
+        "CoreAIAsset",
+        "CoreAICache",
+        "CoreAICompiler",
+        "CoreAICommon",
+    ],
+    "FoundationModels": ["FoundationModels", "_Vision_FoundationModels"],
+    "SwiftData": ["SwiftData", "_SwiftData_SwiftUI"],
 }
+
+VIRTUAL_DOC_MODULES = {"XcodeSkills", "XcodeDocs", "AdditionalDocumentation", "SwiftDiagnostics"}
 
 
 class SourceKitUnavailableError(RuntimeError):
@@ -311,12 +324,231 @@ def resolve_sdk_info(sdk_name: str) -> Dict[str, Any]:
     }
 
 
+def resolve_developer_dir(sdk_path: Optional[str] = None) -> Optional[pathlib.Path]:
+    """Resolve the active Xcode `Contents/Developer` directory without hardcoding a single path."""
+    env_dev = os.environ.get("DEVELOPER_DIR")
+    if env_dev and os.path.isdir(env_dev):
+        return pathlib.Path(env_dev)
+    if sdk_path:
+        for anc in pathlib.Path(sdk_path).parents:
+            if anc.name == "Developer" and anc.parent.name == "Contents":
+                return anc
+    default_dev = pathlib.Path("/Applications/Xcode.app/Contents/Developer")
+    if default_dev.is_dir():
+        return default_dev
+    rc, p_out, _ = _run_cmd_capture(["xcode-select", "-p"])
+    if rc == 0 and p_out and os.path.isdir(p_out):
+        return pathlib.Path(p_out)
+    return None
+
+
+def discover_xcode_knowledge_resources(sdk_path: Optional[str] = None) -> Dict[str, Any]:
+    """Discover bundled Xcode 27 Agent Skills, `AdditionalDocumentation`, and Swift 6.4 diagnostic docs."""
+    dev_dir = resolve_developer_dir(sdk_path)
+    skill_files: List[pathlib.Path] = []
+    additional_doc_files: List[pathlib.Path] = []
+    swift_diag_files: List[pathlib.Path] = []
+
+    if dev_dir is not None:
+        contents_dir = dev_dir.parent
+        chat_res = (
+            contents_dir
+            / "PlugIns"
+            / "IDEIntelligenceChat.framework"
+            / "Versions"
+            / "A"
+            / "Resources"
+        )
+        if chat_res.is_dir():
+            skill_files.extend(sorted(chat_res.glob("*SKILL.md.idechatprompttemplate")))
+            skill_files.extend(sorted(chat_res.glob("*.md.packaged")))
+            add_docs_dir = chat_res / "AdditionalDocumentation"
+            if add_docs_dir.is_dir():
+                additional_doc_files.extend(sorted(add_docs_dir.glob("*.md")))
+
+        xcstrings_skills = (
+            contents_dir
+            / "PlugIns"
+            / "IDEXCStringsSupport.framework"
+            / "Versions"
+            / "A"
+            / "Resources"
+            / "Skills"
+        )
+        if xcstrings_skills.is_dir():
+            skill_files.extend(sorted(xcstrings_skills.rglob("*.md")))
+
+        diag_dir = (
+            dev_dir
+            / "Toolchains"
+            / "XcodeDefault.xctoolchain"
+            / "usr"
+            / "share"
+            / "doc"
+            / "swift"
+            / "diagnostics"
+        )
+        if diag_dir.is_dir():
+            swift_diag_files.extend(sorted(diag_dir.glob("*.md")))
+
+    return {
+        "developer_dir": str(dev_dir) if dev_dir else None,
+        "skill_files": skill_files,
+        "additional_doc_files": additional_doc_files,
+        "swift_diag_files": swift_diag_files,
+    }
+
+
+_TARGET_DECL_START_RE = re.compile(
+    r"\.\s*(?:target|executableTarget|testTarget|macro)\s*\("
+)
+_TARGET_NAME_RE = re.compile(r'name\s*:\s*"(?P<name>[^"]+)"')
+_TARGET_PATH_RE = re.compile(r'path\s*:\s*"(?P<path>[^"]+)"')
+_UPCOMING_FEATURE_RE = re.compile(r'\.enableUpcomingFeature\(\s*"(?P<feat>[^"]+)"\s*\)')
+_EXPERIMENTAL_FEATURE_RE = re.compile(r'\.enableExperimentalFeature\(\s*"(?P<feat>[^"]+)"\s*\)')
+
+
+def _extract_target_blocks_from_package_swift(
+    pkg_text: str,
+) -> Tuple[Dict[str, str], Dict[str, str], str]:
+    """Parse `.target(...)` / `.executableTarget(...)` / `.testTarget(...)` blocks from `Package.swift`."""
+    target_blocks: Dict[str, str] = {}
+    target_custom_paths: Dict[str, str] = {}
+    spans: List[Tuple[int, int]] = []
+
+    for m in _TARGET_DECL_START_RE.finditer(pkg_text):
+        start_idx = m.start()
+        open_paren_idx = m.end() - 1
+        depth = 0
+        end_idx = len(pkg_text)
+        in_str = False
+        esc = False
+        for idx in range(open_paren_idx, len(pkg_text)):
+            ch = pkg_text[idx]
+            if esc:
+                esc = False
+                continue
+            if ch == "\\":
+                esc = True
+                continue
+            if ch == '"':
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == "(":
+                depth += 1
+            elif ch == ")":
+                depth -= 1
+                if depth == 0:
+                    end_idx = idx + 1
+                    break
+        block = pkg_text[start_idx:end_idx]
+        spans.append((start_idx, end_idx))
+        nm = _TARGET_NAME_RE.search(block)
+        if nm:
+            tname = nm.group("name")
+            target_blocks[tname] = block
+            pm = _TARGET_PATH_RE.search(block)
+            if pm:
+                target_custom_paths[tname] = pm.group("path").strip("/")
+
+    non_target_parts: List[str] = []
+    last = 0
+    for s, e in spans:
+        if s > last:
+            non_target_parts.append(pkg_text[last:s])
+        last = max(last, e)
+    if last < len(pkg_text):
+        non_target_parts.append(pkg_text[last:])
+
+    return target_blocks, target_custom_paths, "\n".join(non_target_parts)
+
+
+def extract_package_swift_flags(
+    workspace_root: Optional[pathlib.Path],
+    source_file: Optional[str | pathlib.Path] = None,
+) -> List[str]:
+    """Infer per-target and package-level Swift 6.4 compiler flags from `Package.swift`.
+
+    In multi-target packages (e.g. an App target with `.defaultIsolation(MainActor.self)`
+    and a nonisolated Compute/Server target), maps `source_file` to its owning target block
+    so `-default-isolation MainActor` is only applied to targets that declare it.
+    """
+    if workspace_root is None:
+        return []
+    pkg_file = pathlib.Path(workspace_root) / "Package.swift"
+    if not pkg_file.is_file():
+        return []
+    try:
+        pkg_text = pkg_file.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+
+    target_blocks, target_custom_paths, package_top_text = (
+        _extract_target_blocks_from_package_swift(pkg_text)
+    )
+
+    matched_target_block = ""
+    if source_file is not None and target_blocks:
+        try:
+            ws_real = pathlib.Path(os.path.realpath(os.fspath(workspace_root)))
+            src_real = pathlib.Path(os.path.realpath(os.fspath(source_file)))
+            rel = src_real.relative_to(ws_real)
+            rel_str = rel.as_posix()
+            parts = rel.parts
+            # 1. Check custom target `path:` mappings first
+            for tname, custom_p in target_custom_paths.items():
+                if custom_p and (rel_str == custom_p or rel_str.startswith(custom_p + "/")):
+                    matched_target_block = target_blocks.get(tname, "")
+                    break
+            # 2. Check standard `Sources/<TargetName>/...` or `Tests/<TargetName>/...`
+            if not matched_target_block and len(parts) >= 2 and parts[0] in ("Sources", "Tests"):
+                matched_target_block = target_blocks.get(parts[1], "")
+        except ValueError:
+            pass
+
+    if not matched_target_block and len(target_blocks) == 1:
+        matched_target_block = next(iter(target_blocks.values()))
+
+    effective_scope = package_top_text + "\n" + matched_target_block
+    flags: List[str] = []
+
+    if (
+        re.search(r"swift-tools-version:\s*6\b", pkg_text)
+        or ".v6" in effective_scope
+    ):
+        flags.extend(["-swift-version", "6"])
+
+    if re.search(r"\.defaultIsolation\(\s*MainActor\.self\s*\)", effective_scope):
+        flags.extend(["-default-isolation", "MainActor"])
+
+    if ".strictMemorySafety(" in effective_scope:
+        flags.append("-strict-memory-safety")
+
+    seen_upcoming: set[str] = set()
+    for m in _UPCOMING_FEATURE_RE.finditer(effective_scope):
+        feat = m.group("feat")
+        if feat not in seen_upcoming:
+            seen_upcoming.add(feat)
+            flags.extend(["-enable-upcoming-feature", feat])
+
+    seen_exp: set[str] = set()
+    for m in _EXPERIMENTAL_FEATURE_RE.finditer(effective_scope):
+        feat = m.group("feat")
+        if feat not in seen_exp:
+            seen_exp.add(feat)
+            flags.extend(["-enable-experimental-feature", feat])
+
+    return flags
+
+
 def probe_toolchain_and_workspace(
     workspace: Optional[str] = None,
     min_version: str = DEFAULT_MIN_OS_VERSION,
     pool: Optional["LspSessionPool"] = None,
 ) -> Dict[str, Any]:
-    """Inspect Xcode toolchain, SourceKit-LSP, SDKs (macOS/iOS 27.2+), and project layout."""
+    """Inspect Xcode toolchain, SourceKit-LSP, SDKs (macOS/iOS 27.2+), bundled skills/docs, and project layout."""
     if workspace:
         ws_root = discover_swift_workspace(os.path.expanduser(workspace))
         if pool is not None:
@@ -327,10 +559,14 @@ def probe_toolchain_and_workspace(
         ws_root = discover_swift_workspace(os.getcwd())
     rc_lsp, lsp_path, lsp_err = _run_cmd_capture(["xcrun", "--find", "sourcekit-lsp"])
     rc_swift, swift_ver, _ = _run_cmd_capture(["xcrun", "swift", "--version"])
+    rc_agent, agent_path, _ = _run_cmd_capture(["xcrun", "--find", "agent"])
+    rc_mcpb, mcpb_path, _ = _run_cmd_capture(["xcrun", "--find", "mcpbridge"])
 
     macos_sdk = resolve_sdk_info("macosx")
     ios_sim_sdk = resolve_sdk_info("iphonesimulator")
     ios_dev_sdk = resolve_sdk_info("iphoneos")
+    xcode_docs = discover_xcode_knowledge_resources(macos_sdk.get("path"))
+    fm_cli_path = "/usr/bin/fm" if os.path.isfile("/usr/bin/fm") else None
 
     has_package_swift = (ws_root / "Package.swift").is_file()
     has_build_server = (ws_root / "buildServer.json").is_file()
@@ -401,6 +637,23 @@ def probe_toolchain_and_workspace(
             "macosx": macos_sdk,
             "iphonesimulator": ios_sim_sdk,
             "iphoneos": ios_dev_sdk,
+        },
+        "apple_intelligence_and_docs": {
+            "xcrun_agent": {
+                "available": rc_agent == 0 and bool(agent_path),
+                "path": agent_path if rc_agent == 0 else None,
+            },
+            "xcrun_mcpbridge": {
+                "available": rc_mcpb == 0 and bool(mcpb_path),
+                "path": mcpb_path if rc_mcpb == 0 else None,
+            },
+            "fm_cli": {
+                "available": fm_cli_path is not None,
+                "path": fm_cli_path,
+            },
+            "xcode_bundled_skill_files_count": len(xcode_docs["skill_files"]),
+            "xcode_additional_docs_count": len(xcode_docs["additional_doc_files"]),
+            "swift_diagnostic_docs_count": len(xcode_docs["swift_diag_files"]),
         },
         "recommendations": recommendations,
     }
@@ -890,7 +1143,9 @@ def run_swiftc_dump_ast(
     min_version: str = DEFAULT_MIN_OS_VERSION,
 ) -> str:
     """Run `xcrun swiftc -dump-ast` across the target's `.swift` files with `/tmp` module cache."""
-    target_files = collect_target_swift_files(primary_file, workspace_root=workspace_root)
+    ws_root = workspace_root or discover_swift_workspace(primary_file)
+    target_files = collect_target_swift_files(primary_file, workspace_root=ws_root)
+    pkg_flags = extract_package_swift_flags(ws_root, source_file=primary_file)
     sdk_name = "macosx" if platform == "macos" else "iphonesimulator"
     triple = (
         f"arm64-apple-macosx{min_version}"
@@ -903,11 +1158,12 @@ def run_swiftc_dump_ast(
         sdk_name,
         "swiftc",
         "-dump-ast",
+        "-disable-sandbox",
         "-module-cache-path",
         DEFAULT_MODULE_CACHE_DIR,
         "-target",
         triple,
-    ] + target_files
+    ] + pkg_flags + target_files
     _, out, err = _run_cmd_capture(cmd, timeout=20.0)
     return (out + "\n" + err).strip()
 
@@ -1553,6 +1809,8 @@ def build_swiftc_typecheck_command(
     platform: str,
     sdk_path: Optional[str],
     min_version: str = DEFAULT_MIN_OS_VERSION,
+    workspace_root: Optional[pathlib.Path] = None,
+    extra_swift_flags: Optional[List[str]] = None,
 ) -> List[str]:
     """Construct an `xcrun swiftc -typecheck` command for macOS 27.2+ or iOS 27.2+ simulator."""
     sdk_name = "macosx" if platform == "macos" else "iphonesimulator"
@@ -1567,6 +1825,7 @@ def build_swiftc_typecheck_command(
         sdk_name,
         "swiftc",
         "-typecheck",
+        "-disable-sandbox",
         "-module-cache-path",
         DEFAULT_MODULE_CACHE_DIR,
         "-target",
@@ -1574,6 +1833,15 @@ def build_swiftc_typecheck_command(
     ]
     if sdk_path:
         cmd.extend(["-sdk", sdk_path])
+    inferred_flags = (
+        extra_swift_flags
+        if extra_swift_flags is not None
+        else extract_package_swift_flags(
+            workspace_root, source_file=files[0] if files else None
+        )
+    )
+    if inferred_flags:
+        cmd.extend(inferred_flags)
     cmd.extend(os.path.abspath(f) for f in files)
     return cmd
 
@@ -1658,6 +1926,7 @@ def query_diagnostics(
             if sib not in expanded_target_files:
                 expanded_target_files.append(sib)
 
+    inferred_pkg_flags = extract_package_swift_flags(ws_root, source_file=abs_files[0])
     platform_reports: Dict[str, Any] = {}
     for plat in platforms_to_check:
         sdk_key = "macosx" if plat == "macos" else "iphonesimulator"
@@ -1667,6 +1936,8 @@ def query_diagnostics(
             platform=plat,
             sdk_path=sdk_info.get("path"),
             min_version=min_version,
+            workspace_root=ws_root,
+            extra_swift_flags=inferred_pkg_flags,
         )
         if plat == "ios" or platform == "both" or lsp_note is not None:
             rc, _, stderr_text = _run_cmd_capture(cmd, timeout=20.0)
@@ -1674,6 +1945,7 @@ def query_diagnostics(
             platform_reports[plat] = {
                 "target_triple": cmd[cmd.index("-target") + 1],
                 "sdk_version": sdk_info.get("version"),
+                "inferred_swift_flags": inferred_pkg_flags,
                 "exit_code": rc,
                 "diagnostics": parsed,
             }
@@ -1681,6 +1953,7 @@ def query_diagnostics(
             platform_reports[plat] = {
                 "target_triple": cmd[cmd.index("-target") + 1],
                 "sdk_version": sdk_info.get("version"),
+                "inferred_swift_flags": inferred_pkg_flags,
                 "diagnostics": lsp_diagnostics,
             }
 
@@ -1697,6 +1970,7 @@ def query_diagnostics(
         "files": abs_files,
         "platform": platform,
         "min_os_version": min_version,
+        "inferred_swift_flags": inferred_pkg_flags,
         "lsp_diagnostics": lsp_diagnostics,
         "lsp_fallback_note": lsp_note,
         "platform_checks": platform_reports,
@@ -1705,7 +1979,7 @@ def query_diagnostics(
 
 
 # ---------------------------------------------------------------------------
-# Xcode SDK `.swiftinterface` Ground-Truth Inspector (macOS 27.2+ / iOS 27.2+)
+# Xcode SDK `.swiftinterface` & Bundled Guide Ground-Truth Inspector (27.2+)
 # ---------------------------------------------------------------------------
 
 
@@ -1715,15 +1989,39 @@ def _find_single_module_swiftinterface(
     platform: str = "macos",
 ) -> Optional[pathlib.Path]:
     root = pathlib.Path(sdk_path)
+    platform_dev_root = root.parent.parent  # e.g. .../MacOSX.platform/Developer
+    dev_dir = resolve_developer_dir(sdk_path)
     candidates: List[pathlib.Path] = []
     search_dirs = [
         root / "System" / "Library" / "Frameworks" / f"{module_name}.framework" / "Modules" / f"{module_name}.swiftmodule",
         root / "System" / "Library" / "SubFrameworks" / f"{module_name}.framework" / "Modules" / f"{module_name}.swiftmodule",
         root / "usr" / "lib" / "swift" / f"{module_name}.swiftmodule",
+        platform_dev_root / "Library" / "Frameworks" / f"{module_name}.framework" / "Modules" / f"{module_name}.swiftmodule",
+        platform_dev_root / "usr" / "lib" / "swift" / f"{module_name}.swiftmodule",
     ]
     for d in search_dirs:
         if d.is_dir():
             for p in sorted(d.glob("*.swiftinterface")):
+                if not p.name.endswith(".private.swiftinterface"):
+                    candidates.append(p)
+
+    if not candidates and dev_dir is not None and module_name in ("PackageDescription", "CompilerPluginSupport"):
+        manifest_dir = (
+            dev_dir
+            / "Toolchains"
+            / "XcodeDefault.xctoolchain"
+            / "usr"
+            / "lib"
+            / "swift"
+            / "pm"
+            / "ManifestAPI"
+        )
+        direct_iface = manifest_dir / f"{module_name}.swiftinterface"
+        if direct_iface.is_file():
+            candidates.append(direct_iface)
+        mod_dir = manifest_dir / f"{module_name}.swiftmodule"
+        if mod_dir.is_dir():
+            for p in sorted(mod_dir.glob("*.swiftinterface")):
                 if not p.name.endswith(".private.swiftinterface"):
                     candidates.append(p)
 
@@ -1768,12 +2066,26 @@ def find_module_swiftinterfaces(
     return found
 
 
+_ATTR_ARGS_PAT = r'\((?:"[^"]*"|[^)])*\)'
+_MOD_OR_ATTR_TOKEN = (
+    r"(?:@[A-Za-z0-9_:`]+(?:" + _ATTR_ARGS_PAT + r")?"
+    r"|final|nonisolated(?:\([^)]*\))?|indirect|convenience|override|static"
+    r"|class|mutating|nonmutating|distributed|consuming|borrowing|sending"
+    r"|prefix|postfix|infix)"
+)
+
 _SWIFTINTERFACE_DECL_RE = re.compile(
-    r"(?:^|\s)(?:public|open|package)\s+"
-    r"(?:@[A-Za-z0-9_().\s,*\"-]+\s+)*"
-    r"(?:(?:final|nonisolated|indirect|convenience|override|static|class|mutating|nonmutating|distributed)\s+)*"
-    r"(?P<kw>struct|class|actor|protocol|enum|func|var|let|init|typealias|macro|extension)\s+"
-    r"(?P<ident>[A-Za-z0-9_`]+)"
+    r"^\s*(?:" + _MOD_OR_ATTR_TOKEN + r"\s+)*"
+    r"(?:public|open|package)\s+"
+    r"(?:" + _MOD_OR_ATTR_TOKEN + r"\s+)*"
+    r"(?:"
+    r"(?P<kw>struct|class|actor|protocol|enum|func|var|let|typealias|macro|associatedtype|extension)\s+(?P<ident>[A-Za-z0-9_`]+(?:::[A-Za-z0-9_`.]+)?)"
+    r"|(?P<kw_call>init|subscript)\s*(?P<ident_call>[?!]?(?:<[^>]*>)?\s*\()"
+    r")"
+)
+
+_SWIFTINTERFACE_EXT_RE = re.compile(
+    r"^\s*(?:" + _MOD_OR_ATTR_TOKEN + r"\s+)*(?:(?:public|open|package)\s+)?extension\s+(?P<ext_type>[A-Za-z0-9_`.:]+)"
 )
 
 
@@ -1789,101 +2101,303 @@ def parse_swiftinterface_declarations(
     scored_results: List[Tuple[int, int, Dict[str, Any]]] = []
     sym_lower = symbol_query.lower() if symbol_query else None
     avail_lower = availability_filter.lower() if availability_filter else None
+    allow_underscore = bool(symbol_query and symbol_query.startswith("_"))
+
+    current_ext_type: Optional[str] = None
+    current_ext_avail: List[str] = []
 
     i = 0
     n = len(lines)
     while i < n:
         line = lines[i]
         stripped_line = line.strip()
-        if not stripped_line.startswith("//"):
-            decl_m = _SWIFTINTERFACE_DECL_RE.search(line)
-            if decl_m:
-                kw = decl_m.group("kw")
-                ident = decl_m.group("ident").strip("`")
+        if not stripped_line or stripped_line.startswith("//"):
+            i += 1
+            continue
 
-                # Capture up to 8 preceding standalone `@available` / `@MainActor` / `///` lines
-                attr_start = i
-                while attr_start > 0 and attr_start > i - 9:
-                    prev = lines[attr_start - 1].strip()
+        # Reset top-level extension tracking on unindented closing brace
+        if line.startswith("}"):
+            current_ext_type = None
+            current_ext_avail = []
+            i += 1
+            continue
+
+        ext_m = _SWIFTINTERFACE_EXT_RE.match(line)
+        decl_m = _SWIFTINTERFACE_DECL_RE.search(line)
+
+        if ext_m and not decl_m:
+            raw_ext = ext_m.group("ext_type").replace("::", ".")
+            current_ext_type = raw_ext
+            ext_attr_start = i
+            while ext_attr_start > 0 and ext_attr_start > i - 9:
+                prev = lines[ext_attr_start - 1].strip()
+                if (
+                    prev.startswith("@")
+                    and not _SWIFTINTERFACE_DECL_RE.search(prev)
+                    and not prev.endswith("{")
+                    and not prev.endswith("}")
+                ):
+                    ext_attr_start -= 1
+                else:
+                    break
+            current_ext_avail = [
+                lines[k].rstrip()
+                for k in range(ext_attr_start, i)
+                if "@available" in lines[k]
+            ]
+            if "@available" in stripped_line:
+                for av_m in re.finditer(r"@available\((?:\"[^\"]*\"|[^)])*\)", stripped_line):
+                    current_ext_avail.append(av_m.group(0))
+            i += 1
+            continue
+
+        if decl_m:
+            kw = decl_m.group("kw") or decl_m.group("kw_call") or "func"
+            raw_ident = decl_m.group("ident") or decl_m.group("kw_call") or ""
+            ident = raw_ident.replace("::", ".").strip("`")
+            short_ident = ident.split(".")[-1]
+
+            if kw == "extension":
+                current_ext_type = ident
+
+            # Filter synthesized witness noise unless explicitly searching for underscore symbols
+            if not allow_underscore:
+                if short_ident.startswith("_") or ident == "_propertyStorageSize":
+                    i += 1
+                    continue
+                if kw == "typealias" and short_ident == "Body" and (
+                    "Swift.Never" in stripped_line or "Swift::Never" in stripped_line
+                ):
+                    i += 1
+                    continue
+                if (
+                    kw == "typealias"
+                    and short_ident == "Subject"
+                    and current_ext_type
+                    and "Message" in current_ext_type
+                ):
+                    i += 1
+                    continue
+                if not sym_lower and (
+                    (kw == "var" and short_ident in ("description", "debugDescription", "customMirror", "hashValue"))
+                    or (kw == "func" and short_ident in ("hash", "encode"))
+                ):
+                    i += 1
+                    continue
+
+            # Capture up to 8 preceding standalone `@available` / `@MainActor` / `///` lines
+            attr_start = i
+            while attr_start > 0 and attr_start > i - 9:
+                prev = lines[attr_start - 1].strip()
+                if (
+                    (prev.startswith("@") or prev.startswith("///"))
+                    and not _SWIFTINTERFACE_DECL_RE.search(prev)
+                    and not _SWIFTINTERFACE_EXT_RE.match(prev)
+                    and not prev.endswith("{")
+                    and not prev.endswith("}")
+                ):
+                    attr_start -= 1
+                else:
+                    break
+
+            # Capture signature continuation lines without bleeding into the next declaration
+            end_idx = i
+            if (
+                not stripped_line.endswith("{")
+                and not stripped_line.endswith("}")
+                and kw in ("func", "init", "subscript", "struct", "class", "actor", "protocol", "enum")
+            ):
+                while end_idx + 1 < min(n, i + 6):
+                    nxt = lines[end_idx + 1].strip()
                     if (
-                        (prev.startswith("@") or prev.startswith("///"))
-                        and not _SWIFTINTERFACE_DECL_RE.search(prev)
-                        and not prev.endswith("{")
-                        and not prev.endswith("}")
+                        not nxt
+                        or nxt.startswith("@")
+                        or nxt.startswith("///")
+                        or nxt.startswith("}")
+                        or _SWIFTINTERFACE_DECL_RE.search(nxt)
+                        or _SWIFTINTERFACE_EXT_RE.match(nxt)
                     ):
-                        attr_start -= 1
-                    else:
+                        break
+                    end_idx += 1
+                    if nxt.endswith("{") or nxt.endswith("}"):
                         break
 
-                # Capture signature continuation lines without bleeding into the next declaration
-                end_idx = i
-                if not stripped_line.endswith("{") and not stripped_line.endswith("}") and kw in ("func", "init", "struct", "class", "actor", "protocol", "enum"):
-                    while end_idx + 1 < min(n, i + 6):
-                        nxt = lines[end_idx + 1].strip()
-                        if (
-                            not nxt
-                            or nxt.startswith("@")
-                            or nxt.startswith("///")
-                            or nxt.startswith("}")
-                            or _SWIFTINTERFACE_DECL_RE.search(nxt)
-                        ):
-                            break
-                        end_idx += 1
-                        if nxt.endswith("{") or nxt.endswith("}"):
-                            break
+            block_lines = [ln.rstrip() for ln in lines[attr_start : end_idx + 1]]
+            has_own_avail = any("@available" in ln for ln in block_lines)
+            if not has_own_avail and current_ext_avail:
+                block_lines = list(current_ext_avail) + block_lines
 
-                block_lines = [ln.rstrip() for ln in lines[attr_start : end_idx + 1]]
-                block_text = "\n".join(block_lines)
-                block_lower = block_text.lower()
+            block_text = "\n".join(block_lines)
+            block_lower = block_text.lower()
+            ext_lower = current_ext_type.lower() if current_ext_type else ""
 
-                if sym_lower and sym_lower not in block_lower:
-                    i = end_idx + 1
-                    continue
-                if avail_lower and avail_lower not in block_lower:
-                    i = end_idx + 1
-                    continue
-
-                # Relevance score:
-                # 5 = exact case-sensitive match on primary type declaration (struct/class/actor/protocol/enum/macro)
-                # 4 = exact case-insensitive match on non-extension declaration
-                # 3 = exact identifier match on extension
-                # 2 = identifier prefix match
-                # 1 = substring match in signature or attributes
-                score = 1
-                if sym_lower:
-                    ident_lower = ident.lower()
-                    if ident == symbol_query and kw in ("struct", "class", "actor", "protocol", "enum", "macro", "typealias"):
-                        score = 5
-                    elif ident_lower == sym_lower and kw != "extension":
-                        score = 4
-                    elif ident_lower == sym_lower:
-                        score = 3
-                    elif ident_lower.startswith(sym_lower):
-                        score = 2
-                    elif sym_lower in line.lower():
-                        score = 1
-                    else:
-                        score = 0
-
-                entry: Dict[str, Any] = {
-                    "line": i + 1,
-                    "kind": kw,
-                    "name": ident,
-                    "declaration": block_text,
-                }
-                if source_module:
-                    entry["module"] = source_module
-                scored_results.append((score, -(i + 1), entry))
-
-                if not sym_lower and len(scored_results) >= max_results:
-                    break
+            if sym_lower and sym_lower not in block_lower and sym_lower not in ext_lower:
                 i = end_idx + 1
                 continue
+            if avail_lower and avail_lower not in block_lower:
+                i = end_idx + 1
+                continue
+
+            # Relevance score:
+            # 5 = exact case-sensitive match on primary type declaration (struct/class/actor/protocol/enum/macro)
+            # 4 = exact case-insensitive match on non-extension declaration
+            # 3 = exact identifier match on extension or enclosing extended type
+            # 2 = identifier prefix match
+            # 1 = substring match in signature or attributes
+            score = 1
+            if sym_lower:
+                ident_lower = short_ident.lower()
+                ext_short = current_ext_type.split(".")[-1].lower() if current_ext_type else ""
+                if (
+                    short_ident == symbol_query
+                    and kw in ("struct", "class", "actor", "protocol", "enum", "macro", "typealias")
+                ):
+                    score = 5
+                elif ident_lower == sym_lower and kw != "extension":
+                    score = 4
+                elif ident_lower == sym_lower or ext_short == sym_lower:
+                    score = 3
+                elif ident_lower.startswith(sym_lower):
+                    score = 2
+                elif sym_lower in line.lower():
+                    score = 1
+                else:
+                    score = 0
+
+            entry: Dict[str, Any] = {
+                "line": i + 1,
+                "kind": kw,
+                "name": ident,
+                "declaration": block_text,
+            }
+            if current_ext_type and kw != "extension":
+                entry["extended_type"] = current_ext_type
+            if source_module:
+                entry["module"] = source_module
+            scored_results.append((score, -(i + 1), entry))
+
+            if not sym_lower and len(scored_results) >= max_results:
+                break
+            i = end_idx + 1
+            continue
         i += 1
 
     if sym_lower:
         scored_results.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return [item[2] for item in scored_results[:max_results]]
+
+
+def search_xcode_guides(
+    query: Optional[str] = None,
+    category: str = "all",
+    max_results: int = 10,
+    sdk_path: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    """Search bundled Xcode 27 Agent Skills (`*.md.packaged`), `AdditionalDocumentation/*.md`, and Swift 6.4 diagnostic docs."""
+    resources = discover_xcode_knowledge_resources(sdk_path)
+    candidate_files: List[Tuple[str, pathlib.Path]] = []
+    cat_lower = category.lower()
+    if cat_lower in ("all", "xcodedocs", "xcodeskills", "skills"):
+        for f in resources["skill_files"]:
+            candidate_files.append(("XcodeSkills", f))
+    if cat_lower in ("all", "xcodedocs", "additionaldocumentation", "docs"):
+        for f in resources["additional_doc_files"]:
+            candidate_files.append(("AdditionalDocumentation", f))
+    if cat_lower in ("all", "xcodedocs", "swiftdiagnostics", "diagnostics"):
+        for f in resources["swift_diag_files"]:
+            candidate_files.append(("SwiftDiagnostics", f))
+
+    q_lower = query.lower().strip() if query else ""
+    q_tokens = [tok for tok in re.split(r"[\s._-]+", q_lower) if tok]
+    scored: List[Tuple[int, str, Dict[str, Any]]] = []
+
+    for corpus_label, fpath in candidate_files:
+        try:
+            text = fpath.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        lines = text.splitlines()
+        if not lines:
+            continue
+
+        title = fpath.name
+        for ln in lines[:15]:
+            s = ln.strip()
+            if s.startswith("# "):
+                title = s[2:].strip()
+                break
+            if s.startswith("name:"):
+                title = s.split(":", 1)[1].strip()
+
+        fname_lower = fpath.name.lower()
+        fname_norm = re.sub(r"[-_.]", " ", fname_lower)
+        title_lower = title.lower()
+        title_norm = re.sub(r"[-_.]", " ", title_lower)
+        text_lower = text.lower()
+
+        if not q_lower:
+            preview = "\n".join(lines[:18]).strip()
+            scored.append(
+                (
+                    1,
+                    fpath.name,
+                    {
+                        "corpus": corpus_label,
+                        "file": str(fpath),
+                        "title": title,
+                        "line": 1,
+                        "snippet": preview,
+                    },
+                )
+            )
+            continue
+
+        score = 0
+        if (
+            q_lower in fname_lower
+            or q_lower in fname_norm
+            or q_lower in title_lower
+            or q_lower in title_norm
+        ):
+            score += 6
+        elif q_tokens and all(tok in fname_norm or tok in title_norm for tok in q_tokens):
+            score += 5
+        if q_lower in text_lower:
+            score += 3
+        elif q_tokens and all(tok in text_lower for tok in q_tokens):
+            score += 2
+        elif q_tokens and any(tok in fname_norm for tok in q_tokens):
+            score += 1
+
+        if score == 0:
+            continue
+
+        best_line = 1
+        for idx, raw_ln in enumerate(lines):
+            ln_low = raw_ln.lower()
+            if q_lower in ln_low or (q_tokens and all(t in ln_low for t in q_tokens)):
+                best_line = idx + 1
+                break
+
+        start_idx = max(0, best_line - 3)
+        end_idx = min(len(lines), best_line + 15)
+        snippet = "\n".join(lines[start_idx:end_idx]).strip()
+        scored.append(
+            (
+                score,
+                fpath.name,
+                {
+                    "corpus": corpus_label,
+                    "file": str(fpath),
+                    "title": title,
+                    "line": best_line,
+                    "snippet": snippet,
+                },
+            )
+        )
+
+    scored.sort(key=lambda item: (-item[0], item[1]))
+    return [item[2] for item in scored[:max_results]]
 
 
 def search_sdk_interface(
@@ -1893,8 +2407,9 @@ def search_sdk_interface(
     availability_filter: Optional[str] = None,
     max_results: int = 25,
     sdk_path_override: Optional[str] = None,
+    include_guides: bool = False,
 ) -> Dict[str, Any]:
-    """Search installed Xcode `.swiftinterface` headers for `module_name` (and re-exported companion modules)."""
+    """Search installed Xcode `.swiftinterface` headers (and optionally bundled Xcode 27 skills/guides)."""
     sdk_name = "macosx" if platform == "macos" else "iphonesimulator"
     sdk_info = resolve_sdk_info(sdk_name) if not sdk_path_override else {
         "sdk": sdk_name,
@@ -1903,6 +2418,24 @@ def search_sdk_interface(
         "version": None,
     }
     sdk_path = sdk_path_override or sdk_info.get("path")
+
+    if module_name in VIRTUAL_DOC_MODULES:
+        guide_matches = search_xcode_guides(
+            query=symbol_query or availability_filter,
+            category=module_name,
+            max_results=max_results,
+            sdk_path=sdk_path,
+        )
+        return {
+            "module": module_name,
+            "platform": platform,
+            "sdk_path": sdk_path,
+            "sdk_version": sdk_info.get("version"),
+            "symbol_query": symbol_query,
+            "count": len(guide_matches),
+            "matches": guide_matches,
+        }
+
     if not sdk_path:
         return {
             "module": module_name,
@@ -1922,9 +2455,12 @@ def search_sdk_interface(
             "matches": [],
         }
 
+    per_file_matches: List[List[Dict[str, Any]]] = []
     all_matches: List[Dict[str, Any]] = []
     for target_file in interface_files:
         mod_label = target_file.parent.name.replace(".swiftmodule", "")
+        if mod_label == "ManifestAPI":
+            mod_label = target_file.stem
         text = target_file.read_text(encoding="utf-8", errors="replace")
         file_matches = parse_swiftinterface_declarations(
             text,
@@ -1933,29 +2469,50 @@ def search_sdk_interface(
             max_results=max_results,
             source_module=mod_label,
         )
-        all_matches.extend(file_matches)
+        if file_matches:
+            per_file_matches.append(file_matches)
+            all_matches.extend(file_matches)
 
     if symbol_query:
         sym_l = symbol_query.lower()
 
         def _rank(m: Dict[str, Any]) -> Tuple[int, int]:
-            raw_nm = str(m.get("name", ""))
+            raw_nm = str(m.get("name", "")).split(".")[-1]
             nm = raw_nm.lower()
             kw = str(m.get("kind", ""))
+            ext_nm = str(m.get("extended_type", "")).split(".")[-1].lower()
             if raw_nm == symbol_query and kw in ("struct", "class", "actor", "protocol", "enum", "macro", "typealias"):
                 return (5, -int(m.get("line", 0)))
             if nm == sym_l and kw != "extension":
                 return (4, -int(m.get("line", 0)))
-            if nm == sym_l:
+            if nm == sym_l or ext_nm == sym_l:
                 return (3, -int(m.get("line", 0)))
             if nm.startswith(sym_l):
                 return (2, -int(m.get("line", 0)))
             return (1, -int(m.get("line", 0)))
 
         all_matches.sort(key=_rank, reverse=True)
+        trimmed = all_matches[:max_results]
+    elif len(per_file_matches) > 1:
+        # Interleave matches across companion modules so none is starved when symbol_query is omitted
+        interleaved: List[Dict[str, Any]] = []
+        idx = 0
+        while len(interleaved) < max_results:
+            added = False
+            for bucket in per_file_matches:
+                if idx < len(bucket):
+                    interleaved.append(bucket[idx])
+                    added = True
+                    if len(interleaved) >= max_results:
+                        break
+            if not added:
+                break
+            idx += 1
+        trimmed = interleaved
+    else:
+        trimmed = all_matches[:max_results]
 
-    trimmed = all_matches[:max_results]
-    return {
+    result: Dict[str, Any] = {
         "module": module_name,
         "platform": platform,
         "sdk_path": sdk_path,
@@ -1967,6 +2524,14 @@ def search_sdk_interface(
         "count": len(trimmed),
         "matches": trimmed,
     }
+    if include_guides:
+        result["guide_matches"] = search_xcode_guides(
+            query=symbol_query or module_name,
+            category="all",
+            max_results=5,
+            sdk_path=sdk_path,
+        )
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -2133,7 +2698,8 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
         "name": "swift_sdk_interface",
         "description": (
             "Search the installed Xcode `MacOSX` or `iPhoneSimulator` SDK `.swiftinterface` files "
-            "(e.g. `SwiftUI`, `AppKit`, `UIKit`, `Foundation`, `Observation`, `FoundationModels`, `Metal`) "
+            "(e.g. `SwiftUI`, `AppKit`, `UIKit`, `Foundation`, `Observation`, `FoundationModels`, `CoreAI`, `SwiftData`, `Testing`, `Evaluations`, `Metal`) "
+            "or bundled Xcode 27 Agent Skills & Guides (`XcodeSkills`, `XcodeDocs`, `SwiftDiagnostics`) "
             "for exact macOS 27.2+ and iOS 27.2+ API signatures, `@available` attributes, and `@MainActor`/`Sendable` annotations."
         ),
         "inputSchema": {
@@ -2141,7 +2707,10 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
             "properties": {
                 "module": {
                     "type": "string",
-                    "description": "Framework or module name (e.g., 'SwiftUI', 'AppKit', 'UIKit', 'Observation').",
+                    "description": (
+                        "Framework or module name (e.g., 'SwiftUI', 'AppKit', 'UIKit', 'Observation', 'FoundationModels', 'CoreAI', 'SwiftData', 'Testing') "
+                        "or virtual doc corpus ('XcodeSkills', 'XcodeDocs', 'SwiftDiagnostics')."
+                    ),
                 },
                 "symbol": {
                     "type": "string",
@@ -2155,12 +2724,17 @@ MCP_TOOLS_SCHEMA: List[Dict[str, Any]] = [
                 },
                 "availability_filter": {
                     "type": "string",
-                    "description": "Optional `@available` substring filter (e.g. '27.0' or '27.2').",
+                    "description": "Optional `@available` substring filter (e.g. '27.0', '27.2', or 'anyAppleOS').",
                 },
                 "max_results": {
                     "type": "integer",
                     "default": 25,
                     "description": "Maximum declarations to return (default 25).",
+                },
+                "include_guides": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "When true, also searches Xcode 27's bundled Agent Skills (`*.md.packaged`) and `AdditionalDocumentation` guides.",
                 },
             },
             "required": ["module"],
@@ -2231,6 +2805,7 @@ def dispatch_mcp_tool_call(
             platform=str(arguments.get("platform", "macos")),
             availability_filter=arguments.get("availability_filter"),
             max_results=int(arguments.get("max_results", 25)),
+            include_guides=bool(arguments.get("include_guides", False)),
         )
     raise ValueError(f"Unknown tool: {name}")
 
@@ -2434,6 +3009,7 @@ def _run_self_tests() -> int:
     check("arm64-apple-macosx27.2" in macos_cmd, "macOS 27.2 target triple")
     check("arm64-apple-ios27.2-simulator" in ios_cmd, "iOS 27.2 simulator target triple")
     check(DEFAULT_MODULE_CACHE_DIR in macos_cmd, "-module-cache-path included for sandbox safety")
+    check("-disable-sandbox" in macos_cmd, "-disable-sandbox included for Swift 6.4 macro expansion in Seatbelt")
 
     sample_stderr = (
         "/tmp/App.swift:14:9: error: 'navigationBarTitleDisplayMode' is unavailable in macOS\n"
@@ -2446,22 +3022,29 @@ def _run_self_tests() -> int:
         "parse_swiftc_stderr line and note attachment",
     )
 
-    # 4. `.swiftinterface` Parser & Relevance Ranking
+    # 4. `.swiftinterface` Parser (Swift 6.4 `::` Module Selectors, Extensions & Noise Filtering)
     mock_swiftinterface = "\n".join(
         [
             "// swift-interface-format-version: 1.0",
             "@available(macOS 15.0, *)",
             "nonisolated public func glassToolbarEffectColumnWidth(_ w: Double) -> some View",
             "@available(macOS 27.2, iOS 27.2, *)",
-            "@MainActor @preconcurrency public struct GlassToolbarEffect : SwiftUI.ViewModifier {",
-            "  public init(prominence: SwiftUI.GlassProminence = .regular)",
+            "@_Concurrency::MainActor @preconcurrency public struct GlassToolbarEffect : SwiftUI::ViewModifier {",
+            "  @_Concurrency::MainActor @preconcurrency public static var _propertyStorageSize: Swift::Int { get }",
+            "  public typealias Body = Swift::Never",
+            "  public init(prominence: SwiftUI::GlassProminence = .regular)",
+            "  public subscript(index: Swift::Int) -> Swift::Int { get }",
+            "}",
+            "@available(anyAppleOS 27.0, *)",
+            "extension Observation::ObservationTracking {",
+            "  @safe nonisolated(nonsending) public func withContinuousObservation() -> Swift::Void",
             "}",
         ]
     )
     matches_27 = parse_swiftinterface_declarations(
         mock_swiftinterface, symbol_query="GlassToolbarEffect", availability_filter="27.2"
     )
-    check(len(matches_27) == 1, ".swiftinterface 27.2 declaration match")
+    check(len(matches_27) == 1, ".swiftinterface 27.2 declaration match with :: module selector")
     check(
         "@available(macOS 27.2, iOS 27.2, *)" in matches_27[0]["declaration"],
         ".swiftinterface preserves preceding @available attribute",
@@ -2473,8 +3056,27 @@ def _run_self_tests() -> int:
         ranked_matches[0]["name"] == "GlassToolbarEffect",
         ".swiftinterface ranks exact type match above substring func match",
     )
+    ext_inherited = parse_swiftinterface_declarations(
+        mock_swiftinterface,
+        symbol_query="withContinuousObservation",
+        availability_filter="anyAppleOS 27.0",
+    )
+    check(
+        len(ext_inherited) == 1 and ext_inherited[0].get("extended_type") == "Observation.ObservationTracking",
+        ".swiftinterface inherits @available(anyAppleOS 27.0, *) and extended_type from enclosing extension",
+    )
+    all_parsed = parse_swiftinterface_declarations(mock_swiftinterface, max_results=20)
+    parsed_names = [m["name"] for m in all_parsed]
+    check(
+        "_propertyStorageSize" not in parsed_names and "Body" not in parsed_names,
+        ".swiftinterface filters _propertyStorageSize and Never Body witness noise",
+    )
+    check(
+        "init" in parsed_names and "subscript" in parsed_names,
+        ".swiftinterface matches public init(...) and public subscript(...)",
+    )
 
-    # 5. End-to-End Mock `sourcekit-lsp` Subprocess + MCP Stdio Round-Trip
+    # 5. End-to-End Mock `sourcekit-lsp` Subprocess + MCP Stdio Round-Trip + Per-Target Package.swift Flags
     mock_lsp_script = """
 import json, sys
 
@@ -2545,7 +3147,38 @@ while True:
 """
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = pathlib.Path(tmpdir)
-        (tmp_path / "Package.swift").write_text("// swift-tools-version: 6.0\n", encoding="utf-8")
+        (tmp_path / "Package.swift").write_text(
+            "// swift-tools-version: 6.4\n"
+            "import PackageDescription\n"
+            "let package = Package(\n"
+            '    name: "Demo",\n'
+            "    targets: [\n"
+            '        .executableTarget(name: "AppUI", swiftSettings: [.defaultIsolation(MainActor.self), .strictMemorySafety()]),\n'
+            '        .target(name: "ComputeCore", swiftSettings: [.strictMemorySafety()])\n'
+            "    ]\n"
+            ")\n",
+            encoding="utf-8",
+        )
+        ui_dir = tmp_path / "Sources" / "AppUI"
+        core_dir = tmp_path / "Sources" / "ComputeCore"
+        ui_dir.mkdir(parents=True, exist_ok=True)
+        core_dir.mkdir(parents=True, exist_ok=True)
+        ui_file = ui_dir / "View.swift"
+        core_file = core_dir / "Engine.swift"
+        ui_file.write_text(sample_swift, encoding="utf-8")
+        core_file.write_text("public struct Engine {}\n", encoding="utf-8")
+
+        ui_flags = extract_package_swift_flags(tmp_path, source_file=ui_file)
+        core_flags = extract_package_swift_flags(tmp_path, source_file=core_file)
+        check(
+            "-default-isolation" in ui_flags and "MainActor" in ui_flags and "-strict-memory-safety" in ui_flags,
+            "extract_package_swift_flags extracts MainActor defaultIsolation for UI target",
+        )
+        check(
+            "-default-isolation" not in core_flags and "-strict-memory-safety" in core_flags,
+            "extract_package_swift_flags omits MainActor defaultIsolation for nonisolated Compute target",
+        )
+
         swift_file = tmp_path / "ContentView.swift"
         swift_file.write_text(sample_swift, encoding="utf-8")
         mock_srv = tmp_path / "mock_lsp.py"
@@ -2643,7 +3276,7 @@ while True:
         json.dumps(
             {
                 "status": "ok",
-                "self_tests_passed": 19,
+                "self_tests_passed": 25,
                 "server": SERVER_NAME,
                 "version": SERVER_VERSION,
             },
@@ -2710,12 +3343,13 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p_sym.add_argument("--query", default=None, help="Symbol name filter or workspace query.")
     p_sym.add_argument("--workspace", default=None)
 
-    p_sdk = sub.add_parser("sdk", help="Search Xcode SDK .swiftinterface declarations (macOS/iOS 27.2+).")
-    p_sdk.add_argument("module", help="Module/framework name (e.g. SwiftUI, AppKit, UIKit, Observation).")
+    p_sdk = sub.add_parser("sdk", help="Search Xcode SDK .swiftinterface declarations and bundled Xcode 27 guides.")
+    p_sdk.add_argument("module", help="Module/framework name (e.g. SwiftUI, AppKit, CoreAI, XcodeSkills, XcodeDocs).")
     p_sdk.add_argument("--symbol", default=None, help="Symbol or modifier substring.")
     p_sdk.add_argument("--platform", choices=["macos", "ios"], default="macos")
-    p_sdk.add_argument("--available", default=None, help="Availability substring filter (e.g. 27.2).")
+    p_sdk.add_argument("--available", default=None, help="Availability substring filter (e.g. 27.0, 27.2, anyAppleOS).")
     p_sdk.add_argument("--max-results", type=int, default=25)
+    p_sdk.add_argument("--guides", action="store_true", help="Also search bundled Xcode 27 Agent Skills and AdditionalDocumentation.")
 
     return parser
 
@@ -2792,6 +3426,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                 platform=args.platform,
                 availability_filter=args.available,
                 max_results=args.max_results,
+                include_guides=args.guides,
             )
         else:
             parser.print_help()
