@@ -57,12 +57,13 @@ Pick prompt names, widths, and limits from this object, never from an example.
   (`base64` with `data`, or `url` with an http(s) `url`). A video's
   soundtrack needs its own `audio` block.
 - **Windowed video embeddings (MLX only; check `engine.embedding.video_windows`; gguf answers 400):**
-  To search inside a long video, add `"windows": {}` (or `{"seconds": N, "sampling": "content" | "fps"}`)
-  to its video block. `seconds` omitted uses and caps at `video_windows.max_seconds` (32 s on
-  EmbeddingGemma 2). `sampling` defaults to `"content"` (evenly spaced anchors plus the frames least
-  like them from 4 fps candidates, catching brief moments a fixed 1 fps grid steps over); `"fps"` takes
-  frames at the model's own rate (decoding about a quarter as many frames). A windowed item must hold
-  **only** that video block (422 otherwise); `windows` on a non-video block is a 422.
+  To search inside a long video, add `"windows": {}` (or `{"seconds": N, "sampling": "fps" | "content"}`)
+  to its video block. `seconds` omitted defaults to `video_windows.max_seconds` (32 s on
+  EmbeddingGemma 2); passing `seconds > video_windows.max_seconds` is a 400. `sampling` defaults to
+  `"fps"` (frames at the model's own rate; `video_windows.default_sampling`); pass `"content"` to decode
+  4 fps candidates and keep evenly spaced anchors plus the frames least like them within the window's
+  duration-scaled frame budget, catching brief moments a fixed 1 fps grid steps over. A windowed item
+  must hold **only** that video block (422 otherwise); `windows` on a non-video block is a 422.
 - Omit `prompt_name` for no prefix; a named one is applied once, before the
   content.
 - **The body is strict.** Any field beyond `model`, `input` and `dimensions`
@@ -86,8 +87,8 @@ interchangeable. The server stores neither inputs nor vectors.
 
 | Code | Condition |
 |---|---|
-| 404 | Unknown embedding model (the generation route says 400 for this) |
-| 400 | A modality, width, prompt name or `windows` (on gguf) the model does not offer; undecodable media; input over the context |
+| 404 | Unknown model id (the generation route says 400 for this) |
+| 400 | A chat model sent here (`Model does not support embeddings`); a modality, width, prompt name or `windows` (on gguf, or `seconds > max_seconds`) the model does not offer; undecodable media; input over the context |
 | 409 | Cancelled cooperatively |
 | 422 | Schema violation, including any extra field, `windows` on a non-video block, or a windowed video item with other blocks |
 | 503 | Queue full: the same backpressure envelope and `Retry-After` as generation |

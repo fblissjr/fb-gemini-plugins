@@ -164,7 +164,9 @@ the range spans.
   (`windows` on a video block and `engine.embedding.video_windows`). **Before
   2.0.236** video blocks were capped at 32 MiB (64 MiB request media total)
   instead of 256 MiB. **Before 2.0.238** `engine.embedding` carried no
-  `limits` object.
+  `limits` object. **On 2.0.233 through 2.0.242** `windows.sampling` defaulted
+  to `"content"` (4 fps candidate decode) instead of `"fps"`, and `"content"`
+  did not scale its frame budget down on windows shorter than `max_frames / fps`.
 
 ## Access
 

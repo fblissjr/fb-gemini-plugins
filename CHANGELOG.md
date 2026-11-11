@@ -4,6 +4,14 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.35.1] - 2026-11-11
+
+### Changed
+
+- **`heylook-provider` (`v0.23.3` $\rightarrow$ `v0.23.4`, verified against `heylookitsanllm 2.0.244`)**:
+  - Updated [`embeddings.md`](skills/heylook-provider/skills/heylook-provider/references/embeddings.md) and [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md): flipped `windows.sampling` default on `/v1/embeddings` video blocks from `"content"` to `"fps"` (`v2.0.243`, matching `engine.embedding.video_windows.default_sampling`), noted duration-scaled frame budgets for `"content"` sampling, clarified that `windows.seconds > video_windows.max_seconds` and chat models sent to `/v1/embeddings` answer `400` (while unknown model IDs answer `404`), and recorded the `2.0.233`–`2.0.242` version boundary.
+  - Updated [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md): documented MLX `"built-in MTP head"` speculative drafters alongside sibling drafter folders, and noted `null` `thinking`/`decoding`/`speculative` slots on embedding `/v1/models` rows.
+
 ## [0.35.0] - 2026-11-09
 
 ### Changed

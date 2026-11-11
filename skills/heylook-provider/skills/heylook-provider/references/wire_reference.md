@@ -339,7 +339,7 @@ not apply is `null` in both modes.
 | `thinking_duration_ms`, `content_duration_ms` | Time from the first emitted segment of each kind to its end, in both modes. `0` is a real value: under one millisecond, as when a short answer is released in one piece |
 | `peak_memory_gb` | MLX only: generation on gguf runs in a subprocess that does not report it |
 | `cache` | `{prompt_tokens, cached_tokens, processed_tokens, outcome, cause, reason}`; `outcome` is `reused`, `miss` or `ineligible` |
-| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a drafter folder beside the model) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. An MLX request with a penalty, logit bias or structured output runs undrafted and reports none; a thinking budget drafts (2.0.223) |
+| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a drafter folder beside the model, or a `"built-in MTP head"` in the checkpoint's own weights) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. An MLX request with a penalty, logit bias or structured output runs undrafted and reports none; a thinking budget drafts (2.0.223) |
 
 Time to first token is not returned in either mode. On a stream, time the
 first `content_block_delta` yourself; non-streaming it is unobservable.
@@ -485,9 +485,10 @@ An embedding model's row lists `embedding` plus its input modalities (`text`,
 
 The `engine` object has one shape on every engine and answers for unloaded
 models too. `runtime`, `context`, `settings`, `cache`, `decoding` and
-`speculative` hold **facts**, `{value, provenance, source}`: read `.value`
+`speculative` hold **facts**, `{value, provenance, source}` (`decoding` and
+`speculative` are `null` on embedding rows): read `.value`
 through one helper rather than at each call site. `thinking` is a
-plain object, read directly (`client_recipes.md`, Thinking control, gives the
+plain object (`null` on embedding rows or when there is no template to judge), read directly (`client_recipes.md`, Thinking control, gives the
 `thinking` shape). What a client gates on:
 
 - `engine.context.length.value`: the model's window (null where the files do
