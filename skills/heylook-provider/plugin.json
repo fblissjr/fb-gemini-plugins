@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "heylook-provider",
   "displayName": "heylook Local LLM Provider",
-  "version": "0.24.0",
-  "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: /v1/messages wire, runtime capability discovery via probe.py, system prompts vs presets vs sampler cascade, multi-turn prompt caching, /v1/embeddings, client-side image resize, and porting off the removed OpenAI route.",
+  "version": "0.25.0",
+  "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: /v1/messages wire, runtime capability discovery via probe.py, opt-in x-api-key/Bearer access gate & always-on Origin/Sec-Fetch-Site guards, system prompts vs presets vs sampler cascade, multi-turn prompt caching, /v1/embeddings, client-side image resize, and porting off the removed OpenAI route.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"

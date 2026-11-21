@@ -53,6 +53,13 @@ def _embeddings_ns() -> dict:
     return ns
 
 
+@lru_cache(maxsize=1)
+def _streaming_ns() -> dict:
+    ns: dict = {}
+    exec(compile(_block_with("def stream_message"), "client_recipes.md:streaming", "exec"), ns)
+    return ns
+
+
 class TestPresetExpansion:
     def test_override_box_leaves_existing_system_prompt_when_preset_prompt_empty(self):
         apply_preset = _preset_ns()["apply_preset_to_request"]
@@ -221,3 +228,41 @@ def test_url_recipes_percent_encode_model_id():
     load_block = _block_with("/load")
     assert "quote(model" in image_plan_block
     assert "quote(model" in load_block
+
+
+class TestStreamingAuthAndErrorHandling:
+    def test_auth_headers_resolves_explicit_then_env_then_empty(self, monkeypatch):
+        auth_headers = _streaming_ns()["_auth_headers"]
+        monkeypatch.delenv("HEYLOOK_API_KEY", raising=False)
+        assert auth_headers() == {}
+
+        monkeypatch.setenv("HEYLOOK_API_KEY", "env-key")
+        assert auth_headers() == {"x-api-key": "env-key"}
+        assert auth_headers("explicit-key") == {"x-api-key": "explicit-key"}
+
+    def test_http_error_distinguishes_503_overloaded_from_auth_misconfigured(self):
+        import httpx
+
+        ns = _streaming_ns()
+        http_error = ns["_http_error"]
+        overloaded_cls = ns["Overloaded"]
+
+        overloaded_res = httpx.Response(
+            503,
+            headers={"Retry-After": "4"},
+            json={"error": {"code": "model_overloaded", "message": "busy"}},
+        )
+        err_busy = http_error(overloaded_res)
+        assert isinstance(err_busy, overloaded_cls)
+        assert err_busy.retry_after == 4.0
+
+        misconf_res = httpx.Response(
+            503,
+            json={
+                "detail": "Key file has mode 0644; run chmod 600",
+                "error": {"code": "auth_misconfigured", "message": "Key file has mode 0644"},
+            },
+        )
+        err_misconf = http_error(misconf_res)
+        assert not isinstance(err_misconf, overloaded_cls)
+        assert "0644" in str(err_misconf)

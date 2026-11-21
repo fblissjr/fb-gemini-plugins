@@ -1,8 +1,8 @@
 ---
 name: heylook-provider
-description: Wire an application to heylook (heylookitsanllm), a local multimodal LLM server on Apple Silicon serving MLX and gguf models over an Anthropic Messages-conformant /v1/messages endpoint. Use when adding heylook as a provider alongside Gemini, OpenAI or Anthropic, choosing between direct /v1/messages, presets and the conversation store, tuning system prompts, sampler cascades or prompt caching (thinking replay, multi-image turns), debugging 400/403/404/409/422/503 errors, parsing SSE streams, cancelling requests or ending thinking early, computing multimodal embeddings, sending images or audio, or porting off the removed OpenAI route. Covers install-local model discovery, capability gating, Anthropic SDK vs raw HTTP tradeoffs, and client-side image resize. Not for hosted Gemini APIs or working inside heylook itself.
+description: Wire an application to heylook (heylookitsanllm), a local multimodal LLM server on Apple Silicon serving MLX and gguf models over an Anthropic Messages-conformant /v1/messages endpoint. Use when adding heylook as a provider alongside Gemini, OpenAI or Anthropic, choosing between direct /v1/messages, presets and the conversation store, tuning system prompts, sampler cascades or prompt caching (thinking replay, multi-image turns), configuring x-api-key or Bearer auth, debugging 400/401/403/404/409/422/503 errors, parsing SSE streams, cancelling requests or ending thinking early, computing multimodal embeddings, sending images or audio, or porting off the removed OpenAI route. Covers install-local model discovery, capability gating, Anthropic SDK vs raw HTTP tradeoffs, and client-side image resize. Not for hosted Gemini APIs or working inside heylook itself.
 metadata:
-  verified_against: "heylookitsanllm 2.0.261"
+  verified_against: "heylookitsanllm 2.0.264"
 ---
 
 # heylook as an inference provider
@@ -21,8 +21,8 @@ Each line points to the section that states the rule; never weaken a pointer int
 - Unset sampler fields omitted for cascade defaults; presets client-expanded with store-to-wire renames; conversation store distinguished from `/v1/messages`. → `<parameters>`
 - Prompt caching kept warm via top-level `system`, replayed assistant `thinking` blocks, stable `reasoning_effort`, and single-turn multi-image sets. → `<caching>`
 - Images downscaled client-side before the request is built. → `<image_resize>`
-- 503 retried with backoff; in-band `error` events end `/v1/messages` streams and never render as assistant output. → `<status_codes>`
-- Every request carries a **fresh** `X-Request-ID`, and non-streaming calls explicitly `DELETE` it on cancel. → `<operations>`
+- `401` (`auth_required`), `403` (Host check or `csrf_rejected`), and `503` (`model_overloaded` backoff vs `auth_misconfigured` hard error) handled distinctly; in-band `error` events end `/v1/messages` streams and never render as assistant output. → `<status_codes>`
+- Optional access key (`x-api-key` or `Authorization: Bearer`), always-on `Origin`/`Sec-Fetch-Site` rules, fresh per-request `X-Request-ID`, and explicit `DELETE` on non-streaming cancel honoured. → `<operations>`
 - Telemetry null-checked, with `generation_duration_ms` as the throughput denominator. → `<operations>`
 </done>
 
@@ -32,12 +32,12 @@ Model ids are **install-local**. The registry is override-only: any model under 
 Query the live server before writing client code; if it is down, ask the user to start it rather than guessing ids:
 
 ```bash
-curl -s localhost:8000/v1/models        # served roster + engine facts + sampler defaults
+curl -s localhost:8000/v1/models        # add -H "x-api-key: $HEYLOOK_API_KEY" when gated
 curl -s localhost:8000/v1/capabilities  # server version, Metal device, optimizations
 python3 "${CLAUDE_SKILL_DIR:-skills/heylook-provider/skills/heylook-provider}/scripts/probe.py" --base http://localhost:8000 --need vision
 ```
 
-`probe.py` exits `0` when matched, `2` when no model meets `--need` (including an empty roster), and `1` when unreadable (401 = proxy in front; 403 = heylook Host check).
+`probe.py` automatically sends `--api-key`, `HEYLOOK_API_KEY`, or a mode-`0600` `<HOME>/.heylook/api_key` (`$HEYLOOK_API_KEY_FILE`). It exits `0` when matched, `2` when no model meets `--need` (including an empty roster), and `1` when unreadable (`401` = access gate or proxy requires a key; `403` = heylook Host check; `503 auth_misconfigured` = bad key-file permissions).
 
 **Gate features on `capabilities`, not `modalities`.** Filter chat selectors on `chat`: embedding models advertise `embedding` and input modalities with no `chat` (sending `/v1/messages` to one is a 400; use `POST /v1/embeddings`, `references/embeddings.md`). MLX strips audio towers at load, so MLX never advertises `audio` (sending audio is a 400; gguf serves it with a projector).
 
@@ -65,7 +65,7 @@ Choose your integration surface and parameter spellings deliberately:
 1. **4-layer sampler cascade (omit what you have no opinion on).** When `/v1/messages` omits a sampler knob, heylook resolves: `GLOBAL_SAMPLER_FLOOR` (`temperature: 1.0`, `top_p: 0.95`, `max_tokens: 16384`, penalties/top_k off) -> **vendor metadata** (`generation_config.json` on MLX, `general.sampling.*` on GGUF) -> model `heylook.toml` -> request. Inspect resolved values per model via `sampler_defaults` and `sampler_sources` on `/v1/models`. Unlike Anthropic, `max_tokens` is optional: hardcoding a client default overrides every model's vendor/configured floor.
 2. **Presets are strictly client-expanded (`references/routes.md`, `references/client_recipes.md`).** Sending `preset` or `sampler` on `/v1/messages` is a 422. Follow the **override-box rule**: if a preset's `system_prompt` is `null` or `""`, leave the caller's or conversation's system prompt untouched rather than blanking it. Always rename `enable_thinking` / `thinking_budget_tokens` to `thinking` and drop unoffered `reasoning_effort` before posting to `/v1/messages`.
 3. **Conversation Store (`/v1/conversations/{id}/generate`).** Server builds the prompt, persists turns, and runs generations in a detached task that **outlives client disconnect** (`GET` reports `generating: true|false`; stop only via `DELETE /v1/conversations/{id}/generate`). Only one run per conversation (`409 generation_in_progress`).
-4. **Anthropic SDK vs. raw HTTP (`httpx`/`fetch`).** With the Anthropic SDK, set `base_url` to the origin (`http://localhost:8000`, no `/v1`) and pass any `api_key`. Tradeoffs: the SDK forces `max_tokens` (overriding the cascade), requires `extra_body` for extensions (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`), and drops `heylook_progress` / `message_stop.performance`. Use raw HTTP when you want full cascade semantics, telemetry, and cancellation control.
+4. **Anthropic SDK vs. raw HTTP (`httpx`/`fetch`).** With the Anthropic SDK, set `base_url` to the origin (`http://localhost:8000`, no `/v1`) and pass `api_key` (the real key when the access gate is on, or any placeholder when off; `auth_token` also works via `Authorization: Bearer`). Tradeoffs: the SDK forces `max_tokens` (overriding the cascade), requires `extra_body` for extensions (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`), and drops `heylook_progress` / `message_stop.performance`. Use raw HTTP when you want full cascade semantics, telemetry, and cancellation control.
 </parameters>
 
 <wire>
@@ -103,19 +103,20 @@ Both engines reuse KV prefixes automatically across turns and requests (MLX via 
 | Code | Meaning | Response |
 |---|---|---|
 | 400 | Pick a different model or input | No `model`, unknown/disabled id (ids in `detail`), or model refusal (unoffered capability/depth, over-long prompt, harmony budget/schema, audio on MLX, non-user image on MLX) |
-| 403 | Host check | Unknown `Host` header (DNS rebinding guard); `detail` names `allowed_hosts` fix |
+| 401 | Authentication required | `{"error":{"code":"auth_required"}}` (+ `WWW-Authenticate: Bearer`) when the server access gate is on and `x-api-key` / `Authorization: Bearer` / session cookie is missing or invalid; or `X-Heylook-Admin-Token` missing on admin routes |
+| 403 | Host or Origin/Sec-Fetch-Site check | Unknown `Host` header (`allowed_hosts` fix in `detail`), or state-changing request (`POST`/`PUT`/`PATCH`/`DELETE`) with mismatched `Origin` or `Sec-Fetch-Site` (`cross-site`/`same-site`) (`{"error":{"code":"csrf_rejected"}}`) |
 | 409 | Conflict / not resident | Conversation busy (`generation_in_progress`), `/image-plan` or `/prompt` on unloaded model, unload while generating, or cancelled embedding |
 | 422 | Malformed body | Refused/misspelt/unbuilt field, empty media payload, out-of-range value, or extra field on strict `/v1/embeddings` |
 | 500 | Broken model or decode error | Load failure or gguf decode error |
-| 503 | Backpressure, retry | `{"error":{"code":"model_overloaded"}}` plus `Retry-After` |
+| 503 | Backpressure (retry) or key misconfigured | `{"error":{"code":"model_overloaded"}}` + `Retry-After` (retry with backoff), **or** `{"error":{"code":"auth_misconfigured"}}` (key file has group/other bits or is empty — fail fast, do not retry) |
 
-503 is normal queue backpressure on a single-user server: retry with backoff on `Retry-After` (floor >= 1s). On a stream after headers flush (HTTP 200), late refusals arrive as `event: error` (`invalid_request_error` -> 400 path; `api_error` -> 500 path), ending `/v1/messages` streams immediately. Ignore `ping` and unrecognized events.
+503 `model_overloaded` is normal queue backpressure on a single-user server: retry with backoff on `Retry-After` (floor >= 1s), after checking `error.code != "auth_misconfigured"`. On a stream after headers flush (HTTP 200), late refusals arrive as `event: error` (`invalid_request_error` -> 400 path; `api_error` -> 500 path), ending `/v1/messages` streams immediately. Ignore `ping` and unrecognized events.
 </status_codes>
 
 <operations>
 - **Cold loads are silent on the wire.** Startup loads nothing, and loading happens before HTTP headers are written (no `message_start`, no `ping`). Use `POST /v1/models/{id}/load` (percent-encode `{id}`) to turn loads into a labellable request; add `?warm=true` only on startup/model-switch (pays 1-token Metal JIT behind the generation gate).
 - **One model is resident by default (LRU), and one engine family at a time**: switching MLX <-> gguf evicts the other. Batch work by model.
-- **No inference API key, no CORS, strict Host check.** Only admin routes (`/v1/admin/*`, `/v1/cache/clear`, `/v1/data/clear`) take optional `X-Heylook-Admin-Token`. IP/localhost always passes Host check; LAN DNS hostnames require `allowed_hosts` in `heylook.toml`. Browser apps must be same-origin or proxied.
+- **Opt-in server-wide access gate + always-on browser guards.** Setting `HEYLOOK_API_KEY` or creating a mode-`0600` `<HOME>/.heylook/api_key` (`$HEYLOOK_API_KEY_FILE`, never in `heylook.toml`) gates **every** route, static asset, and SSE stream with zero source-IP exemptions (only `GET/HEAD /health` -> `{"status":"ok"}` and `/login` assets are unauthenticated). Clients send `x-api-key: <key>`, `Authorization: Bearer <key>`, or sign in once at `/login` (`heylook_session` cookie; `POST /logout` revokes). Independently of any key, every response carries `Content-Security-Policy: frame-ancestors 'self'` (no CORS), `HostCheckMiddleware` enforces `allowed_hosts`, and state-changing requests (`POST`/`PUT`/`PATCH`/`DELETE`) with mismatched `Origin` or `Sec-Fetch-Site` (`cross-site`/`same-site`) answer `403 csrf_rejected` (`tailscale serve` requires its `.ts.net` name in `allowed_hosts`; non-browser HTTP clients omit both headers and pass). `HEYLOOK_ADMIN_TOKEN` (`X-Heylook-Admin-Token`) is an optional second factor for headless admin callers only — the web UI never sends it.
 - **Send a fresh `X-Request-ID` per request** (UUID matches `[A-Za-z0-9._:-]{1,128}`). Reused ids cancel every request sharing them! Track it for `DELETE /v1/requests/{request_id}` (essential for non-streaming calls since hanging up does not stop them; cancelled runs return `stop_reason: "max_tokens"`).
 - **End thinking early with the same id**: `POST /v1/requests/{request_id}/reasoning-end` closes the open `thinking` block at the next token and continues to the reply (`200` = signalled, not yet closed). Use `DELETE`/`POST` under `/v1/conversations/{id}/generate` for conversation runs.
 - **Telemetry is always on and optional per field.** Null-check `performance` (absent in streams vs `null` non-streaming) and every sub-field. Throughput denominator is `generation_duration_ms` (excludes queue wait and load); TTFT is never returned (time the first delta yourself).
@@ -124,13 +125,13 @@ Both engines reuse KV prefixes automatically across turns and requests (MLX via 
 <references>
 | File | Holds | Load when |
 |---|---|---|
-| `references/wire_reference.md` | Every `/v1/messages` field, block, cascade, caching, stream event, error, and `/v1/models` `engine` row | Writing or debugging a request |
+| `references/wire_reference.md` | Every `/v1/messages` field, block, cascade, caching, stream event, error, Access gate, and `/v1/models` `engine` row | Writing or debugging a request |
 | `references/older_servers.md` | Version boundaries by topic | Target server predates `metadata.verified_against` |
 | `references/openai_wire.md` | Porting off removed `/v1/chat/completions` | Migrating an OpenAI-SDK client |
 | `references/embeddings.md` | `POST /v1/embeddings`: multimodal inputs, `limits`, `video_windows` (`"fps"` default vs `"content"`) | Computing embeddings |
-| `references/routes.md` | Surface comparison matrix, conversation store, presets, and admin routes | Using presets, conversation store, or admin endpoints |
+| `references/routes.md` | Surface comparison matrix, `/health` & `/login`, conversation store, presets, and admin routes | Using presets, conversation store, or admin endpoints |
 | `references/gemini_migration.md` | Field mapping and structural mismatches vs Gemini `generateContent` | Adding heylook beside Gemini |
-| `references/client_recipes.md` | Streaming clients, Anthropic SDK setup, preset expansion, embeddings batching, image resize | Writing client code |
+| `references/client_recipes.md` | Auth-ready streaming clients, Anthropic SDK setup, preset expansion, embeddings batching, image resize | Writing client code |
 | `scripts/probe.py` | Capability matrix from a live server (`<HOME>/.gemini/config/plugins/heylook-provider/skills/heylook-provider/scripts/probe.py` when installed globally) | Discovery |
 
 Authoritative beyond all of these: the running server's `/openapi.json`, then `docs/api_integration.md` in `heylookitsanllm`.

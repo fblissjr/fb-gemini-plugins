@@ -53,6 +53,12 @@ sys.modules["heylook_probe"] = probe
 _spec.loader.exec_module(probe)
 
 
+@pytest.fixture(autouse=True)
+def _isolate_key_env(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("HEYLOOK_API_KEY", raising=False)
+    monkeypatch.setenv("HEYLOOK_API_KEY_FILE", "")
+
+
 # --------------------------------------------------------------------------
 # a real HTTP server, not a stubbed fetch
 #
@@ -231,11 +237,11 @@ class TestUnreadableServers:
 
 
 class TestAuth:
-    """heylook never gated the two endpoints the probe reads, and from
-    2.0.127 it has no inference key at all. The credential
-    is for a deployment that gates discovery in front of heylook -- the case
-    0.1.0 could not probe at all. What is pinned here is the plumbing (header
-    sent only when asked, never echoed)."""
+    """From heylook 2.0.263, AccessGateMiddleware gates every route (including
+    /v1/models and /v1/capabilities) when HEYLOOK_API_KEY or a mode-600
+    <HOME>/.heylook/api_key is configured. probe.py resolves --api-key,
+    HEYLOOK_API_KEY, or mode-600 HEYLOOK_API_KEY_FILE, sends Bearer only when
+    present, and never prints the secret."""
 
     def test_api_key_flag_sends_a_bearer_header(self):
         # RED at 0.1.0: no such flag existed.
@@ -244,16 +250,32 @@ class TestAuth:
             assert run(base, "--api-key", "sk-test-value") == 0
         assert all(h.get("Authorization") == "Bearer sk-test-value" for _, h in seen)
 
-    def test_heylook_api_key_env_is_not_read(self, monkeypatch):
-        """heylook removed HEYLOOK_API_KEY in 2.0.127; it has no inference
-        key. Reading an env var of that name implied a server-side key that
-        does not exist and sent a credential nobody asked for. RED against
-        0.18.0, which defaulted --api-key to it."""
-        monkeypatch.setenv("HEYLOOK_API_KEY", "sk-from-env")
-        seen = []
-        with serving(json_routes([VISION_ROW]), record=seen) as base:
+    def test_heylook_api_key_env_and_mode_600_file_resolution(self, monkeypatch, tmp_path):
+        key_file = tmp_path / "api_key"
+        key_file.write_text("sk-from-file\n", encoding="utf-8")
+        key_file.chmod(0o644)
+        monkeypatch.setenv("HEYLOOK_API_KEY_FILE", str(key_file))
+        seen_bad_mode = []
+        with serving(json_routes([VISION_ROW]), record=seen_bad_mode) as base:
             assert run(base) == 0
-        assert all("Authorization" not in h for _, h in seen)
+        assert all("Authorization" not in h for _, h in seen_bad_mode)
+
+        key_file.chmod(0o600)
+        seen_file = []
+        with serving(json_routes([VISION_ROW]), record=seen_file) as base:
+            assert run(base) == 0
+        assert all(h.get("Authorization") == "Bearer sk-from-file" for _, h in seen_file)
+
+        monkeypatch.setenv("HEYLOOK_API_KEY", "sk-from-env")
+        seen_env = []
+        with serving(json_routes([VISION_ROW]), record=seen_env) as base:
+            assert run(base) == 0
+        assert all(h.get("Authorization") == "Bearer sk-from-env" for _, h in seen_env)
+
+        seen_flag = []
+        with serving(json_routes([VISION_ROW]), record=seen_flag) as base:
+            assert run(base, "--api-key", "sk-from-flag") == 0
+        assert all(h.get("Authorization") == "Bearer sk-from-flag" for _, h in seen_flag)
 
     def test_no_auth_header_when_no_key(self, monkeypatch):
         # Born green, and green against 0.1.0 too because it sent no header
@@ -469,16 +491,30 @@ class TestDiagnosticsFitTheSituation:
         assert "allowed_hosts" in err
         assert "--api-key" not in err
 
-    def test_401_hint_does_not_name_a_heylook_key(self, capsys):
-        """RED against 0.18.0: the hint told you to check HEYLOOK_API_KEY on
-        the server, a setting heylook removed in 2.0.127."""
-        routes = {MODELS: (401, "application/json", '{"detail":"unauthorized"}')}
-        with serving(routes) as base:
-            run(base, "--api-key", "sk-wrong-key")
-            with_key = capsys.readouterr().err
-            run(base)
-            without_key = capsys.readouterr().err
-        assert "HEYLOOK_API_KEY" not in with_key + without_key
+    def test_401_without_key_names_heylook_access_gate_and_503_surfaces_auth_misconfigured(self, capsys):
+        """From heylook 2.0.263, 401 without a key directs the caller to
+        --api-key / HEYLOOK_API_KEY / <HOME>/.heylook/api_key, and 503 with
+        error.code == 'auth_misconfigured' surfaces the server's chmod hint."""
+        routes_401 = {MODELS: (401, "application/json", '{"detail":"Authentication required."}')}
+        with serving(routes_401) as base:
+            assert run(base) == 1
+        without_key = capsys.readouterr().err
+        assert "--api-key" in without_key and "HEYLOOK_API_KEY" in without_key
+
+        routes_503 = {
+            MODELS: (
+                503,
+                "application/json",
+                json.dumps({
+                    "detail": "Server access key is misconfigured: run chmod 600 <HOME>/.heylook/api_key",
+                    "error": {"code": "auth_misconfigured", "message": "chmod 600"},
+                }),
+            )
+        }
+        with serving(routes_503) as base:
+            assert run(base) == 1
+        misconf_err = capsys.readouterr().err
+        assert "auth_misconfigured" in misconf_err and "chmod 600" in misconf_err
 
     def test_one_unusable_row_does_not_condemn_the_roster(self, capsys):
         """RED before the fix: a single row without an `id` raised Unreadable
@@ -590,13 +626,13 @@ class TestEngineColumns:
                 },
             },
         }
-        caps = {"server_version": "2.0.261"}
+        caps = {"server_version": "2.0.264"}
         with serving(json_routes([b1_chat_row, embedding_row], caps=caps)) as base:
             assert run(base, "--need", "embedding") == 0
             text_out = capsys.readouterr().out
-            assert "heylook 2.0.261" in text_out
+            assert "heylook 2.0.264" in text_out
             assert "embeddinggemma-2-MLX-BF16" in text_out
             assert run(base, "--need", "embedding", "--json") == 0
             json_out = json.loads(capsys.readouterr().out)
-        assert json_out["server_version"] == "2.0.261"
+        assert json_out["server_version"] == "2.0.264"
         assert json_out["matched"] == ["embeddinggemma-2-MLX-BF16"]

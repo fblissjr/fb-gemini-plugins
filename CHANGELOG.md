@@ -4,6 +4,18 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.37.0] - 2026-11-21
+
+### Changed
+
+- **`heylook-provider` (`v0.24.0` $\rightarrow$ `v0.25.0`, verified against `heylookitsanllm 2.0.264`)**:
+  - Updated [`SKILL.md`](skills/heylook-provider/skills/heylook-provider/SKILL.md), [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md), [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md), [`embeddings.md`](skills/heylook-provider/skills/heylook-provider/references/embeddings.md), [`openai_wire.md`](skills/heylook-provider/skills/heylook-provider/references/openai_wire.md), [`gemini_migration.md`](skills/heylook-provider/skills/heylook-provider/references/gemini_migration.md), and [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md) for `heylookitsanllm` `2.0.262`–`2.0.264`:
+    - **Server-wide ASGI access gate (`2.0.263`)**: documented opt-in `AccessGateMiddleware` (`HEYLOOK_API_KEY` or mode-`0600` `<HOME>/.heylook/api_key`, never in `heylook.toml`), all three credential paths (`x-api-key`, `Authorization: Bearer`, and `heylook_session` cookie via `/login` + `/logout`), zero source-IP exemptions, unauthenticated `GET/HEAD /health` (`{"status": "ok"}`), read-only `access` summary on `GET /v1/admin/config`, `401 auth_required` vs. `503 auth_misconfigured`, and why `HEYLOOK_ADMIN_TOKEN` is headless-only (never sent by the web UI).
+    - **Always-on browser origin & framing guards (`2.0.264`)**: documented unconditional `Content-Security-Policy: frame-ancestors 'self'` (`+ X-Frame-Options: SAMEORIGIN`) on every HTTP response and `403 csrf_rejected` on state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`, WebSockets) whose `Sec-Fetch-Site` is `cross-site`/`same-site` or whose `Origin` does not match `Host` (or a recognized `X-Forwarded-Host` in `own_names` / `allowed_hosts` for `tailscale serve`), while non-browser HTTP clients omitting both headers pass.
+    - **Version boundary (`2.0.262`)**: recorded the `b1_runner` MTP standby `end_thinking_criteria` fix in `older_servers.md`.
+  - Updated [`scripts/probe.py`](skills/heylook-provider/skills/heylook-provider/scripts/probe.py) and [`tests/test_probe.py`](skills/heylook-provider/tests/test_probe.py): `probe.py` now resolves `--api-key`, `HEYLOOK_API_KEY`, or mode-`0600` `<HOME>/.heylook/api_key` (`$HEYLOOK_API_KEY_FILE`), strips both `Authorization` and `x-api-key` on cross-origin redirects, gives tailored `401` diagnostics (with vs. without key), and surfaces `503 auth_misconfigured` `chmod 600` hints.
+  - Updated [`client_recipes.md`](skills/heylook-provider/skills/heylook-provider/references/client_recipes.md) and [`tests/test_recipes.py`](skills/heylook-provider/tests/test_recipes.py): added optional `api_key` / `HEYLOOK_API_KEY` header wiring across Python and TypeScript client recipes, guarded `_http_error` / `streamMessage` so `503 auth_misconfigured` fails fast instead of retrying as `Overloaded`, and added automated recipe tests covering both paths.
+
 ## [0.36.0] - 2026-11-20
 
 ### Changed

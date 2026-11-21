@@ -1,12 +1,17 @@
 # Every heylook route
 
-All `/v1` operations, grouped by who calls them. An inference integration
-needs only the first group; the rest is here so a client knows what exists.
-Request and response shapes are in the running server's `/openapi.json`;
-heylook's own behaviour spec for each group is `docs/frontend_v3_spec.md` §4
-in the heylook repo. "Admin" means the `X-Heylook-Admin-Token` gate, a no-op
-when the server sets no `HEYLOOK_ADMIN_TOKEN`; every other route is open.
-Every route is behind the Host check (`wire_reference.md`, Access).
+All `/v1` operations (plus `/health` and `/login`), grouped by who calls them.
+An inference integration needs only the first group; the rest is here so a
+client knows what exists. Request and response shapes are in the running
+server's `/openapi.json`; heylook's own behaviour spec for each group is
+`docs/frontend_v3_spec.md` §4 in the heylook repo. When the server-wide access
+gate is enabled (`HEYLOOK_API_KEY` or mode-`0600` `<HOME>/.heylook/api_key`),
+every route except `/health` and `/login` assets requires `x-api-key`,
+`Authorization: Bearer`, or a `/login` session cookie (`wire_reference.md`,
+Access). "Admin" additionally marks routes behind optional `HEYLOOK_ADMIN_TOKEN`
+(`X-Heylook-Admin-Token`, headless callers only — the web UI never sends it).
+Every route sits behind the Host check and the always-on `Origin` /
+`Sec-Fetch-Site` check on state-changing methods.
 
 Read from heylook's `docs/api_integration.md` §9 and checked against the
 generated OpenAPI document at the version in SKILL.md's frontmatter: the
@@ -164,7 +169,7 @@ patches only the top-level fields you send, while a sent `params` object
 | `POST /v1/admin/models/{id}/unload` | Unload (409 while it is generating) |
 | `POST /v1/admin/models/{id}/reload[?warm=true]` | Unload then load (and optionally warm) as one operation; optional JSON body `{ctx_size, flash_attn}` |
 | `GET/PUT/DELETE /v1/admin/models/{id}/chat-template` | Read, override (`chat_template.heylook.jinja`) or reset the chat template in force; gguf reads also report `engine_gaps` (static scan for Python methods `llama-server` lacks) |
-| `GET/PUT /v1/admin/config`, `DELETE /v1/admin/config/{key}` | Server operational settings |
+| `GET/PUT /v1/admin/config`, `DELETE /v1/admin/config/{key}` | Server operational settings, plus read-only `access: {enabled, source, source_detail, admin_token_enabled, error?}` (never includes the key) |
 | `GET /v1/admin/config/logs?stream={events\|metrics}&limit=` | Recent observability JSONL records, newest first (`limit` 1-500) |
 | `POST /v1/admin/reload` | Re-read config and clear loaded models without a restart |
 
@@ -173,10 +178,12 @@ Admin config writes answer **409** when the server runs with
 field (`server_binary`, `extra_args`, `chat_template_path`, `rpc`,
 `pipeline_peers`), which can only be edited in `model.heylook.toml`.
 
-## Maintenance and observability
+## Maintenance, auth, and observability
 
 | Route | Purpose |
 |---|---|
+| `GET/HEAD /health` | Unauthenticated liveness check returning only `{"status": "ok"}` (exempt from the access gate; reveals no version, hardware, or models) |
+| `GET/HEAD/POST /login`, `POST /logout` | Browser session sign-in (`heylook_session` cookie) and server-side session revocation (`include_in_schema=False`; API clients send `x-api-key` or `Authorization: Bearer` directly instead) |
 | `POST /v1/cache/clear` (admin) | Clear prompt and vision caches for one model or all |
 | `POST /v1/data/clear` (admin) | Delete every conversation, message and notebook. Presets survive |
 | `GET /v1/system/metrics` | RAM, loaded models, per-model memory; unknown readings are null |

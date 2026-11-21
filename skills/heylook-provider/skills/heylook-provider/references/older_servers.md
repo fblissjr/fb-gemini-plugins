@@ -188,6 +188,17 @@ the range spans.
   loopback was exempt unless `HEYLOOK_API_KEY_ENFORCE_LOOPBACK=true`.
   Discovery was never gated.
 - **Before 2.0.137** there was no Host check, so no 403 for a DNS name.
+- **On 2.0.127 through 2.0.262** there was no server-wide API key gate, no
+  `/health` route, and no `/login` session cookie: only `HEYLOOK_ADMIN_TOKEN`
+  existed on admin routes. **2.0.263** added the single ASGI
+  `AccessGateMiddleware` (`HEYLOOK_API_KEY` or mode-`0600`
+  `<HOME>/.heylook/api_key`, accepting `x-api-key`, `Authorization: Bearer`, or
+  `heylook_session` with zero IP exemptions).
+- **Before 2.0.264** state-changing `Origin` / `Sec-Fetch-Site` checks ran only
+  on cookie-authenticated requests (so an open local server on loopback could
+  receive cross-tab browser `POST`s without a CORS preflight), and responses did
+  not carry `Content-Security-Policy: frame-ancestors 'self'`. From **2.0.264**
+  both run unconditionally regardless of whether an API key is configured.
 
 ## Removed routes
 
@@ -251,3 +262,8 @@ the range spans.
 - **Before 2.0.250** `presence_penalty` and `repetition_penalty` ran undrafted
   on MLX `mtp` drafters; from `2.0.250` they draft on `mtp` (still undrafted
   on non-MTP drafters such as `dflash`).
+- **On 2.0.258 through 2.0.261** MLX `b1_runner` passed its standby
+  `end_thinking_criteria` (`thinking_budget=0`) to `MTPBatch.step` whenever
+  `thinking_budget_tokens` was unset, immediately closing the thinking block on
+  MTP-drafted requests without an upfront budget (fixed in **2.0.262**, along
+  with full forced-closer draining on non-drafting `end_reasoning`).

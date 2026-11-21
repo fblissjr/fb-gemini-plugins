@@ -6,12 +6,12 @@ roster reflects whatever the operator has downloaded. This resolves what is
 actually served, so a client never ships a literal id.
 
 Usage:
-    python3 probe.py [--base http://localhost:8000] [--json] [--need vision]
+    python3 probe.py [--base http://localhost:8000] [--api-key KEY] [--json] [--need vision]
 
 Exit codes:
     0  read the server, and every --need is served
-    1  could not read the server: unreachable, refused, or not answering
-       heylook's shapes. The message says which
+    1  could not read the server: unreachable, refused, auth required, or not
+       answering heylook's shapes. The message says which
     2  read the server, but no served model has every --need. An empty
        roster counts
 
@@ -19,10 +19,12 @@ The code is derived once and both renderers return it, because the two used
 to disagree: `--need vision` against an empty roster exited 0 in text mode
 and 2 in --json.
 
-Auth: heylook has no inference key and never gates the two endpoints read
-here. --api-key is only for a proxy in front of it that gates discovery; it is
-sent as a bearer token to that origin and never printed. A 403 is heylook's
-own Host check (DNS-rebinding guard), not auth.
+Auth: when heylook's server-wide access gate is enabled (2.0.263+:
+HEYLOOK_API_KEY or mode-600 <HOME>/.heylook/api_key), every route requires a
+key. `probe.py` resolves --api-key, HEYLOOK_API_KEY, or <HOME>/.heylook/api_key
+($HEYLOOK_API_KEY_FILE), sends it as `Authorization: Bearer <key>` only to the
+requested origin, and never prints it. A 403 on GET is heylook's Host check
+(DNS-rebinding guard), not auth.
 
 Standard library only; no install step.
 """
@@ -32,6 +34,8 @@ from __future__ import annotations
 import argparse
 import http.client
 import json
+import os
+from pathlib import Path
 import sys
 import urllib.error
 import urllib.parse
@@ -48,7 +52,7 @@ def _origin(url: str) -> tuple:
 
 
 class _StripAuthAcrossOrigins(urllib.request.HTTPRedirectHandler):
-    """Drop the bearer token when a redirect leaves the origin it was for.
+    """Drop auth credentials when a redirect leaves the origin they were for.
 
     urllib copies every header onto the redirected request, so without this a
     302 hands the key to whatever host the Location names. Same-origin
@@ -60,12 +64,34 @@ class _StripAuthAcrossOrigins(urllib.request.HTTPRedirectHandler):
         new = super().redirect_request(req, fp, code, msg, headers, newurl)
         if new is not None and _origin(newurl) != _origin(req.full_url):
             for store in (new.headers, new.unredirected_hdrs):
-                for k in [k for k in store if k.lower() == "authorization"]:
+                for k in [k for k in store if k.lower() in ("authorization", "x-api-key")]:
                     del store[k]
         return new
 
 
 _OPENER = urllib.request.build_opener(_StripAuthAcrossOrigins)
+
+
+def resolve_api_key(explicit: str | None = None) -> str | None:
+    """Resolve API key from --api-key, HEYLOOK_API_KEY, or mode-600 <HOME>/.heylook/api_key."""
+    for candidate in (explicit, os.environ.get("HEYLOOK_API_KEY")):
+        if candidate and candidate.strip():
+            return candidate.strip()
+    if "HEYLOOK_API_KEY_FILE" in os.environ:
+        raw_path = os.environ["HEYLOOK_API_KEY_FILE"].strip()
+        key_paths = [Path(raw_path).expanduser()] if raw_path else []
+    else:
+        key_paths = [Path.home() / ".heylook" / "api_key"]
+    for p in key_paths:
+        try:
+            st = p.stat()
+            if p.is_file() and (st.st_mode & 0o077) == 0:
+                val = p.read_text(encoding="utf-8").strip()
+                if val:
+                    return val
+        except OSError:
+            pass
+    return None
 
 
 class Unreadable(Exception):
@@ -78,6 +104,15 @@ class Unreadable(Exception):
     def __init__(self, message: str, hint: str = "") -> None:
         super().__init__(message)
         self.hint = hint
+
+
+def _error_payload(e: urllib.error.HTTPError) -> dict:
+    try:
+        raw = e.read()
+        parsed = json.loads(raw.decode("utf-8", errors="replace")) if raw else {}
+        return parsed if isinstance(parsed, dict) else {}
+    except Exception:
+        return {}
 
 
 def fetch(base: str, path: str, timeout: float, api_key: str | None = None) -> dict:
@@ -105,18 +140,30 @@ def fetch(base: str, path: str, timeout: float, api_key: str | None = None) -> d
                 "server's heylook.toml.",
             ) from e
         if e.code == 401:
-            # heylook has no inference key and never gates discovery, so a
-            # 401 is always something in front of it. Branch on whether a key
-            # was sent: telling someone to pass --api-key when they just did
-            # is the same defect as telling them to start a running server.
+            # From 2.0.263, heylook's own AccessGateMiddleware gates every
+            # route when HEYLOOK_API_KEY or <HOME>/.heylook/api_key is set (or
+            # a proxy in front of it may gate discovery). Branch on whether a
+            # key was already sent so the hint never tells someone to pass a
+            # flag they just passed.
             hint = (
-                "that credential was rejected by whatever sits in front of "
-                "heylook. Check you are hitting the server you think."
+                "that credential was rejected by heylook's access gate (or a "
+                "proxy in front of it). Check --api-key / HEYLOOK_API_KEY and "
+                "the target URL."
                 if api_key else
-                "heylook does not gate discovery, so this is a proxy in front "
-                "of it. Pass --api-key with the credential that proxy expects."
+                "this server requires authentication (heylook's access gate or "
+                "a proxy in front of it). Pass --api-key, set HEYLOOK_API_KEY, "
+                "or create a mode-600 <HOME>/.heylook/api_key."
             )
             raise Unreadable(f"{base} answered HTTP 401 for {path}.", hint) from e
+        if e.code == 503:
+            err_body = _error_payload(e)
+            err_obj = err_body.get("error") if isinstance(err_body.get("error"), dict) else {}
+            if err_obj.get("code") == "auth_misconfigured":
+                detail = err_body.get("detail") or err_obj.get("message") or "access key file is misconfigured."
+                raise Unreadable(
+                    f"{base} answered HTTP 503 (auth_misconfigured) for {path}.",
+                    str(detail),
+                ) from e
         raise Unreadable(
             f"{base} answered HTTP {e.code} for {path}.",
             f"a heylook server serves {path}. Check the base URL and port.",
@@ -207,13 +254,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--base", default="http://localhost:8000")
     ap.add_argument("--timeout", type=float, default=10.0)
     ap.add_argument("--json", action="store_true", help="machine-readable output")
-    ap.add_argument("--api-key", default=None,
-                    help="bearer token for a proxy in front of heylook; never printed")
+    ap.add_argument(
+        "--api-key",
+        default=None,
+        help="API key for heylook's access gate (defaults to HEYLOOK_API_KEY or <HOME>/.heylook/api_key); never printed",
+    )
     ap.add_argument("--need", action="append", default=[], metavar="CAP",
                     help="require this capability; repeatable. Exit 2 if unmatched")
     args = ap.parse_args(argv)
 
-    api_key = args.api_key or None
+    api_key = resolve_api_key(args.api_key)
 
     try:
         models, skipped = models_from(

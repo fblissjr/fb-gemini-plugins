@@ -26,10 +26,14 @@ The Anthropic SDKs reach `/v1/messages` with `base_url` set to the server's
 another 404.)
 
 ```python
+import os
 import uuid
 from anthropic import Anthropic
 
-client = Anthropic(base_url="http://localhost:8000", api_key="not-needed")
+client = Anthropic(
+    base_url="http://localhost:8000",
+    api_key=os.environ.get("HEYLOOK_API_KEY") or "not-needed",
+)
 resp = client.messages.create(
     model=model_id,                     # resolved from /v1/models
     max_tokens=512,                     # SDK requires this (overrides cascade)
@@ -39,8 +43,12 @@ resp = client.messages.create(
 )
 ```
 
-`api_key` is required by the SDK and ignored by the server: heylook has no
-inference key. Note three SDK tradeoffs: (1) `max_tokens` is mandatory in the
+When heylook's server-wide access gate is enabled (`HEYLOOK_API_KEY` or
+mode-`0600` `<HOME>/.heylook/api_key`, `2.0.263+`), pass the real key as
+`api_key` (sends `x-api-key: <key>`) or `auth_token` (sends
+`Authorization: Bearer <key>`, which OpenAI-style `/v1/models` discovery clients
+also send unchanged); when the gate is off, any non-empty placeholder string
+satisfies the SDK. Note three SDK tradeoffs: (1) `max_tokens` is mandatory in the
 SDK and overrides heylook's cascade floor/vendor config; (2) heylook
 extensions (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`,
 `reasoning_effort`, `response_format`) must ride `extra_body`; and (3) the SDK

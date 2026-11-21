@@ -8,6 +8,7 @@ second backend.
 
 | Gemini | heylook `/v1/messages` |
 |---|---|
+| `x-goog-api-key` | `x-api-key` or `Authorization: Bearer` (required when the server's access gate is on; ignored when unset) |
 | `systemInstruction.parts[].text` | `system` (top-level string) |
 | `contents[]` | `messages[]` |
 | `contents[].role: "user"` | `role: "user"` |

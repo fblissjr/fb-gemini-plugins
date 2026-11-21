@@ -87,11 +87,13 @@ interchangeable. The server stores neither inputs nor vectors.
 
 | Code | Condition |
 |---|---|
+| 401 | Server-wide access gate is enabled and `x-api-key` / `Authorization: Bearer` / session cookie is missing or invalid (`error.code = "auth_required"`) |
+| 403 | Unknown `Host` header (`allowed_hosts` fix in `detail`), or cross-origin / `same-site` `POST` (`error.code = "csrf_rejected"`) |
 | 404 | Unknown model id (the generation route says 400 for this) |
 | 400 | A chat model sent here (`Model does not support embeddings`); a modality, width, prompt name or `windows` (on gguf, or `seconds > max_seconds`) the model does not offer; undecodable media; input over the context |
 | 409 | Cancelled cooperatively |
 | 422 | Schema violation, including any extra field, `windows` on a non-video block, or a windowed video item with other blocks |
-| 503 | Queue full: the same backpressure envelope and `Retry-After` as generation |
+| 503 | Queue full (`error.code = "model_overloaded"` + `Retry-After`), or key file misconfigured (`error.code = "auth_misconfigured"`, do not retry) |
 | 500 | Backend failure |
 
 A failure is atomic: no partial result.

@@ -13,7 +13,7 @@ and EXIF orientation, and `test_recipes.py` runs `apply_preset_to_request`,
 `thinking_options`, `plan_embedding_batches`, and URL-encoding assertions.
 The live-HTTP Python blocks and the TypeScript streaming client match the wire
 contract at the version in SKILL.md's frontmatter (last executed end-to-end
-against a live server at `2.0.242`; schema-checked against `2.0.261`
+against a live server at `2.0.242`; schema-checked against `2.0.264`
 `/openapi.json`). The `sharp` recipe was not executed; its settings are
 transcribed from heylook's own frontend.
 
@@ -26,10 +26,16 @@ the PNG branch had never run.
 
 ```python
 import json
+import os
 import uuid
 from dataclasses import dataclass, field
 
 import httpx
+
+
+def _auth_headers(api_key: str | None = None) -> dict[str, str]:
+    key = (api_key or os.environ.get("HEYLOOK_API_KEY") or "").strip()
+    return {"x-api-key": key} if key else {}
 
 
 @dataclass
@@ -48,6 +54,7 @@ def stream_message(
     messages: list[dict],
     *,
     system: str | None = None,
+    api_key: str | None = None,
     on_text=None,
     **sampling,
 ) -> Result:
@@ -60,6 +67,7 @@ def stream_message(
 
     headers = {
         "Content-Type": "application/json",
+        **_auth_headers(api_key),
         # Correlates the server's logs and is the handle
         # DELETE /v1/requests/{id} cancels by. Fresh per request, not per
         # session: cancelling an id cancels every in-flight request sharing
@@ -145,19 +153,21 @@ class Overloaded(RuntimeError):
 
 
 def _http_error(r: httpx.Response) -> Exception:
-    # 503 is decided BEFORE the body is parsed: the retry path must not
-    # depend on the error body happening to be JSON.
-    if r.status_code == 503:
-        try:
-            retry = float(r.headers.get("Retry-After", ""))
-        except ValueError:
-            retry = None
-        return Overloaded(retry)
     try:
         payload = r.json()
     except Exception:
+        payload = None
+    if r.status_code == 503:
+        err_code = ((payload or {}).get("error") or {}).get("code") if isinstance(payload, dict) else None
+        if err_code != "auth_misconfigured":
+            try:
+                retry = float(r.headers.get("Retry-After", ""))
+            except ValueError:
+                retry = None
+            return Overloaded(retry)
+    if not isinstance(payload, dict):
         return RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
-    detail = payload.get("detail") or payload.get("error", {}).get("message")
+    detail = payload.get("detail") or (payload.get("error") or {}).get("message")
     return RuntimeError(f"HTTP {r.status_code}: {detail}")
 ```
 
@@ -185,12 +195,20 @@ def with_backoff(fn, attempts=5):
 ## Python: discovery and capability gating
 
 ```python
+import os
 import httpx
 
-def pick_model(base: str, *, need: set[str] = frozenset({"chat"})) -> str:
+def pick_model(
+    base: str,
+    *,
+    need: set[str] = frozenset({"chat"}),
+    api_key: str | None = None,
+) -> str:
     """Resolve a model id at runtime. Ids are install-local -- a literal id
     in source is a 400 on someone else's machine."""
-    rows = httpx.get(f"{base}/v1/models", timeout=10).json()["data"]
+    key = (api_key or os.environ.get("HEYLOOK_API_KEY") or "").strip()
+    hdrs = {"x-api-key": key} if key else {}
+    rows = httpx.get(f"{base}/v1/models", headers=hdrs, timeout=10).json()["data"]
     # `capabilities` is what the server will serve; `modalities` is what the
     # checkpoint declared. They diverge (MLX strips audio towers).
     fit = [r["id"] for r in rows if need <= set(r.get("capabilities") or [])]
@@ -200,7 +218,7 @@ def pick_model(base: str, *, need: set[str] = frozenset({"chat"})) -> str:
     # Roster order says nothing about suitability: several rows can qualify,
     # including image-pipeline encoders and diffusion models. Prefer one that
     # is already resident (no load to pay); otherwise let the user choose.
-    resident = httpx.get(f"{base}/v1/system/metrics", timeout=10).json().get("models") or {}
+    resident = httpx.get(f"{base}/v1/system/metrics", headers=hdrs, timeout=10).json().get("models") or {}
     return next((i for i in fit if i in resident), fit[0])
 
 vision_model = pick_model(base, need={"chat", "vision"})
@@ -219,16 +237,17 @@ import threading
 class CancellableCall:
     """One non-streaming POST /v1/messages that another thread can stop."""
 
-    def __init__(self, base: str, body: dict):
+    def __init__(self, base: str, body: dict, *, api_key: str | None = None):
         self.base = base
         self.body = {**body, "stream": False}
-        self.request_id = str(uuid.uuid4())  # fresh per request, never reused
-        self.cancelled = False               # the response cannot tell you
+        self.headers = {**_auth_headers(api_key), "X-Request-ID": str(uuid.uuid4())}
+        self.request_id = self.headers["X-Request-ID"]  # fresh per request, never reused
+        self.cancelled = False                          # the response cannot tell you
         self.result: dict | None = None
 
     def run(self) -> dict:
         r = httpx.post(f"{self.base}/v1/messages", json=self.body,
-                       headers={"X-Request-ID": self.request_id},
+                       headers=self.headers,
                        timeout=httpx.Timeout(None, connect=10.0))
         if r.status_code >= 400:
             raise _http_error(r)
@@ -238,7 +257,11 @@ class CancellableCall:
     def cancel(self) -> bool:
         """True when a running generation was signalled. 404 means it had
         already finished: too late, not an error."""
-        r = httpx.delete(f"{self.base}/v1/requests/{self.request_id}", timeout=10)
+        r = httpx.delete(
+            f"{self.base}/v1/requests/{self.request_id}",
+            headers=_auth_headers(self.headers.get("x-api-key")),
+            timeout=10,
+        )
         if r.status_code == 404:
             return False
         r.raise_for_status()  # 422: malformed id, a bug in this class
@@ -402,10 +425,15 @@ extensions in `extra_body`, and send a fresh `X-Request-ID` per call via
 `extra_headers` (never `default_headers`, which would reuse one cancel id):
 
 ```python
+import os
 import uuid
 from anthropic import Anthropic
 
-client = Anthropic(base_url="http://localhost:8000", api_key="not-needed")
+client = Anthropic(
+    base_url="http://localhost:8000",
+    # Sends x-api-key: <key> when the server's access gate is enabled; ignored when off.
+    api_key=os.environ.get("HEYLOOK_API_KEY") or "not-needed",
+)
 req_id = str(uuid.uuid4())
 resp = client.messages.create(
     model=model_id,
@@ -434,24 +462,28 @@ export async function streamMessage(
   base: string,
   body: Record<string, unknown>,
   onText?: (chunk: string) => void,
+  apiKey?: string,
 ): Promise<StreamResult> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    // Correlates the server's logs and is the handle
+    // DELETE /v1/requests/{id} cancels by. Fresh per request, not per
+    // session: cancelling an id cancels every request sharing it.
+    // randomUUID() satisfies [A-Za-z0-9._:-]{1,128}; the response's
+    // X-Request-ID header carries whichever id was actually tracked.
+    "X-Request-ID": crypto.randomUUID(),
+  };
+  if (apiKey) headers["x-api-key"] = apiKey;
+
   const res = await fetch(`${base}/v1/messages`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      // Correlates the server's logs and is the handle
-      // DELETE /v1/requests/{id} cancels by. Fresh per request, not per
-      // session: cancelling an id cancels every request sharing it.
-      // randomUUID() satisfies [A-Za-z0-9._:-]{1,128}; the response's
-      // X-Request-ID header carries whichever id was actually tracked.
-      "X-Request-ID": crypto.randomUUID(),
-    },
+    headers,
     body: JSON.stringify({ ...body, stream: true }),
   });
 
   if (!res.ok) {
     const payload = await res.json().catch(() => ({}));
-    if (res.status === 503) {
+    if (res.status === 503 && payload?.error?.code !== "auth_misconfigured") {
       throw Object.assign(new Error("model_overloaded"), {
         retryAfter: Number(res.headers.get("Retry-After")) || 1,
       });
@@ -737,6 +769,7 @@ sizes or media byte ceilings, and budget base64 uploads at ~75% of
 `request_media_bytes` to stay comfortably below the wire cap:
 
 ```python
+import os
 import uuid
 import httpx
 
@@ -779,18 +812,29 @@ def plan_embedding_batches(
     return batches
 
 
-def embed_items(base: str, model_row: dict, items: list[dict], *, dimensions: int | None = None) -> list[dict]:
+def embed_items(
+    base: str,
+    model_row: dict,
+    items: list[dict],
+    *,
+    dimensions: int | None = None,
+    api_key: str | None = None,
+) -> list[dict]:
     """Post embedding batches, checking engine.embedding.limits dynamically."""
     emb = model_row["engine"]["embedding"]
+    key = (api_key or os.environ.get("HEYLOOK_API_KEY") or "").strip()
     results: list[dict] = []
     for batch in plan_embedding_batches(items, emb["limits"]):
         body: dict = {"model": model_row["id"], "input": batch}
         if dimensions is not None:
             body["dimensions"] = dimensions
+        hdrs = {"X-Request-ID": str(uuid.uuid4())}
+        if key:
+            hdrs["x-api-key"] = key
         r = httpx.post(
             f"{base}/v1/embeddings",
             json=body,
-            headers={"X-Request-ID": str(uuid.uuid4())},
+            headers=hdrs,
             timeout=None,
         )
         r.raise_for_status()

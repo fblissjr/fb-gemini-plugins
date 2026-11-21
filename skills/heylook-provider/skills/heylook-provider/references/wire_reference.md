@@ -414,29 +414,66 @@ Aggregates are at `GET /v1/performance/profile/{1h|6h|24h|7d}`.
 |---|---|---|
 | 400 | No `model`, or an unknown or disabled one | reason plus available ids in `detail` |
 | 400 | The model refuses the input: generation sent to an embedding model, images to a text-only model, audio to any MLX model, an image on a non-user turn on MLX, an undecodable image, a local file path on MLX, a prompt over the context window, an unoffered `reasoning_effort`, `budget_tokens` on an MLX harmony model, a trailing assistant turn with media the template cannot continue, `response_format` where it is refused (non-streaming; on a stream, see In-band errors) | message in `detail` |
-| 403 | Host check: the `Host` header is not an IP, `localhost`, one of the machine's own names, or an `allowed_hosts` entry in `heylook.toml` | names the fix |
+| 401 | Server-wide access gate is enabled and `x-api-key` / `Authorization: Bearer` / `heylook_session` cookie is missing or wrong (`{"error":{"code":"auth_required"}}`, plus `WWW-Authenticate: Bearer`), or `X-Heylook-Admin-Token` is missing on an admin route | `detail` + `error.code = "auth_required"` (HTML login page when `Accept: text/html` on non-`/v1/` GET/HEAD) |
+| 403 | Host check (`Host` header is not an IP, `localhost`, one of the machine's own names, or an `allowed_hosts` entry in `heylook.toml`), **or** state-changing `Origin` / `Sec-Fetch-Site` check (`POST`/`PUT`/`PATCH`/`DELETE` or WebSocket with `Sec-Fetch-Site` in `cross-site`/`same-site` or `Origin` not matching `Host` / recognized `X-Forwarded-Host`) | `detail` names `allowed_hosts` fix, or `{"error":{"code":"csrf_rejected"}}` |
 | 409 | A conversation-store write while that conversation is generating | `{"error":{"code":"generation_in_progress"}}`, for a second `generate` and for any message write or conversation delete: restore the user's text and retry after the run ends |
 | 422 | Body failed validation: a refused field (table above), an out-of-range value, a media block with no payload | FastAPI validation detail |
 | 500 | Model exists but failed to load, or a gguf decode failed | message in `detail`; a gguf load failure quotes llama-server's own error after `llama-server said:`. Show it, never string-match it |
-| 503 | Backpressure: the queue is full, or every loaded model is generating so none can be evicted | `{"error":{"code":"model_overloaded"}}` with `Retry-After` and `X-RateLimit-*`. `error.message` names the blocking models; show it rather than a generic retry notice |
+| 503 | Backpressure (`{"error":{"code":"model_overloaded"}}` with `Retry-After` and `X-RateLimit-*`; `error.message` names the blocking models — show it and retry with backoff), **or** misconfigured key file (`{"error":{"code":"auth_misconfigured"}}`, no `Retry-After` — key file has group/other permissions or is empty; fail fast, do not retry) | `error.code` distinguishes queue backpressure from key misconfiguration |
 
 400 means pick a different model or input; 500 means that model is broken. A
 400 is recoverable by falling back to another id, a 500 is not.
 
 ## Access
 
-**There is no inference API key.** `HEYLOOK_ADMIN_TOKEN` (header
-`X-Heylook-Admin-Token`) gates the admin routes, `/v1/data/clear` and
-`/v1/cache/clear`, and is off when unset. An integration needs neither.
-Discovery is never gated, so a 401 from `/v1/models` is something in front of
-heylook.
+**Opt-in server-wide access gate (`2.0.263+`).** Off by default. When the
+operator sets `HEYLOOK_API_KEY` or creates a mode-`0600` `<HOME>/.heylook/api_key`
+(`$HEYLOOK_API_KEY_FILE`; never stored in `heylook.toml`, which `/v1/admin/config`
+reads and writes), one pure ASGI gate (`AccessGateMiddleware`) covers **every**
+route, static frontend asset, and streaming response with **zero source-IP
+exemptions** (reverse proxies and `tailscale serve` forward external clients
+from LAN IPs and `127.0.0.1`). Only `GET/HEAD /health` (`{"status": "ok"}`),
+`GET/HEAD/POST /login`, and `/login`'s four static assets (`/css/app.css`,
+`/js/login.js`, `/icon.svg`, `/favicon.ico`) are unauthenticated. If a key file
+has group/other permission bits set or is empty, the gate fails closed with
+`503` (`error.code = "auth_misconfigured"`).
 
-**The Host check** guards against DNS rebinding. A LAN client that reaches the
-server by a DNS or VPN name gets a 403 until the operator adds that name to
-`allowed_hosts` in `heylook.toml`. Addressing the server by IP always passes.
+Any one of three credentials authenticates a request (constant-time UTF-8
+`hmac.compare_digest`):
 
-**There is no CORS.** A browser page on another origin fails at preflight, so
-a browser client is served from the same origin or goes through a proxy.
+- `x-api-key: <key>` — the Anthropic SDK's default (`api_key="<key>"`).
+- `Authorization: Bearer <key>` — OpenAI-style `/v1/models` discovery clients,
+  `probe.py`, and the Anthropic SDK's `auth_token`.
+- `heylook_session` cookie — minted by `POST /login` (`HttpOnly; SameSite=Strict`,
+  `Secure` over HTTPS / `X-Forwarded-Proto: https`, omitted on plain HTTP
+  loopback so Safari stores it locally; stores only `sha256(token)` +
+  `sha256(key)` in memory, never the raw key; `POST /logout` revokes it).
+
+`HEYLOOK_ADMIN_TOKEN` (header `X-Heylook-Admin-Token`) remains an optional
+second factor on `/v1/admin/*`, `/v1/data/clear`, and `/v1/cache/clear` for
+headless admin callers only — **heylook's bundled web UI never sends
+`X-Heylook-Admin-Token`**, so setting it breaks UI admin pages.
+
+**Always-on browser defenses (`2.0.123` / `2.0.137` / `2.0.264`, independent of any key):**
+
+- **Host check (`HostCheckMiddleware`)**: guards against DNS rebinding. A LAN
+  client reaching the server by a DNS or VPN name gets a `403` until that name
+  is listed in `allowed_hosts` at the top of `heylook.toml`. Addressing the
+  server by IP or `localhost` always passes.
+- **State-changing `Origin` & `Sec-Fetch-Site` check (`2.0.264`)**: on every
+  `POST`, `PUT`, `PATCH`, `DELETE`, and WebSocket handshake, `AccessGateMiddleware`
+  refuses requests with `403` (`error.code = "csrf_rejected"`) before auth or
+  routing whenever `Sec-Fetch-Site` is not `same-origin` or `none` (blocking
+  both `cross-site` browser tabs hitting loopback and sibling-subdomain
+  `same-site` apps) or `Origin` does not match `Host` (or a recognized
+  `X-Forwarded-Host` in `own_names` / `allowed_hosts` for proxies like
+  `tailscale serve` that rewrite `Host` to `127.0.0.1`). Non-browser HTTP
+  clients (`curl`, `httpx`, SDKs) omit both headers and pass; cookie-authenticated
+  state changes additionally require at least one of `Origin` or `Sec-Fetch-Site`.
+- **No CORS & clickjacking protection**: the server sends no CORS headers and
+  attaches `Content-Security-Policy: frame-ancestors 'self'` (plus
+  `X-Frame-Options: SAMEORIGIN`) to every HTTP response. Browser clients must
+  be same-origin or call through a backend proxy.
 
 ## Request ids and cancelling
 

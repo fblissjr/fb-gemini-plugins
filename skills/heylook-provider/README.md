@@ -1,6 +1,6 @@
 # heylook-provider
 
-*Last updated: 2026-11-20*
+*Last updated: 2026-11-21*
 
 Integration knowledge and runtime capability discovery for [heylook](https://github.com/fblissjr/heylookitsanllm) (`heylookitsanllm`), a local multimodal LLM server on Apple Silicon serving MLX and gguf models. Built for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Gemini CLI**, **Gemini Spark** (`Customize > Skills`), and **Claude Code** when applications add `heylook` as an inference provider — not for working inside the server codebase.
 
@@ -55,7 +55,7 @@ gemini skills install https://github.com/fblissjr/fb-gemini-plugins.git --path s
 
 | Skill | Trigger | Description |
 |-------|---------|-------------|
-| `heylook-provider` | "add heylook as a provider", "heylook API", a 400/403/404/409/422/503 from a heylook request, parsing its SSE stream, cancelling an in-flight request or ending thinking early, computing embeddings, sending images or audio to a local model, using its conversation store or presets | Runtime model discovery against install-local ids, capability gating, client-side image resize, and the deliberate differences from Anthropic's spec |
+| `heylook-provider` | "add heylook as a provider", "heylook API", a 400/401/403/404/409/422/503 from a heylook request, configuring `x-api-key` or Bearer auth, parsing its SSE stream, cancelling an in-flight request or ending thinking early, computing embeddings, sending images or audio to a local model, using its conversation store or presets | Runtime model discovery against install-local ids, capability gating, auth & browser-origin guards, client-side image resize, and the deliberate differences from Anthropic's spec |
 
 ## Invocation
 
@@ -118,8 +118,18 @@ everything following from the server being **local and single-user**:
 - Hanging up on a non-streaming request does not stop it. There is no
   disconnect polling, so an abandoned run keeps the GPU and blocks the queue;
   `X-Request-ID` is the handle and `DELETE /v1/requests/{id}` is the stop.
-- There is no inference key and no CORS, and a Host check answers 403 to a
-  hostname the server does not know.
+- **Opt-in server-wide access gate + always-on browser guards (`2.0.263`–`2.0.264`)**:
+  when `HEYLOOK_API_KEY` or a mode-`0600` `<HOME>/.heylook/api_key` is set, one
+  ASGI gate covers every route, static asset, and SSE stream (`x-api-key`,
+  `Authorization: Bearer`, or `/login` session cookie; only `/health` and
+  `/login` assets are exempt, with zero source-IP exemptions). Independently of
+  any key, the server sends no CORS headers, attaches `Content-Security-Policy:
+  frame-ancestors 'self'`, enforces `allowed_hosts` on `Host`, and refuses
+  state-changing requests (`POST`/`PUT`/`PATCH`/`DELETE`) with `403
+  csrf_rejected` whenever `Origin` mismatches `Host` (or a listed
+  `X-Forwarded-Host` for `tailscale serve`) or `Sec-Fetch-Site` is
+  `cross-site`/`same-site`. `HEYLOOK_ADMIN_TOKEN` stays an optional second
+  factor for headless admin callers only (the web UI never sends it).
 
 Plus the deliberate spec differences (`thinking` also takes a bool, depth is
 each model's own `reasoning_effort` vocabulary, tools are a 422,
