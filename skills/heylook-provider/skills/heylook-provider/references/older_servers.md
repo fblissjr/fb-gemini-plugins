@@ -167,6 +167,17 @@ the range spans.
   `limits` object. **On 2.0.233 through 2.0.242** `windows.sampling` defaulted
   to `"content"` (4 fps candidate decode) instead of `"fps"`, and `"content"`
   did not scale its frame budget down on windows shorter than `max_frames / fps`.
+- **Before 2.0.254** `GET/PUT/DELETE /v1/admin/models/{id}/chat-template` had
+  no `engine_gaps` report for unsupported `llama-server` Jinja methods.
+- **Before 2.0.252** MLX's prefix cache used mlx-vlm's fixed `min(8 GiB, 10%)`
+  cap instead of `APC_MEMORY_SHARE` of the Metal working set. **Before
+  2.0.255** MLX vision requests silently dropped system-prompt prefix
+  caching, `user_only` prompts had no coarse interior checkpoints, and
+  `APC_CHECKPOINT_ENTRIES` was smaller than `32`.
+- **Before 2.0.258** (`2.0.261` for full `engine.decoding.runner` /
+  `cow_prefix` reporting) MLX ran solely on `BatchGenerator` + upstream APC,
+  without heylook's thin `B=1` CoW prefix cache or `image_reuse: true` on
+  plain-KV vision models.
 
 ## Access
 
@@ -233,3 +244,10 @@ the range spans.
   there and `performance.speculative` came from gguf only.
 - **Before 2.0.223** an MLX request with a thinking budget ran undrafted;
   from 2.0.223 it drafts and the budget still holds.
+- **Before 2.0.246** there was no per-model `draft_max_context` cutoff for
+  MLX speculative decoding.
+- **Before 2.0.249** non-greedy MLX MTP requests did not use lossless
+  Leviathan rejection sampling.
+- **Before 2.0.250** `presence_penalty` and `repetition_penalty` ran undrafted
+  on MLX `mtp` drafters; from `2.0.250` they draft on `mtp` (still undrafted
+  on non-MTP drafters such as `dflash`).

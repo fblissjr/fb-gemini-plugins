@@ -4,6 +4,17 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.36.0] - 2026-11-20
+
+### Changed
+
+- **`heylook-provider` (`v0.23.4` $\rightarrow$ `v0.24.0`, verified against `heylookitsanllm 2.0.261`)**:
+  - Overhauled [`SKILL.md`](skills/heylook-provider/skills/heylook-provider/SKILL.md) with compact `<parameters>` and `<caching>` sections covering surface selection (direct `/v1/messages` vs. client-expanded `/v1/presets` vs. server-owned `/v1/conversations`), the 4-layer sampler cascade, Anthropic SDK vs. raw HTTP tradeoffs, and multi-turn prompt-caching hygiene (top-level `system` boundary, replaying `thinking` blocks, steady `reasoning_effort`, single-turn multi-image sets). Replaced the `~/` probe path with `<HOME>/...` for strict path privacy.
+  - Updated [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md): added the 4-layer sampler cascade and cross-engine penalty asymmetry (MLX generated-only vs. gguf prompt+generated window), `ThinkingBlock` input replay and `performance.cache.cause` diagnostics, fixed MLX `mtp` speculative penalty drafting (`presence_penalty`, `repetition_penalty`, `thinking.budget_tokens`, and Leviathan rejection sampling vs. `draft_max_context` / `dflash` / structured output), and added `engine.decoding.runner` (`b1_runner` vs. `batch_generator`), `engine.decoding.pipeline`, `engine.cache.reuse_mode` (`cow_prefix` / `cow_prefix_recurrent`), `engine.cache.image_reuse`, `engine.cache.memory_budget_bytes`, and `checkpoint_entries` (`32`).
+  - Updated [`routes.md`](skills/heylook-provider/skills/heylook-provider/references/routes.md): added a top-level surface comparison matrix, documented detached server-owned conversation generations that outlive client disconnect and `generating: bool` on list/get, `applied_preset_id` explicit stamping, the preset override-box rule and `PUT /v1/presets/{id}` `params` replacement semantics, `engine_gaps` on gguf `chat-template` reads, `409` read-only mode, and `422` `file_only` fields (`server_binary`, `extra_args`, `chat_template_path`, `rpc`, `pipeline_peers`).
+  - Updated [`embeddings.md`](skills/heylook-provider/skills/heylook-provider/references/embeddings.md), [`gemini_migration.md`](skills/heylook-provider/skills/heylook-provider/references/gemini_migration.md), [`openai_wire.md`](skills/heylook-provider/skills/heylook-provider/references/openai_wire.md), and [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md): added dynamic `engine.embedding.limits` sub-batching and MLX text-batching guidance, automatic prefix caching vs. Gemini `cachedContents`, Anthropic SDK caveats, and `2.0.246`–`2.0.261` version boundaries.
+  - Updated [`client_recipes.md`](skills/heylook-provider/skills/heylook-provider/references/client_recipes.md) and added [`tests/test_recipes.py`](skills/heylook-provider/tests/test_recipes.py) + `v2.0.261` fixture coverage in [`tests/test_probe.py`](skills/heylook-provider/tests/test_probe.py): fixed URL percent-encoding in `image_plan` and `Model switch`, factored `apply_preset_to_request` with explicit override-box tests, and added recipes for multi-turn `ThinkingBlock` replay, Anthropic SDK usage (`extra_headers` per call + `extra_body`), and `plan_embedding_batches`.
+
 ## [0.35.1] - 2026-11-11
 
 ### Changed

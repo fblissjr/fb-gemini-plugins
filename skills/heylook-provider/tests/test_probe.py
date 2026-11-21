@@ -549,3 +549,54 @@ class TestEngineColumns:
         with serving(json_routes([VISION_ROW])) as base:
             assert run(base, "--json") == 0
         assert "samplers" not in json.loads(capsys.readouterr().out)
+
+    def test_v2_0_261_b1_runner_and_embedding_rows(self, capsys):
+        b1_chat_row = {
+            **VISION_ROW,
+            "id": "gemma-4-26B-A4B-it-8bit",
+            "engine": {
+                **VISION_ROW["engine"],
+                "decoding": {
+                    "mode": fact("autoregressive"),
+                    "request_fields": fact(None),
+                    "runner": fact("b1_runner"),
+                },
+                "cache": {
+                    "reuse_mode": fact("cow_prefix"),
+                    "image_reuse": fact(True),
+                },
+            },
+        }
+        embedding_row = {
+            "id": "embeddinggemma-2-MLX-BF16",
+            "provider": "mlx",
+            "capabilities": ["embedding", "text", "image", "audio", "video"],
+            "engine": {
+                "context": {"length": fact(8192), "running": fact(None)},
+                "thinking": None,
+                "decoding": None,
+                "speculative": None,
+                "embedding": {
+                    "modalities": ["text", "image", "audio", "video"],
+                    "dimensions": [128, 256, 512, 768],
+                    "native_dimensions": 768,
+                    "max_input_tokens": 8192,
+                    "video_windows": {
+                        "max_seconds": 32.0,
+                        "sampling": ["fps", "content"],
+                        "default_sampling": "fps",
+                    },
+                    "limits": {"items": 16, "request_media_bytes": 268435456},
+                },
+            },
+        }
+        caps = {"server_version": "2.0.261"}
+        with serving(json_routes([b1_chat_row, embedding_row], caps=caps)) as base:
+            assert run(base, "--need", "embedding") == 0
+            text_out = capsys.readouterr().out
+            assert "heylook 2.0.261" in text_out
+            assert "embeddinggemma-2-MLX-BF16" in text_out
+            assert run(base, "--need", "embedding", "--json") == 0
+            json_out = json.loads(capsys.readouterr().out)
+        assert json_out["server_version"] == "2.0.261"
+        assert json_out["matched"] == ["embeddinggemma-2-MLX-BF16"]

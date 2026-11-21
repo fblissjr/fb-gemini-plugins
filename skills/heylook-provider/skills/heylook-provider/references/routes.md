@@ -12,6 +12,16 @@ Read from heylook's `docs/api_integration.md` §9 and checked against the
 generated OpenAPI document at the version in SKILL.md's frontmatter: the
 tables below cover every operation it lists.
 
+## Choosing your surface
+
+| Dimension | Direct `POST /v1/messages` | Presets + `/v1/messages` | Conversation Store `/v1/conversations/{id}/generate` |
+|---|---|---|---|
+| **System prompt** | Top-level `system` string (`system_prompt` -> 422) | Preset `system_prompt` copied into `system` (empty/`null` leaves existing prompt alone) | `system_prompt` column on the conversation |
+| **Thinking keys** | `thinking` (bool or `{type, budget_tokens}`), `reasoning_effort` | Stored as `enable_thinking` + `thinking_budget_tokens`; client renames to `thinking` | Store keys: `enable_thinking`, `thinking_budget_tokens`, `reasoning_effort` |
+| **Unknown / bad keys** | Refused list -> 422; other unknown keys silently ignored | Stored `params` 422-validated on write; client filters depth before `/v1/messages` | Stored `params` 422-validated on write; one-shot `overrides` silently drops unknown/unsupported keys |
+| **History & media** | Client owns history; base64 or http(s) `url` | Client owns history | Server DuckDB store; nested `source` only; media relocated to `/media/{media_id}` |
+| **Cancel / End thinking** | `DELETE /v1/requests/{id}`, `POST /v1/requests/{id}/reasoning-end`; disconnect stops SSE | Same as `/v1/messages` | `DELETE /v1/conversations/{id}/generate`, `POST .../generate/reasoning-end`; run **outlives** disconnect |
+
 ## Inference
 
 | Route | Purpose |
@@ -33,8 +43,8 @@ chat page uses it.
 
 | Route | Purpose |
 |---|---|
-| `GET/POST /v1/conversations` | List `{conversations, total}` (not paged); create (201) from `{title, model_id?, system_prompt?, params?, applied_preset_id?}`, answered with the whole conversation (`id`, `messages: []`, ...) |
-| `GET/PUT/DELETE /v1/conversations/{id}` | Read with messages; patch metadata; delete (media included) |
+| `GET/POST /v1/conversations` | List `{conversations, total}` (each row includes `generating: bool`, not paged); create (201) from `{title, model_id?, system_prompt?, params?, applied_preset_id?}`, answered with the whole conversation (`id`, `messages: []`, ...) |
+| `GET/PUT/DELETE /v1/conversations/{id}` | Read with messages (`generating: bool` included); patch metadata (`system_prompt`, `params`, `applied_preset_id`, `model_id`, `title`); delete (media included) |
 | `POST /v1/conversations/{id}/clone` | Copy a conversation, media included |
 | `POST /v1/conversations/{id}/messages` | Append a message `{role, content, thinking?}` |
 | `DELETE /v1/conversations/{id}/messages?after={pos}` | Truncate: delete every message after a position |
@@ -76,9 +86,17 @@ chat page uses it.
 - **An `error` event does not end the saga.** It may precede `heylook_saved`,
   and a partial reply still persists. On `/v1/messages` an error event ends
   the stream.
-- **Persistence is server-owned.** Completion, abort and client disconnect
-  all persist; an error before any output persists nothing. A regenerate or
-  continue that fails leaves the thread untouched.
+- **Persistence is server-owned and detached from the HTTP stream.** A
+  conversation generation runs in a background task (`_Run`) on the server, so
+  client disconnect does **not** abort it: the server completes generation and
+  commits the full reply (use `GET /v1/conversations/{id}` and its `generating`
+  flag when reconnecting; call `DELETE /v1/conversations/{id}/generate` to
+  explicitly abort and persist a partial reply). Errors before any output
+  persist nothing; a failed regenerate or continue leaves the thread untouched.
+- **`applied_preset_id` tracks explicit preset actions only.** Set at create or
+  explicit Apply/Update/Save (`null` clears it); never inferred from matching
+  fields and never placed inside `params`. If the referenced preset is deleted,
+  clients treat a dangling id as no stamp.
 - **One generation per conversation.** While one runs, a second `generate`,
   any message write and a conversation delete are each a 409
   `{"error":{"code":"generation_in_progress"}}`. Metadata `PUT`s stay open.
@@ -117,7 +135,10 @@ chat page uses it.
 
 A preset is a named bundle of `system_prompt` and sampler `params`. The
 **client** expands it: copy `system_prompt` into the request and `params` into
-the sampler fields. `params` uses the store's key names, so rename exactly
+the sampler fields. Follow the **override-box rule**: a preset whose
+`system_prompt` is `null` or empty (`""`) makes no claim on the prompt, so
+applying it leaves the caller's or conversation's existing prompt intact rather
+than clearing it. `params` uses the store's key names, so rename exactly
 two on the way to `/v1/messages`: `enable_thinking` becomes `thinking`, and
 `thinking_budget_tokens` becomes `thinking: {"budget_tokens": N}`, merged
 into one object when a preset has both. Every other key carries over
@@ -126,13 +147,15 @@ must be dropped: the store drops it silently, `/v1/messages` answers 400.
 Recipe: `client_recipes.md`, Expanding a preset. Sent
 unrenamed, `enable_thinking` is a 422 there. The server never applies a preset to a request, and
 `preset` on `/v1/messages` is a 422. A preset stores only the fields it pins,
-so absent fields still fall to the server cascade.
+so absent fields still fall to the server cascade. `PUT /v1/presets/{id}`
+patches only the top-level fields you send, while a sent `params` object
+**replaces** the stored `params` map wholesale (it is not merged).
 
 ## Model administration (admin)
 
 | Route | Purpose |
 |---|---|
-| `GET/POST /v1/admin/models`, `GET/PATCH/DELETE /v1/admin/models/{id}` | Per-model config in the model's `model.heylook.toml` sidecar (or `heylook.toml` entry); PATCH reports which fields need a reload |
+| `GET/POST /v1/admin/models`, `GET/PATCH/DELETE /v1/admin/models/{id}` | Per-model config in the model's `model.heylook.toml` sidecar (or `heylook.toml` entry); PATCH reports `reload_required_fields` (`null` clears a field back to default) |
 | `POST /v1/admin/models/validate` | Validate a config without saving |
 | `GET /v1/admin/model-options` | Every settable field per provider, and when a change takes effect |
 | `GET/PUT /v1/admin/models/scan-config` | The folders models are discovered from |
@@ -140,10 +163,15 @@ so absent fields still fall to the server cascade.
 | `GET /v1/admin/models/{id}/status` | Loaded state, memory, context use, requests active and queued |
 | `POST /v1/admin/models/{id}/unload` | Unload (409 while it is generating) |
 | `POST /v1/admin/models/{id}/reload[?warm=true]` | Unload then load (and optionally warm) as one operation; optional JSON body `{ctx_size, flash_attn}` |
-| `GET/PUT/DELETE /v1/admin/models/{id}/chat-template` | Read, override or reset the chat template in force |
+| `GET/PUT/DELETE /v1/admin/models/{id}/chat-template` | Read, override (`chat_template.heylook.jinja`) or reset the chat template in force; gguf reads also report `engine_gaps` (static scan for Python methods `llama-server` lacks) |
 | `GET/PUT /v1/admin/config`, `DELETE /v1/admin/config/{key}` | Server operational settings |
 | `GET /v1/admin/config/logs?stream={events\|metrics}&limit=` | Recent observability JSONL records, newest first (`limit` 1-500) |
 | `POST /v1/admin/reload` | Re-read config and clear loaded models without a restart |
+
+Admin config writes answer **409** when the server runs with
+`HEYLOOK_READONLY_MODEL_CONFIG`, and **422** if a PATCH names a `file_only`
+field (`server_binary`, `extra_args`, `chat_template_path`, `rpc`,
+`pipeline_peers`), which can only be edited in `model.heylook.toml`.
 
 ## Maintenance and observability
 

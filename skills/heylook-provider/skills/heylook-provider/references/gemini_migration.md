@@ -85,6 +85,15 @@ MLX and a gguf model also evicts the other family.
 heylook answers 503 with `Retry-After` because it serialises generation for
 a single user. Treat it as a queue, not a quota — retry rather than degrade.
 
+**Prefix caching is automatic, not handle-based.** Gemini offers an explicit
+`cachedContents` resource that you create and reference by name. heylook caches
+KV prefixes automatically in memory across requests (`b1_runner` CoW prefix
+cache on MLX; slot cache + `-cram` on gguf). Keep shared instructions in
+top-level `system`, place static context before variable queries in `user_only`
+prompts, replay prior assistant `thinking` blocks in `messages`, and attach
+multi-image sets in one turn (adding an image later invalidates the whole-list
+media hash, `new_image_set`).
+
 ## Provider-abstraction seams this implies
 
 If the app's provider interface was shaped around Gemini, five seams usually

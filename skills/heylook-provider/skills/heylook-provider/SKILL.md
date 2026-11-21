@@ -1,117 +1,137 @@
 ---
 name: heylook-provider
-description: Wire an application to heylook (heylookitsanllm), a local multimodal LLM server on Apple Silicon serving MLX and gguf models over one Anthropic Messages-conformant /v1/messages endpoint. Use when adding heylook as a provider alongside Gemini, OpenAI or Anthropic, when a heylook request answers 400/403/404/422/503, when parsing its SSE stream, when cancelling a request or ending its thinking early, when computing embeddings, when using its conversation store or presets, when sending images or audio to a local model, or when porting an OpenAI-SDK client off its removed OpenAI route. Carries what an Anthropic SDK habit gets wrong here - runtime discovery of install-local model ids, capability gating, client-side image resize, and its differences from Anthropic's spec. Not for calling hosted Gemini APIs as a tool, and not for working inside the heylook server codebase itself.
+description: Wire an application to heylook (heylookitsanllm), a local multimodal LLM server on Apple Silicon serving MLX and gguf models over an Anthropic Messages-conformant /v1/messages endpoint. Use when adding heylook as a provider alongside Gemini, OpenAI or Anthropic, choosing between direct /v1/messages, presets and the conversation store, tuning system prompts, sampler cascades or prompt caching (thinking replay, multi-image turns), debugging 400/403/404/409/422/503 errors, parsing SSE streams, cancelling requests or ending thinking early, computing multimodal embeddings, sending images or audio, or porting off the removed OpenAI route. Covers install-local model discovery, capability gating, Anthropic SDK vs raw HTTP tradeoffs, and client-side image resize. Not for hosted Gemini APIs or working inside heylook itself.
 metadata:
-  verified_against: "heylookitsanllm 2.0.244"
+  verified_against: "heylookitsanllm 2.0.261"
 ---
 
 # heylook as an inference provider
 
-Local inference server on Apple Silicon: MLX plus gguf through a `llama-server` subprocess. Default base `http://localhost:8000`.
+Local inference server on Apple Silicon: MLX (`mlx-vlm` via heylook's thin `B=1` CoW runner or `BatchGenerator` fallback) plus gguf (`llama-server` subprocesses). Default base `http://localhost:8000`.
 
-`POST /v1/messages` conforms to Anthropic's Messages API (typed content blocks, top-level `system`, `stop_sequences`, the Messages SSE grammar with `ping` keepalives and no `[DONE]`), so an Anthropic SDK habit mostly transfers and Anthropic's spec answers most questions this skill does not. What does not transfer follows from the server being **local and single-user**: model ids belong to the install, capabilities vary per model, images are resized by you, and a busy server queues rather than scales.
+`POST /v1/messages` conforms to Anthropic's Messages API (typed content blocks, top-level `system`, `stop_sequences`, Messages SSE grammar with `ping` keepalives and no `[DONE]`), so Anthropic habits mostly transfer. What differs follows from the server being **local and single-user**: model ids belong to the install, capabilities vary per model, images are resized by you, unset sampler fields use the model's own cascade, and a busy server queues rather than scales.
 
-This file states behaviour as of `metadata.verified_against`. For an older server, read `server_version` from `/v1/capabilities`, then `references/older_servers.md`, which holds every version boundary.
+This file states behaviour as of `metadata.verified_against`. For older servers, read `server_version` from `/v1/capabilities`, then `references/older_servers.md`.
 
 <done>
-Each line points at the section that states the rule; a line added here is a pointer, never a second, looser copy.
+Each line points to the section that states the rule; never weaken a pointer into a second copy.
 
 - Model ids resolved at runtime, never literal in source, and always sent. → `<discovery>`
-- Capability-gated features read `capabilities` and `engine` before offering, **and** the client handles the three outcomes gating does not prevent: the 400, the in-band `invalid_request_error` on a stream, and the gguf case with no status code. → `<discovery>`
+- Features gated on `capabilities` and `engine`, **plus** handling 400, in-band `invalid_request_error`, and the silent gguf case. → `<discovery>`
+- Unset sampler fields omitted for cascade defaults; presets client-expanded with store-to-wire renames; conversation store distinguished from `/v1/messages`. → `<parameters>`
+- Prompt caching kept warm via top-level `system`, replayed assistant `thinking` blocks, stable `reasoning_effort`, and single-turn multi-image sets. → `<caching>`
 - Images downscaled client-side before the request is built. → `<image_resize>`
-- 503 retried with backoff; in-band `error` events end the stream and never reach a rendered transcript as model output. → `<status_codes>`
-- Every call carries a **fresh** `X-Request-ID`, and non-streaming calls have a path that DELETEs it. → `<operations>`
-- Telemetry read defensively, with `generation_duration_ms` as the throughput denominator. → `<operations>`
-- A real request has run against a live server, not just typechecked.
+- 503 retried with backoff; in-band `error` events end `/v1/messages` streams and never render as assistant output. → `<status_codes>`
+- Every request carries a **fresh** `X-Request-ID`, and non-streaming calls explicitly `DELETE` it on cancel. → `<operations>`
+- Telemetry null-checked, with `generation_duration_ms` as the throughput denominator. → `<operations>`
 </done>
 
 <discovery>
-Model ids are **install-local**. The registry is override-only: any model under a scanned folder is served with derived defaults, so the roster changes when the owner downloads something. An id that worked on one machine is a 400 on another. There is no default model: a request without `model` is a 400 listing the ids.
+Model ids are **install-local**. The registry is override-only: any model under a scanned folder is served with derived defaults, so an id that worked on one machine is a 400 on another. There is no default model: a request without `model` is a 400 listing the ids.
 
-Query the user's live server before writing client code; if it is down, ask them to start it rather than guess ids:
+Query the live server before writing client code; if it is down, ask the user to start it rather than guessing ids:
 
 ```bash
-curl -s localhost:8000/v1/models        # served right now, with each model's engine facts
-curl -s localhost:8000/v1/capabilities  # server version
+curl -s localhost:8000/v1/models        # served roster + engine facts + sampler defaults
+curl -s localhost:8000/v1/capabilities  # server version, Metal device, optimizations
 python3 "${CLAUDE_SKILL_DIR:-skills/heylook-provider/skills/heylook-provider}/scripts/probe.py" --base http://localhost:8000 --need vision
 ```
 
-Exit 2: no served model has every required capability (an empty roster counts). Exit 1: it could not read the server; the message says unreachable, refused, or not heylook's shape. Discovery is never gated, so a 401 is something in front of heylook, and a 403 is heylook's Host check (see `<operations>`).
+`probe.py` exits `0` when matched, `2` when no model meets `--need` (including an empty roster), and `1` when unreadable (401 = proxy in front; 403 = heylook Host check).
 
-**Gate features on `capabilities`, not `modalities`.** A chat selector filters on `chat`: embedding models list `embedding` and their input modalities, no `chat`, and generation sent to one is a 400; they are served on `POST /v1/embeddings` (`references/embeddings.md`). `capabilities` is what the server will serve; `modalities` is what the checkpoint author declared (MLX strips audio towers at load). Finer controls come from each row's `engine` object: context length, the thinking switch and depth vocabulary, which request fields the engine reads (hide a control whose field is not in `engine.decoding.request_fields`). Most of it is facts, `{value, provenance, source}`, read at `.value`; `engine.thinking` is a plain object. Shape: `references/wire_reference.md` (Discovery endpoints).
+**Gate features on `capabilities`, not `modalities`.** Filter chat selectors on `chat`: embedding models advertise `embedding` and input modalities with no `chat` (sending `/v1/messages` to one is a 400; use `POST /v1/embeddings`, `references/embeddings.md`). MLX strips audio towers at load, so MLX never advertises `audio` (sending audio is a 400; gguf serves it with a projector).
 
-On MLX, the advertised `vision` capability and the refusal come from one resolver. Keep handling the refusal anyway, because three arms stay open:
+Read finer controls from each row's `engine` object (`{value, provenance, source}` facts read at `.value`; `engine.thinking` is a plain object; full shape in `references/wire_reference.md`):
 
-- **A vision-capable MLX model refuses an image on a non-user turn** with a 400 (mlx-vlm would silently move it to the last user turn). Put images on user turns. gguf accepts the shape.
-- **gguf has no capability guard.** It advertises `vision` only with an mmproj projector, then forwards the block to `llama-server`, whose refusal becomes the same 400 (in llama-server's own words, so never string-match refusals); accepting the block and ignoring it is the silent case, a 200 describing an image the model never used.
-- **An explicit `capabilities` list in the model's `heylook.toml` config is honoured verbatim**, so an operator can assert what the server will not deliver.
+- `engine.context.length.value`: context window ceiling.
+- `engine.thinking`: template switch, `depth` vocabulary (`values`, `aliases`, `default`, `off`, `changes_prefix`, `unknown`), and `budget`.
+- `engine.decoding`: `mode` (`autoregressive` | `diffusion`), `request_fields` (hide controls not listed when non-null), and on loaded autoregressive MLX models `runner` (`b1_runner` vs `batch_generator`).
+- `engine.cache`: `reuse_mode` (`cow_prefix` / `cow_prefix_recurrent` on `b1_runner`, `checkpoints` / `blocks` on fallback), `image_reuse`, `memory_budget_bytes`.
+- `engine.template.prefix_stable` and `engine.template.caps` (`chat_template_caps` on loaded gguf; `not_applicable` on MLX).
+- `engine.embedding`: non-null on embedding models (`modalities`, `dimensions`, `prompts`, `video_windows`, `limits`).
 
-The refusal has two shapes: non-streaming a 400; on a stream the guard fires after headers flushed, so it arrives as an in-band `error` event typed `invalid_request_error`. The same two shapes carry an unreadable image and a prompt longer than the model's context. A client that treats gating as sufficient renders that as a hang or as assistant text.
-
-Audio: MLX never advertises `audio` (sending it is a 400). gguf serves it with a projector.
-
-`GET /openapi.json` is generated from the code at boot, so it is current by construction: it is the field reference and wins over this file.
+Handle media refusals anyway: MLX refuses images on non-user turns with a 400, explicit `heylook.toml` `capabilities` overrides are honoured verbatim, and gguf forwards blocks to `llama-server` (400 / `invalid_request_error` on rejection, or a silent 200 ignoring the image). Refusals arrive as HTTP 400 non-streaming or an in-band `event: error` (`invalid_request_error`) on streams. `GET /openapi.json` is generated at boot and outranks all prose.
 </discovery>
 
+<parameters>
+Choose your integration surface and parameter spellings deliberately:
+
+| Surface | System prompt | Sampler & thinking keys | History / media ownership |
+|---|---|---|---|
+| **Direct `POST /v1/messages`** | Top-level `system` string (`system_prompt` = 422) | Wire names: `thinking` (bool or `{type, budget_tokens}`), `reasoning_effort`, `max_tokens`, etc. | Client owns turns and media; stateless |
+| **Presets `GET /v1/presets` -> `/v1/messages`** | Preset `system_prompt` expanded into top-level `system` | Client expands store `params`: rename `enable_thinking` & `thinking_budget_tokens` -> `thinking`; filter `reasoning_effort` | Client expands preset per request (`preset` on wire = 422) |
+| **Conversation Store `/v1/conversations`** | `system_prompt` column on conversation | Store names (`enable_thinking`, `thinking_budget_tokens`): `params` 422-validated on write; `overrides` silently drops bad keys | Server DuckDB store + immutable `/media/{id}` blobs |
+
+1. **4-layer sampler cascade (omit what you have no opinion on).** When `/v1/messages` omits a sampler knob, heylook resolves: `GLOBAL_SAMPLER_FLOOR` (`temperature: 1.0`, `top_p: 0.95`, `max_tokens: 16384`, penalties/top_k off) -> **vendor metadata** (`generation_config.json` on MLX, `general.sampling.*` on GGUF) -> model `heylook.toml` -> request. Inspect resolved values per model via `sampler_defaults` and `sampler_sources` on `/v1/models`. Unlike Anthropic, `max_tokens` is optional: hardcoding a client default overrides every model's vendor/configured floor.
+2. **Presets are strictly client-expanded (`references/routes.md`, `references/client_recipes.md`).** Sending `preset` or `sampler` on `/v1/messages` is a 422. Follow the **override-box rule**: if a preset's `system_prompt` is `null` or `""`, leave the caller's or conversation's system prompt untouched rather than blanking it. Always rename `enable_thinking` / `thinking_budget_tokens` to `thinking` and drop unoffered `reasoning_effort` before posting to `/v1/messages`.
+3. **Conversation Store (`/v1/conversations/{id}/generate`).** Server builds the prompt, persists turns, and runs generations in a detached task that **outlives client disconnect** (`GET` reports `generating: true|false`; stop only via `DELETE /v1/conversations/{id}/generate`). Only one run per conversation (`409 generation_in_progress`).
+4. **Anthropic SDK vs. raw HTTP (`httpx`/`fetch`).** With the Anthropic SDK, set `base_url` to the origin (`http://localhost:8000`, no `/v1`) and pass any `api_key`. Tradeoffs: the SDK forces `max_tokens` (overriding the cascade), requires `extra_body` for extensions (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`), and drops `heylook_progress` / `message_stop.performance`. Use raw HTTP when you want full cascade semantics, telemetry, and cancellation control.
+</parameters>
+
 <wire>
-`/v1/messages` is the only inference route. `/v1/chat/completions` and its batch route are a plain 404; porting notes: `references/openai_wire.md`.
+`/v1/messages` is the only inference route (`/v1/chat/completions` is 404; `references/openai_wire.md`).
 
-Differences from Anthropic's Messages API:
+Key differences from Anthropic's Messages API:
 
-- **`max_tokens` is optional.** Absent means heylook's cascade decides (server floor, the publisher's generation config, model config). A client-side default carried over from Anthropic code overrides the model's own on every request; send only the fields you have an opinion about.
-- **`thinking` takes a bool** (the template's thinking switch) as well as Anthropic's `{"type","budget_tokens"}`. Gate `budget_tokens` on the `thinking_budget` capability: elsewhere it is accepted but may cap nothing.
-- **Depth is `reasoning_effort`**, in each model's own template vocabulary: read `engine.thinking.depth.values` and show those words (`depth.off` lists the ones that mean thinking off). Never map a low/medium/high scale across models. An unoffered value is a 400, unless `depth.unknown` is `verbatim`.
+- **`max_tokens` is optional** (see `<parameters>`).
+- **`thinking` takes a bool** or `{"type": "enabled"|"disabled", "budget_tokens": N}` (both fields optional; gate `budget_tokens` on `thinking_budget`; 400 on MLX harmony models).
+- **`reasoning_effort`** uses each model's own template vocabulary (`engine.thinking.depth.values`, `depth.off` folds into off, `depth.unknown: "verbatim"` accepts any word). Never map a generic low/medium/high scale across models; an unoffered value is a 400.
 - **No tools**: `tools` and `tool_choice` are a 422.
-- **`response_format`** is OpenAI's structured-output shape (`json_schema`, `json_object`, `text`), not an Anthropic field. 400 on harmony and diffusion models, and with a continuation.
-- **Thinking blocks carry no `signature`**, and there is no `signature_delta`.
-- **`message_start.usage.input_tokens` is 0**; read usage from `message_delta`. `input_tokens` counts tokens processed this request; the reused prefix is `cache_read_input_tokens`.
-- **A trailing assistant message is continued**, not answered; a thinking-only final turn resumes the thought.
-- **Removed fields are refused**: `logprobs`, `sampler`, `preset`, `vision_tokens`, `show_special_tokens: true`, and the misspellings `enable_thinking`, `max_new_tokens`, `system_prompt`, `chat_template_kwargs` are a 422 naming the fix. Any other unknown field is **silently ignored**, so a typo in an optional field is a silent no-op.
-- **Extensions**: `min_p`, `repetition_penalty`, `repetition_context_size`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`; on the stream, `heylook_progress` and `message_stop.performance`. Detail: `references/wire_reference.md`.
-
-A thinking model returns a `thinking` block alongside `text`: join only the `text` blocks, or the model's reasoning lands in your product's output.
+- **`response_format`** uses OpenAI's shape (`json_schema`, `json_object`, `text`); 400 on harmony, diffusion, and continuations.
+- **Thinking blocks carry no `signature`**, and there is no `signature_delta`. Join only `text` output blocks for the answer (`thinking` blocks hold reasoning, echoed under both `thinking` and `text`).
+- **`message_start.usage.input_tokens` is 0**; read usage from `message_delta`. Whole prompt = `input_tokens` (processed) + `cache_read_input_tokens` (reused).
+- **A trailing assistant message is continued**, not answered; a thinking-only trailing assistant turn resumes inside that thought.
+- **Refused vs ignored fields**: `logprobs`, `top_logprobs`, `sampler`, `preset`, `vision_tokens`, `tools`, `tool_choice`, `show_special_tokens: true`, and misspellings `enable_thinking`, `max_new_tokens`, `system_prompt`, `chat_template_kwargs` are a **422** naming the fix. Other unknown fields are **silently ignored**.
+- **Extensions & engine notes**: `min_p`, `repetition_penalty`, `repetition_context_size`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`; on streams, `heylook_progress` and `message_stop.performance`. Note `presence_penalty` and `repetition_penalty` count **generated-only** tokens on MLX vs **prompt + generated** on GGUF; on MLX `mtp` drafters, penalties and `budget_tokens` draft (non-MTP drafters, `response_format`, logit bias, and prompts past `draft_max_context` run undrafted). Detail: `references/wire_reference.md`.
 </wire>
 
+<caching>
+Both engines reuse KV prefixes automatically across turns and requests (MLX via `b1_runner` zero-copy CoW `PrefixCacheStore` or `BatchGenerator` APC; gguf via `llama-server` slot cache + `-cram`). Maximize hits by structuring prompts cleanly:
+
+1. **Put shared instructions in top-level `system` (exact boundary cached on text and vision)** or place static preamble ahead of variable input in `user_only` turns (coarse interior checkpoints).
+2. **Preserve assistant `thinking` blocks in multi-turn `messages` history.** `InputContentBlock` accepts `ThinkingBlock`. Replaying prior `thinking` blocks preserves KV prefix hits on models whose templates keep reasoning (e.g. Qwen3.8 on both engines); stripping them breaks the prefix at the closed thought. heylook adapts `thinking` per template (`reasoning_content`, `<think>` tags, or drop).
+3. **Keep `reasoning_effort` steady mid-thread** when `engine.thinking.depth.changes_prefix` is true; changing it alters the rendered prefix and forces a full re-prefill.
+4. **Send multi-image sets together in one turn.** Interleaved `text` + `image` block order is preserved on both engines. Text follow-ups in an image thread reuse both vision features and KV (`image_reuse: true` on `b1_runner`), whereas **adding a new image in a later turn** changes the whole-list media hash (`performance.cache.cause == "new_image_set"`), re-prefilling and re-encoding images.
+5. **Verify reuse in responses:** check `engine.template.prefix_stable.value` up front and inspect `usage.cache_read_input_tokens` and `performance.cache` (`outcome`, `cause`, `cached_tokens`).
+</caching>
+
 <image_resize>
-`/v1/messages` has no resize params; clients resize before sending. Match heylook's own frontend: longest edge around 2048px, photos re-encoded to JPEG around 0.85 quality, PNG kept as PNG, EXIF orientation honoured. Only base64 and http(s) sources: MLX refuses a local file path. To show what an image costs a loaded model, `POST /v1/models/{id}/image-plan` returns its prompt tokens and the size the engine resizes it to; show the cost as disclosure, not a gate. Recipes: `references/client_recipes.md`.
+`/v1/messages` has no resize params; resize client-side before sending: longest edge ~2048px, photos as JPEG ~0.85 quality, PNG kept as PNG, EXIF orientation applied. Only `base64` (raw, no `data:` prefix) and `http(s)` URLs (MLX refuses local paths). Prefer Anthropic's nested `source` object (`/v1/conversations` requires it). `POST /v1/models/{id}/image-plan` (resident models only; 409 otherwise) returns token cost and engine resize `target` (null on gguf) for disclosure. Recipes: `references/client_recipes.md`.
 </image_resize>
 
 <status_codes>
 | Code | Meaning | Response |
 |---|---|---|
-| 400 | Pick a different model or input | No `model`, an unknown or disabled id (available ids in `detail`); or the model refusing input: an unoffered capability, an unoffered depth, an over-long prompt |
-| 403 | Host check | The `Host` header names a host heylook does not know; `detail` names the fix |
-| 500 | That model is broken | It exists but failed to load |
+| 400 | Pick a different model or input | No `model`, unknown/disabled id (ids in `detail`), or model refusal (unoffered capability/depth, over-long prompt, harmony budget/schema, audio on MLX, non-user image on MLX) |
+| 403 | Host check | Unknown `Host` header (DNS rebinding guard); `detail` names `allowed_hosts` fix |
+| 409 | Conflict / not resident | Conversation busy (`generation_in_progress`), `/image-plan` or `/prompt` on unloaded model, unload while generating, or cancelled embedding |
+| 422 | Malformed body | Refused/misspelt/unbuilt field, empty media payload, out-of-range value, or extra field on strict `/v1/embeddings` |
+| 500 | Broken model or decode error | Load failure or gguf decode error |
 | 503 | Backpressure, retry | `{"error":{"code":"model_overloaded"}}` plus `Retry-After` |
-| 422 | Malformed body | A removed or misspelt field, a media block with no payload, an out-of-range value |
 
-503 is normal operation: the server is single-user and serialises generation, so queueing behind a long request is expected. Retry with backoff on `Retry-After`.
-
-After a stream's headers flush the status is already 200, so a late refusal arrives as `event: error`. Map `error.type` `invalid_request_error` to your 400 path and `api_error` to your 500 path. An error event ends the generation, and its message is diagnostic text, not model output. Ignore `ping` and any event type you do not know.
+503 is normal queue backpressure on a single-user server: retry with backoff on `Retry-After` (floor >= 1s). On a stream after headers flush (HTTP 200), late refusals arrive as `event: error` (`invalid_request_error` -> 400 path; `api_error` -> 500 path), ending `/v1/messages` streams immediately. Ignore `ping` and unrecognized events.
 </status_codes>
 
 <operations>
-- **A cold load is invisible on the wire.** Startup loads nothing, and a load runs before headers are sent: no `message_start`, no `ping`. A non-streaming client cannot tell a loading model from a hung server.
-- **`POST /v1/models/{id}/load` moves that wait into a request you can label.** Unknown id is a 400; busy is a 503 with `Retry-After`; 500 is a genuine load failure. `?warm=true` also runs a 1-token generation to pay the Metal kernel JIT, behind the generation gate: use it on startup or model switch, not per request. A failed warm is still a 200 (`warmed: false`).
-- **One model is resident by default (LRU), and one engine family at a time**: switching between MLX and gguf evicts the other. Batch work by model.
-- **Inference has no API key.** An admin token gates admin routes only; an integration needs neither. **The Host check** answers 403 to a `Host` that is not an IP, `localhost`, the machine's own name or an `allowed_hosts` entry in `heylook.toml`: a LAN client using a DNS name hits it. **There is no CORS**: a browser app is same-origin or proxies.
-- **Send a fresh `X-Request-ID` on every request**: a new UUID each time. A reused id cancels every request sharing it. It is echoed on every response and is the cancel handle: `DELETE /v1/requests/{request_id}`. Without it, the server's id is one you never learn on the non-streaming path.
-- **End thinking early with the same id**: `POST /v1/requests/{request_id}/reasoning-end` closes the open thinking block at the next token and the run goes on to its answer. Offer it where `thinking_budget` is advertised; a 200 means signalled, not closed, so watch the stream for the block change.
-- **Cancel non-streaming calls explicitly.** A stream is cancelled by hanging up; a non-streaming request keeps holding the GPU after the client leaves. A cancelled run returns what it produced with `stop_reason: "max_tokens"`, indistinguishable from budget exhaustion, so track your own cancels. Detail: `references/wire_reference.md`.
-- **Telemetry is always on and never guaranteed.** A run with no tokens carries only its two durations; `performance` and every field in it are optional: present is a real measurement, absent means this mode could not measure it. The throughput denominator is `generation_duration_ms` (excludes queue wait and load). Time to first token is never returned: time the first delta yourself.
+- **Cold loads are silent on the wire.** Startup loads nothing, and loading happens before HTTP headers are written (no `message_start`, no `ping`). Use `POST /v1/models/{id}/load` (percent-encode `{id}`) to turn loads into a labellable request; add `?warm=true` only on startup/model-switch (pays 1-token Metal JIT behind the generation gate).
+- **One model is resident by default (LRU), and one engine family at a time**: switching MLX <-> gguf evicts the other. Batch work by model.
+- **No inference API key, no CORS, strict Host check.** Only admin routes (`/v1/admin/*`, `/v1/cache/clear`, `/v1/data/clear`) take optional `X-Heylook-Admin-Token`. IP/localhost always passes Host check; LAN DNS hostnames require `allowed_hosts` in `heylook.toml`. Browser apps must be same-origin or proxied.
+- **Send a fresh `X-Request-ID` per request** (UUID matches `[A-Za-z0-9._:-]{1,128}`). Reused ids cancel every request sharing them! Track it for `DELETE /v1/requests/{request_id}` (essential for non-streaming calls since hanging up does not stop them; cancelled runs return `stop_reason: "max_tokens"`).
+- **End thinking early with the same id**: `POST /v1/requests/{request_id}/reasoning-end` closes the open `thinking` block at the next token and continues to the reply (`200` = signalled, not yet closed). Use `DELETE`/`POST` under `/v1/conversations/{id}/generate` for conversation runs.
+- **Telemetry is always on and optional per field.** Null-check `performance` (absent in streams vs `null` non-streaming) and every sub-field. Throughput denominator is `generation_duration_ms` (excludes queue wait and load); TTFT is never returned (time the first delta yourself).
 </operations>
 
 <references>
 | File | Holds | Load when |
 |---|---|---|
-| `references/wire_reference.md` | Every `/v1/messages` field, block, stream event, error, and the `/v1/models` row | Writing or debugging a request |
-| `references/older_servers.md` | Every version boundary, by topic | The server predates `metadata.verified_against`, or the client must support a range |
-| `references/openai_wire.md` | Porting off the removed `/v1/chat/completions` | An OpenAI-SDK client points at heylook, or that route answers 404 |
-| `references/embeddings.md` | `POST /v1/embeddings`: request, discovery, limits, errors | Embedding text, images, audio or video |
-| `references/routes.md` | Every route by audience; the conversation store | A route beyond inference, or server-side history |
-| `references/gemini_migration.md` | Field-by-field Gemini mapping and structural mismatches | Adding heylook beside a Gemini integration |
-| `references/client_recipes.md` | Streaming clients in Python and TypeScript; image resize and image-plan | Writing the client |
-| `scripts/probe.py` | Capability matrix from a live server (`~/.gemini/config/plugins/heylook-provider/skills/heylook-provider/scripts/probe.py` when installed globally) | Discovery |
+| `references/wire_reference.md` | Every `/v1/messages` field, block, cascade, caching, stream event, error, and `/v1/models` `engine` row | Writing or debugging a request |
+| `references/older_servers.md` | Version boundaries by topic | Target server predates `metadata.verified_against` |
+| `references/openai_wire.md` | Porting off removed `/v1/chat/completions` | Migrating an OpenAI-SDK client |
+| `references/embeddings.md` | `POST /v1/embeddings`: multimodal inputs, `limits`, `video_windows` (`"fps"` default vs `"content"`) | Computing embeddings |
+| `references/routes.md` | Surface comparison matrix, conversation store, presets, and admin routes | Using presets, conversation store, or admin endpoints |
+| `references/gemini_migration.md` | Field mapping and structural mismatches vs Gemini `generateContent` | Adding heylook beside Gemini |
+| `references/client_recipes.md` | Streaming clients, Anthropic SDK setup, preset expansion, embeddings batching, image resize | Writing client code |
+| `scripts/probe.py` | Capability matrix from a live server (`<HOME>/.gemini/config/plugins/heylook-provider/skills/heylook-provider/scripts/probe.py` when installed globally) | Discovery |
 
-Authoritative beyond all of these: the running server's `/openapi.json`, then `docs/api_integration.md` in the heylook repo (the GitHub copy lags an unpushed local server).
+Authoritative beyond all of these: the running server's `/openapi.json`, then `docs/api_integration.md` in `heylookitsanllm`.
 </references>

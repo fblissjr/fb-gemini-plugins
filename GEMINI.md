@@ -41,7 +41,7 @@ fb-gemini-plugins/
 │   │   │       └── scripts/                 # Zero-dependency stdlib multiverse & audit CLI
 │   │   │           └── spec_matrix.py
 │   │   └── README.md                        # Plugin and multi-platform documentation
-│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.23.4)
+│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.24.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)
@@ -62,7 +62,8 @@ fb-gemini-plugins/
 │   │   │           └── probe.py
 │   │   ├── tests/
 │   │   │   ├── test_image_recipe.py
-│   │   │   └── test_probe.py
+│   │   │   ├── test_probe.py
+│   │   │   └── test_recipes.py
 │   │   └── README.md                        # Plugin and multi-platform documentation
 │   ├── hypothetical-diff/                   # Universal HyDE-inspired Before/After diff plugin & skill (v0.3.0)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest

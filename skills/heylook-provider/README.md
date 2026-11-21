@@ -1,6 +1,6 @@
 # heylook-provider
 
-*Last updated: 2026-11-11*
+*Last updated: 2026-11-20*
 
 Integration knowledge and runtime capability discovery for [heylook](https://github.com/fblissjr/heylookitsanllm) (`heylookitsanllm`), a local multimodal LLM server on Apple Silicon serving MLX and gguf models. Built for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Gemini CLI**, **Gemini Spark** (`Customize > Skills`), and **Claude Code** when applications add `heylook` as an inference provider — not for working inside the server codebase.
 
@@ -97,9 +97,19 @@ everything following from the server being **local and single-user**:
   engine reads come from each model's `engine` object.
 - `/v1/messages` has **no server-side image resize**; the client downscales,
   and `/v1/models/{id}/image-plan` reports what a size costs the model.
-- `max_tokens` is **optional** — absent means the server's sampler cascade
-  decides, so a client-side default carried over from Anthropic code
+- `max_tokens` is **optional** — absent means the server's 4-layer sampler cascade
+  decides (floor, vendor `generation_config` / GGUF header, model `heylook.toml`,
+  request), so a client-side default carried over from Anthropic code
   silently overrides the model's configured floor.
+- **Parameter layering across surfaces**: top-level `system` on `/v1/messages`
+  vs. client-expanded `/v1/presets` (override-box rule + `enable_thinking` /
+  `thinking_budget_tokens` renames) vs. `/v1/conversations` (server-owned
+  history, detached generation runs that outlive disconnect, and store-keyed
+  `params` / `overrides`), plus Anthropic SDK vs. raw HTTP tradeoffs.
+- **Prompt caching & multi-turn hygiene**: keeping shared instructions in
+  top-level `system`, replaying assistant `thinking` blocks in `messages`
+  history, keeping `reasoning_effort` steady when `changes_prefix` is true, and
+  grouping multi-image sets in one turn to avoid `new_image_set` misses.
 - A busy server answers **503 with `Retry-After`**, which is a queue rather
   than a quota.
 - A cold model load happens **before the response begins**, putting nothing on

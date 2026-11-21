@@ -45,20 +45,36 @@ schema to confirm a bound.
 }
 ```
 
-**Absent means the server cascade decides**: the server floor, then the
-publisher's own recommended settings (the model directory's
-`generation_config.json` on MLX, the GGUF header's `general.sampling.*` block
-on gguf), then the model's config, then the request. "Send what you have an
-opinion about, omit the rest" therefore means *use the publisher's value*, not
-*use a generic default*. `max_tokens` is optional here, unlike Anthropic's
-required field: a hard client-side default overrides the model's configured
-floor on every request that had no opinion. Each `/v1/models` row reports what
-a silent request resolves to (`sampler_defaults`) and which layer each value
-came from (`sampler_sources`).
+**Absent means the server cascade decides**, in four layers (later wins per field):
+
+1. **Global floor**: `temperature: 1.0`, `top_p: 0.95`, `max_tokens: 16384`, and explicit off-switches (`top_k: 0`, `min_p: 0.0`, `repetition_penalty: 1.0`, `presence_penalty: 0.0`) so engine-specific defaults (like llama.cpp's `top_k = 40`) do not diverge on silent requests.
+2. **Vendor metadata**: the model's own recommended `temperature`, `top_p`, and `top_k` (`generation_config.json` on MLX, the GGUF header's `general.sampling.*` block on gguf).
+3. **Model config**: overrides stored in `heylook.toml` or `model.heylook.toml`.
+4. **Request fields**: explicit non-null parameters sent in the `/v1/messages` body.
+
+"Send what you have an opinion about, omit the rest" therefore means *use the
+publisher's value*, not *use a generic default*. `max_tokens` is optional here,
+unlike Anthropic's required field: a hard client-side default overrides the
+model's configured floor on every request that had no opinion. Each `/v1/models`
+row reports what a silent request resolves to (`sampler_defaults`) and which
+layer each value came from (`sampler_sources`: `model | vendor | default`).
 
 A cascade field is **nullable with no default** in the generated schema
 (`anyOf` with `null`); a field with `"default": false` and no null member is a
 plain flag whose absence means `false`. `stream` is such a flag.
+
+### Cross-engine penalty asymmetry
+
+`presence_penalty` and `repetition_penalty` do not count the same token history
+across engines, and no request parameter equalizes them:
+
+- **MLX (`v2.0.60+`)**: counts only tokens **generated in the current reply**
+  (never the system prompt, user turns, or earlier history), matching what
+  vendor-documented values usually assume.
+- **gguf (`llama-server`)**: feeds prompt tokens into the sampler's recent
+  history window alongside generated tokens, so a long final user turn sits
+  inside the penalty window. A penalty tuned on MLX can suppress prompt words on
+  gguf.
 
 ### Stop sequences
 
@@ -209,6 +225,53 @@ Both spellings, exactly as for images. `media_type` is advisory; codecs are
 sniffed. MLX models answer 400 for any audio part, because audio towers are
 stripped at load.
 
+### Thinking (assistant history replay)
+
+```json
+{ "type": "thinking", "thinking": "..." }
+```
+
+`ThinkingBlock` is part of `InputContentBlock` (`schema/content_blocks.py`) so
+clients can replay assistant `thinking` blocks in multi-turn `messages` history
+(also accepts `text` and mirrors both). Send prior assistant reasoning back
+rather than stripping it: on models whose chat templates consume
+`reasoning_content` across turns (such as Qwen3.8 on both engines), keeping
+`thinking` blocks preserves prompt-cache alignment, while heylook adapts or
+drops them cleanly per template (`reasoning_content`, `<think>` tags, or omit)
+without leaking markers into templates that do not support them.
+
+## Multi-turn history and prompt caching
+
+Both engines reuse KV prefixes automatically (MLX via `b1_runner`'s zero-copy
+CoW `PrefixCacheStore` or `BatchGenerator` APC; gguf via `llama-server` slot
+prefixes, `-cram` host-RAM prompt cache, and `--ctx-checkpoints`). Client
+structuring governs cache hit rates:
+
+- **System prompt boundary**: keep shared instructions in top-level `system`.
+  MLX snapshots the exact rendered system prefix boundary on both text and
+  vision requests (`v2.0.255`), so new threads sharing a system prompt skip
+  re-prefilling it.
+- **`user_only` static preambles**: when omitting `system` (e.g. single-turn
+  batching or RAG), place fixed instructions/context *before* the varying query
+  so coarse interior checkpoints (`v2.0.255`) hit on request 2+.
+- **Thinking replay & depth stability**: replay prior assistant `thinking`
+  blocks in `messages`, and keep `reasoning_effort` unchanged mid-thread when
+  `engine.thinking.depth.changes_prefix` is `true` (changing it alters the
+  rendered prefix and forces full re-prefill).
+- **Multi-image turns (`new_image_set`)**: MLX keys both KV prefix entries and
+  encoded vision features by the ordered hash of the request's entire image
+  list. Text follow-ups on the same images reuse both vision encodings and KV
+  (`engine.cache.image_reuse: true` on `b1_runner`), whereas **adding a new
+  image in a later turn** misses (`performance.cache.cause: "new_image_set"`)
+  and re-encodes/re-prefills from that boundary. Group multi-image prompts in
+  one turn whenever possible.
+- **Template stability & diagnostics**: read `engine.template.prefix_stable`
+  beforehand, and inspect `usage.cache_read_input_tokens` +
+  `performance.cache` (`outcome`, `cause`, `cached_tokens`). Known `cause`
+  values: `memory`, `cold`, `new_image_set` (MLX); `cold`, `no_common_prefix`,
+  `probable_template_diverged`, `probable_budget_skipped`, `probable_evicted`
+  (gguf, inferred by heylook's cache witness).
+
 ## Non-streaming response
 
 ```json
@@ -338,8 +401,8 @@ not apply is `null` in both modes.
 | `queue_wait_ms` | Time in the FIFO generation gate. An idle gate reports a tiny nonzero float, so absent means not measured |
 | `thinking_duration_ms`, `content_duration_ms` | Time from the first emitted segment of each kind to its end, in both modes. `0` is a real value: under one millisecond, as when a short answer is released in one piece |
 | `peak_memory_gb` | MLX only: generation on gguf runs in a subprocess that does not report it |
-| `cache` | `{prompt_tokens, cached_tokens, processed_tokens, outcome, cause, reason}`; `outcome` is `reused`, `miss` or `ineligible` |
-| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a drafter folder beside the model, or a `"built-in MTP head"` in the checkpoint's own weights) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. An MLX request with a penalty, logit bias or structured output runs undrafted and reports none; a thinking budget drafts (2.0.223) |
+| `cache` | `{prompt_tokens, cached_tokens, processed_tokens, outcome, cause, reason}`; `outcome` is `reused`, `miss` or `ineligible`; see Multi-turn history and prompt caching for `cause` values |
+| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a drafter folder beside the model, or a `"built-in MTP head"` in the checkpoint's own weights) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. On MLX `kind == "mtp"` drafters (`v2.0.250`–`v2.0.251`), `presence_penalty`, `repetition_penalty`, `thinking.budget_tokens`, and non-greedy sampling (via lossless Leviathan rejection sampling since `v2.0.249`) all draft; structured output (`response_format`), logit bias, penalties on non-MTP drafters (`dflash`), and prompts exceeding `draft_max_context` (`v2.0.246`) run undrafted and carry no `performance.speculative` |
 
 Time to first token is not returned in either mode. On a stream, time the
 first `content_block_delta` yourself; non-streaming it is unobservable.
@@ -497,12 +560,26 @@ plain object (`null` on embedding rows or when there is no template to judge), r
   allocated for a loaded gguf model; it is null before a load, and on MLX,
   which allocates none up front.
 - `engine.thinking.depth.values`: the `reasoning_effort` vocabulary.
-- `engine.decoding.request_fields.value`: the request fields this engine path
-  reads; null means every sampler field. Hide a control whose field is not
-  listed.
-- `engine.template.caps`: llama-server's report of what the template accepts
-  (`chat_template_caps`), a fact whose `.value` is a name-to-bool map on a
-  loaded gguf model; `unknown` (null) while unloaded, `not_applicable` on MLX.
+- `engine.decoding`: `mode.value` (`autoregressive` | `diffusion`),
+  `request_fields.value` (the request fields this engine path reads; null means
+  every sampler field — hide a control whose field is not listed), and for
+  loaded autoregressive MLX models `runner.value` (`"b1_runner"` for heylook's
+  thin `B=1` runner, or `"batch_generator"` with the fallback blocker reason in
+  `source`). Distributed MLX pipeline configs also populate `engine.decoding.pipeline`.
+- `engine.cache`: prompt-cache profile as Facts. On MLX: `reuse_mode`
+  (`"cow_prefix"` / `"cow_prefix_recurrent"` when `b1_runner` is active;
+  `"checkpoints"` / `"blocks"` on `BatchGenerator` fallback), `image_reuse`
+  (`true` on `b1_runner` and checkpoint fallback), `checkpoint_interval`,
+  `checkpoint_captures`, `checkpoint_entries` (`32`), `memory_budget_bytes`
+  (`APC_MEMORY_SHARE` of the Metal working set, overridable by server env
+  `APC_MEMORY_MAX_GB`), and `disk` (`false`). On gguf: `reuse_class`
+  (`"checkpointed"` vs `"truncates anywhere"`), `kv_shift`, `ram_budget_mib`,
+  `checkpoints`, and `checkpoint_min_spacing`.
+- `engine.template.prefix_stable` and `engine.template.caps`: whether multi-turn
+  prompts extend prior prefixes cleanly (`prefix_stable.value`), plus
+  llama-server's report of what the template accepts (`chat_template_caps`), a
+  fact whose `.value` is a name-to-bool map on a loaded gguf model; `unknown`
+  (null) while unloaded, `not_applicable` on MLX.
 
 `thinking_default` is what thinking resolves to when the request says nothing;
 label a "model default" control with it. `sampler_defaults` is a flat map of

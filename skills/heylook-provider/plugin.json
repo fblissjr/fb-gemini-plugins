@@ -2,8 +2,8 @@
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
   "name": "heylook-provider",
   "displayName": "heylook Local LLM Provider",
-  "version": "0.23.4",
-  "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: the Anthropic Messages-conformant /v1/messages wire, runtime capability discovery via probe.py, client-side image resize, /v1/embeddings, porting off the removed OpenAI route, and the deliberate differences from Anthropic's spec.",
+  "version": "0.24.0",
+  "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: /v1/messages wire, runtime capability discovery via probe.py, system prompts vs presets vs sampler cascade, multi-turn prompt caching, /v1/embeddings, client-side image resize, and porting off the removed OpenAI route.",
   "logo": "assets/logo.svg",
   "author": {
     "name": "fblissjr"

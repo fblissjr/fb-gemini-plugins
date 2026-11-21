@@ -107,3 +107,28 @@ Embeddings share the load and eviction policy and the one generation queue,
 so an embedding call can evict a resident chat model and waits behind a long
 generation. Send a fresh `X-Request-ID`; `DELETE /v1/requests/{id}` cancels,
 and a forward already running may finish first.
+
+## Client best practices
+
+- **Read limits from `engine.embedding.limits` dynamically.** Never hardcode
+  `16` items or `256 MiB`. When planning base64 uploads, budget raw media bytes
+  at ~75% of `limits.request_media_bytes` (about `192 MiB` raw for a `256 MiB`
+  wire cap) so base64 expansion stays safely below the validator ceiling (see
+  `client_recipes.md`, Multimodal embeddings).
+- **Group text-only items into batches.** MLX embeds text-only items in a
+  request as padded batch chunks up to `max_input_tokens`, whereas media items
+  run one forward each (with cancellation checks between items). Sending text
+  queries together avoids per-item round trips without hitting media caps.
+- **Select `prompt_name` and `dimensions` from `engine.embedding`.** Check
+  `engine.embedding.prompts` before passing `prompt_name`, and avoid attaching
+  text-query prompt prefixes to pure-media items unless the checkpoint expects
+  it (for example, `SearchQuery` on text queries vs `Document` or omitted
+  `prompt_name` on media items). Matryoshka `dimensions` can be truncated at
+  query time (`128`, `256`, `512`, `768`) without re-indexing stored 768-d
+  vectors if your client slices and L2-normalizes locally.
+- **Use `"fps"` for bulk indexing and `"content"` for short-event search.**
+  `"fps"` is the default and decodes roughly a quarter as many frames; opt into
+  `"content"` when searching long recordings for brief (<1 s) visual changes.
+- **Embed video soundtracks separately.** Video blocks embed visual frames
+  only (`video_audio: "separate_audio_block"`); add a separate `audio` block in
+  a non-windowed item if spoken/audio similarity matters.

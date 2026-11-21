@@ -26,18 +26,26 @@ The Anthropic SDKs reach `/v1/messages` with `base_url` set to the server's
 another 404.)
 
 ```python
+import uuid
 from anthropic import Anthropic
 
 client = Anthropic(base_url="http://localhost:8000", api_key="not-needed")
 resp = client.messages.create(
     model=model_id,                     # resolved from /v1/models
-    max_tokens=512,                     # optional here; see SKILL.md
+    max_tokens=512,                     # SDK requires this (overrides cascade)
     messages=[{"role": "user", "content": "Hello"}],
+    extra_headers={"X-Request-ID": str(uuid.uuid4())},
+    extra_body={"min_p": 0.05},         # heylook extensions go in extra_body
 )
 ```
 
 `api_key` is required by the SDK and ignored by the server: heylook has no
-inference key.
+inference key. Note three SDK tradeoffs: (1) `max_tokens` is mandatory in the
+SDK and overrides heylook's cascade floor/vendor config; (2) heylook
+extensions (`min_p`, `repetition_penalty`, `presence_penalty`, `seed`,
+`reasoning_effort`, `response_format`) must ride `extra_body`; and (3) the SDK
+drops `heylook_progress` and `message_stop.performance`. Use raw `httpx`/`fetch`
+(`references/client_recipes.md`) when you need cascade defaults or telemetry.
 
 ## Field mapping
 

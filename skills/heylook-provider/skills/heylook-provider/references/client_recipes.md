@@ -5,24 +5,20 @@ Working code for the parts that are heylook-specific: SSE framing with no
 requires. Adapt rather than copy wholesale — the parts worth keeping are the
 event handling and the block separation.
 
-Every Python block below was run against a live heylook at the version in
-SKILL.md's frontmatter: the streaming client with a stop sequence, the
-cancellable call, the conversation store, preset expansion against real
-presets, thinking control, image-plan and the model switch. The TypeScript
-client, extracted from this file, ran against the live server too (a stream
-ending on a stop sequence), and against a fake server that closes before
-`message_stop`, where it throws; removing that throw turns the check red. The
-Pillow resize recipe has a harness that extracts this
-file's own code block rather than copying it and runs it on Pillow 12.3.0
-across PNG and JPEG on both sides of `MAX_EDGE` plus an EXIF-orientation
-case: `uv run pytest skills/heylook-provider/tests/`. Nothing runs it
-automatically — the repo has no CI and `skill-maintain test` carries no
-pytest dependency by design — so it is a check you can re-run, not a gate
-that will notice drift on its own. The `sharp` recipe was not executed; its
-settings are transcribed from heylook's own frontend.
+Every pure-Python transformation recipe in this file has an automated harness
+that extracts the code block directly from this markdown file rather than
+copying it (`uv run pytest skills/heylook-provider/tests/`):
+`test_image_recipe.py` runs `prepare_image` on Pillow across PNG/JPEG sizes
+and EXIF orientation, and `test_recipes.py` runs `apply_preset_to_request`,
+`thinking_options`, `plan_embedding_batches`, and URL-encoding assertions.
+The live-HTTP Python blocks and the TypeScript streaming client match the wire
+contract at the version in SKILL.md's frontmatter (last executed end-to-end
+against a live server at `2.0.242`; schema-checked against `2.0.261`
+`/openapi.json`). The `sharp` recipe was not executed; its settings are
+transcribed from heylook's own frontend.
 
-That split is not bookkeeping. The Pillow recipe shipped with a bug the note
-predicted: `keep_png` read `.format` after `exif_transpose`, which returns a
+That test extraction split is not bookkeeping. The Pillow recipe once shipped
+with a bug: `keep_png` read `.format` after `exif_transpose`, which returns a
 new image whose `.format` is `None`, so every PNG was re-encoded to JPEG and
 the PNG branch had never run.
 
@@ -333,11 +329,13 @@ A preset is expanded by the client; the server never applies one. There is no
 route to fetch a single preset, so list and filter (the list is not paged).
 `model_row` is the model's row from `/v1/models`.
 
+Under heylook's **override-box rule**, a preset with a `null` or empty (`""`)
+`system_prompt` makes no claim on the prompt — applying it leaves any existing
+`system` prompt untouched rather than blanking it.
+
 ```python
-def expand_preset(base: str, preset_id: str, model_row: dict, request: dict) -> dict:
-    """A /v1/messages body: the preset as the base, the caller's fields on top."""
-    presets = httpx.get(f"{base}/v1/presets", timeout=10).json()["presets"]
-    preset = next(p for p in presets if p["id"] == preset_id)
+def apply_preset_to_request(preset: dict, model_row: dict, request: dict) -> dict:
+    """Build a /v1/messages body: the preset as base, caller fields on top."""
     params = dict(preset.get("params") or {})
     body = {}
     if preset.get("system_prompt"):
@@ -367,6 +365,56 @@ def expand_preset(base: str, preset_id: str, model_row: dict, request: dict) -> 
 
     body.update(params)          # every other key carries over unchanged
     return {**body, **request}   # the caller's own fields win
+
+
+def expand_preset(base: str, preset_id: str, model_row: dict, request: dict) -> dict:
+    """Fetch a preset by id and expand it onto a /v1/messages request body."""
+    presets = httpx.get(f"{base}/v1/presets", timeout=10).json()["presets"]
+    preset = next(p for p in presets if p["id"] == preset_id)
+    return apply_preset_to_request(preset, model_row, request)
+```
+
+## Python: multi-turn history with preserved thinking blocks
+
+To keep prompt-cache prefixes warm across turns on models whose templates keep
+prior reasoning (e.g. Qwen3.8 on MLX and gguf), append the assistant's
+`thinking` block ahead of its `text` block instead of stripping reasoning:
+
+```python
+assistant_blocks = []
+if res.thinking:
+    assistant_blocks.append({"type": "thinking", "thinking": res.thinking})
+assistant_blocks.append({"type": "text", "text": res.text})
+
+messages.append({"role": "assistant", "content": assistant_blocks})
+messages.append({"role": "user", "content": next_user_prompt})
+```
+
+heylook adapts or drops historical `thinking` blocks per template cleanly, so
+templates that do not keep reasoning never receive stray `<think>` tags.
+
+## Python: Anthropic SDK vs. raw HTTP
+
+Use raw `httpx`/`fetch` when you want heylook's cascade `max_tokens`,
+`heylook_progress`, and `message_stop.performance`. If you share an Anthropic
+SDK client across providers, point `base_url` at the origin (no `/v1`), pass
+extensions in `extra_body`, and send a fresh `X-Request-ID` per call via
+`extra_headers` (never `default_headers`, which would reuse one cancel id):
+
+```python
+import uuid
+from anthropic import Anthropic
+
+client = Anthropic(base_url="http://localhost:8000", api_key="not-needed")
+req_id = str(uuid.uuid4())
+resp = client.messages.create(
+    model=model_id,
+    max_tokens=1024,  # SDK requires this, so it overrides the server cascade
+    system="You are concise.",
+    messages=[{"role": "user", "content": "Summarize this."}],
+    extra_headers={"X-Request-ID": req_id},
+    extra_body={"min_p": 0.05, "reasoning_effort": "medium"},
+)
 ```
 
 ## TypeScript: streaming client
@@ -607,10 +655,13 @@ it this way:
 5. Drop a result that arrives after the image or the model changed.
 
 ```python
+from urllib.parse import quote
+
+
 def image_plan(base: str, model: str, sizes: list[tuple[int, int]]) -> list[dict] | None:
     """Rows of {size, tokens, target}; None when the model is not resident
     (409: planning never loads a model) -- treat that as "cost unknown"."""
-    r = httpx.post(f"{base}/v1/models/{model}/image-plan",
+    r = httpx.post(f"{base}/v1/models/{quote(model, safe='')}/image-plan",
                    json={"sizes": [list(s) for s in sizes]}, timeout=30)
     if r.status_code == 409:
         return None
@@ -668,7 +719,9 @@ Load the model before the first request to it, so the load is a labelled wait
 instead of a silent one inside a generation:
 
 ```python
-r = httpx.post(f"{base}/v1/models/{model}/load", params={"warm": "true"},
+from urllib.parse import quote
+
+r = httpx.post(f"{base}/v1/models/{quote(model, safe='')}/load", params={"warm": "true"},
                headers={"X-Request-ID": str(uuid.uuid4())}, timeout=None)
 # 400 unknown id, 503 busy (retry on Retry-After), 500 broken model.
 # 200 with warmed: false is still loaded.
@@ -676,3 +729,75 @@ r = httpx.post(f"{base}/v1/models/{model}/load", params={"warm": "true"},
 
 `warm=true` pays the Metal kernel JIT with a 1-token generation behind the
 generation gate: do it on startup and on a model switch, never per request.
+
+## Python: multimodal embeddings with dynamic limits
+
+Read `engine.embedding.limits` from `/v1/models` rather than hardcoding batch
+sizes or media byte ceilings, and budget base64 uploads at ~75% of
+`request_media_bytes` to stay comfortably below the wire cap:
+
+```python
+import uuid
+import httpx
+
+
+def _item_media_bytes(item: dict) -> int:
+    total = 0
+    for block in item.get("content") or []:
+        src = block.get("source") or {}
+        if src.get("type") == "base64" and src.get("data"):
+            total += len(src["data"]) * 3 // 4
+    return total
+
+
+def plan_embedding_batches(
+    items: list[dict],
+    limits: dict,
+    *,
+    max_raw_ratio: float = 0.75,
+) -> list[list[dict]]:
+    """Split embedding items by engine.embedding.limits (items & request_media_bytes)."""
+    max_items = max(1, int(limits["items"]))
+    media_cap = int(limits["request_media_bytes"])
+    raw_budget = max(1, int(media_cap * max_raw_ratio))
+
+    batches: list[list[dict]] = []
+    cur: list[dict] = []
+    cur_bytes = 0
+    for item in items:
+        item_bytes = _item_media_bytes(item)
+        if item_bytes > media_cap:
+            raise ValueError(f"item media ({item_bytes} B) exceeds cap ({media_cap} B)")
+        if cur and (len(cur) >= max_items or cur_bytes + item_bytes > raw_budget):
+            batches.append(cur)
+            cur = []
+            cur_bytes = 0
+        cur.append(item)
+        cur_bytes += item_bytes
+    if cur:
+        batches.append(cur)
+    return batches
+
+
+def embed_items(base: str, model_row: dict, items: list[dict], *, dimensions: int | None = None) -> list[dict]:
+    """Post embedding batches, checking engine.embedding.limits dynamically."""
+    emb = model_row["engine"]["embedding"]
+    results: list[dict] = []
+    for batch in plan_embedding_batches(items, emb["limits"]):
+        body: dict = {"model": model_row["id"], "input": batch}
+        if dimensions is not None:
+            body["dimensions"] = dimensions
+        r = httpx.post(
+            f"{base}/v1/embeddings",
+            json=body,
+            headers={"X-Request-ID": str(uuid.uuid4())},
+            timeout=None,
+        )
+        r.raise_for_status()
+        results.extend(sorted(r.json()["data"], key=lambda row: row["index"]))
+    return results
+```
+
+For long videos on MLX (`engine.embedding.video_windows` non-null), attach
+`"windows": {}` (defaults to `"fps"` sampling) on a standalone video item, or
+pass `"windows": {"sampling": "content"}` when brief sub-second moments matter.
