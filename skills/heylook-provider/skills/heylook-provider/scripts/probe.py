@@ -73,19 +73,19 @@ _OPENER = urllib.request.build_opener(_StripAuthAcrossOrigins)
 
 
 def resolve_api_key(explicit: str | None = None) -> str | None:
-    """Resolve API key from --api-key, HEYLOOK_API_KEY, or mode-600 <HOME>/.heylook/api_key."""
+    """Resolve API key from --api-key, HEYLOOK_API_KEY, or HEYLOOK_API_KEY_FILE / <HOME>/.heylook/api_key."""
     for candidate in (explicit, os.environ.get("HEYLOOK_API_KEY")):
         if candidate and candidate.strip():
             return candidate.strip()
     if "HEYLOOK_API_KEY_FILE" in os.environ:
         raw_path = os.environ["HEYLOOK_API_KEY_FILE"].strip()
-        key_paths = [Path(raw_path).expanduser()] if raw_path else []
+        key_paths = [(Path(raw_path).expanduser(), 0o027)] if raw_path else []
     else:
-        key_paths = [Path.home() / ".heylook" / "api_key"]
-    for p in key_paths:
+        key_paths = [(Path.home() / ".heylook" / "api_key", 0o077)]
+    for p, forbidden_mask in key_paths:
         try:
             st = p.stat()
-            if p.is_file() and (st.st_mode & 0o077) == 0:
+            if p.is_file() and (st.st_mode & forbidden_mask) == 0:
                 val = p.read_text(encoding="utf-8").strip()
                 if val:
                     return val

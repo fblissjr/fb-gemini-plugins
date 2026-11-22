@@ -4,6 +4,13 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.37.3] - 2026-11-21
+
+### Changed
+
+- **`heylook-provider` (`v0.25.2` $\rightarrow$ `v0.25.3`)**:
+  - Updated [`scripts/probe.py`](skills/heylook-provider/skills/heylook-provider/scripts/probe.py) and [`tests/test_probe.py`](skills/heylook-provider/tests/test_probe.py): an explicitly configured `HEYLOOK_API_KEY_FILE` (such as `/etc/heylook/api_key` at mode `0640`) now refuses only group-write and world permission bits (`0o027`), while auto-discovered `<HOME>/.heylook/api_key` retains strict mode `0600` (`0o077`).
+
 ## [0.37.2] - 2026-11-21
 
 ### Changed

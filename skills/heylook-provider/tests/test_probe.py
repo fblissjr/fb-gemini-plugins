@@ -260,6 +260,20 @@ class TestAuth:
             assert run(base) == 0
         assert all("Authorization" not in h for _, h in seen_bad_mode)
 
+        # Group-writable explicit file (0660) is also refused
+        key_file.chmod(0o660)
+        seen_group_write = []
+        with serving(json_routes([VISION_ROW]), record=seen_group_write) as base:
+            assert run(base) == 0
+        assert all("Authorization" not in h for _, h in seen_group_write)
+
+        # Explicit HEYLOOK_API_KEY_FILE allows group-read (0640, e.g. /etc/heylook/api_key)
+        key_file.chmod(0o640)
+        seen_group_read = []
+        with serving(json_routes([VISION_ROW]), record=seen_group_read) as base:
+            assert run(base) == 0
+        assert all(h.get("Authorization") == "Bearer sk-from-file" for _, h in seen_group_read)
+
         key_file.chmod(0o600)
         seen_file = []
         with serving(json_routes([VISION_ROW]), record=seen_file) as base:
