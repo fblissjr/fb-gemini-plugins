@@ -4,6 +4,13 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.37.1] - 2026-11-21
+
+### Changed
+
+- **`heylook-provider` (`v0.25.0` $\rightarrow$ `v0.25.1`, verified against `heylookitsanllm 2.0.265`)**:
+  - Updated [`SKILL.md`](skills/heylook-provider/skills/heylook-provider/SKILL.md), [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md), and [`skills/heylook-provider/README.md`](skills/heylook-provider/README.md) for `heylookitsanllm 2.0.265`: documented `heylookllm key [status|create|sync|clear]` with 1Password as the master copy (in a custom vault accessible to 1Password service accounts rather than `Private`/`Personal`/`Employee`/`Shared`, so headless peer machines can `op read` the item) and mode-`0600` `<HOME>/.heylook/api_key` as the sole file read at server startup so unattended reboots never block or fail closed on a locked vault.
+
 ## [0.37.0] - 2026-11-21
 
 ### Changed
