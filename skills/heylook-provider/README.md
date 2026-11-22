@@ -118,15 +118,15 @@ everything following from the server being **local and single-user**:
 - Hanging up on a non-streaming request does not stop it. There is no
   disconnect polling, so an abandoned run keeps the GPU and blocks the queue;
   `X-Request-ID` is the handle and `DELETE /v1/requests/{id}` is the stop.
-- **Opt-in server-wide access gate + always-on browser guards (`2.0.263`–`2.0.265`)**:
+- **Opt-in server-wide access gate + always-on browser guards (`2.0.263`–`2.0.266`)**:
   when `HEYLOOK_API_KEY` or a mode-`0600` `<HOME>/.heylook/api_key` is set
-  (managed via `heylookllm key [status|create|sync|clear]` with a 1Password
-  master item in a service-account-accessible vault and `<HOME>/.heylook/api_key`
-  read at startup for unattended reboots), one ASGI gate covers every route,
-  static asset, and SSE stream (`x-api-key`, `Authorization: Bearer`, or `/login`
-  session cookie; only `/health` and `/login` assets are exempt, with zero
-  source-IP exemptions). Independently of any key, the server sends no CORS
-  headers, attaches `Content-Security-Policy: frame-ancestors 'self'`, enforces
+  (managed as a plain file via `heylookllm key [status|create|clear]`, with
+  `create --rotate` to replace the key before re-copying the file over SSH to
+  any remote client host), one ASGI gate covers every route, static asset, and
+  SSE stream (`x-api-key`, `Authorization: Bearer`, or `/login` session cookie;
+  only `/health` and `/login` assets are exempt, with zero source-IP
+  exemptions). Independently of any key, the server sends no CORS headers,
+  attaches `Content-Security-Policy: frame-ancestors 'self'`, enforces
   `allowed_hosts` on `Host`, and refuses state-changing requests
   (`POST`/`PUT`/`PATCH`/`DELETE`) with `403 csrf_rejected` whenever `Origin`
   mismatches `Host` (or a listed `X-Forwarded-Host` for `tailscale serve`) or

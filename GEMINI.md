@@ -41,7 +41,7 @@ fb-gemini-plugins/
 │   │   │       └── scripts/                 # Zero-dependency stdlib multiverse & audit CLI
 │   │   │           └── spec_matrix.py
 │   │   └── README.md                        # Plugin and multi-platform documentation
-│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.25.1)
+│   ├── heylook-provider/                    # Local Apple Silicon LLM server (heylookitsanllm) provider integration (v0.25.2)
 │   │   ├── plugin.json                      # Native Antigravity plugin manifest
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json                  # Claude Code plugin manifest (kept at identical version)

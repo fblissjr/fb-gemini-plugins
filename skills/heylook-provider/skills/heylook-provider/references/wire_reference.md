@@ -426,7 +426,7 @@ Aggregates are at `GET /v1/performance/profile/{1h|6h|24h|7d}`.
 
 ## Access
 
-**Opt-in server-wide access gate (`2.0.263+`; `heylookllm key` CLI in `2.0.265+`).**
+**Opt-in server-wide access gate (`2.0.263+`; `heylookllm key` CLI in `2.0.266+`).**
 Off by default. When the operator sets `HEYLOOK_API_KEY` or creates a mode-`0600`
 `<HOME>/.heylook/api_key` (`$HEYLOOK_API_KEY_FILE`; never stored in `heylook.toml`,
 which `/v1/admin/config` reads and writes), one pure ASGI gate
@@ -437,12 +437,11 @@ streaming response with **zero source-IP exemptions** (reverse proxies and
 four static assets (`/css/app.css`, `/js/login.js`, `/icon.svg`, `/favicon.ico`)
 are unauthenticated. If a key file has group/other permission bits set or is
 empty, the gate fails closed with `503` (`error.code = "auth_misconfigured"`).
-`heylookllm key [status|create|sync|clear]` manages a 1Password master item (in
-a custom vault rather than `Private`/`Personal`/`Employee`/`Shared` so headless
-peer machines using 1Password service accounts can `op read` it) alongside the
-atomic mode-`0600` `<HOME>/.heylook/api_key` file read at server startup (so
-unattended reboots never block or fail closed on a locked vault; `sync --seed`
-imports an existing file without rotating).
+`heylookllm key [status|create|clear]` manages the plain mode-`0600`
+`<HOME>/.heylook/api_key` file directly (`create` refuses to overwrite an
+existing file unless `--rotate` is passed; rotating means running
+`heylookllm key create --rotate` on the server and re-copying the file over SSH
+to any remote client host, such as `/etc/heylook/api_key`).
 
 Any one of three credentials authenticates a request (constant-time UTF-8
 `hmac.compare_digest`):

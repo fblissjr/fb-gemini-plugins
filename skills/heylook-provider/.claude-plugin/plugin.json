@@ -1,6 +1,6 @@
 {
   "name": "heylook-provider",
-  "version": "0.25.1",
+  "version": "0.25.2",
   "description": "Wire an application to heylook (heylookitsanllm) as a local inference provider: /v1/messages wire, runtime capability discovery, opt-in x-api-key/Bearer access gate & always-on Origin/Sec-Fetch-Site guards, system prompts vs presets vs cascade, multi-turn prompt caching, /v1/embeddings, and deliberate differences from Anthropic's spec",
   "author": {
     "name": "fblissjr"
