@@ -267,3 +267,19 @@ the range spans.
   `thinking_budget_tokens` was unset, immediately closing the thinking block on
   MTP-drafted requests without an upfront budget (fixed in **2.0.262**, along
   with full forced-closer draining on non-drafting `end_reasoning`).
+- **On 2.0.258 through 2.0.266** disconnecting mid-stream on MLX could falsely
+  quarantine a healthy worker thread under an AnyIO cancel scope or leave lazy
+  cache slice views bound to a dead thread-local Metal stream
+  (`There is no Stream(gpu, N) in current thread`), and non-streaming
+  `/v1/messages` ran on `asyncio.to_thread` rather than the pinned worker
+  (fixed in **2.0.267**, with unified `detach_for_cache` and physical CoW
+  backing-buffer byte deduplication in **2.0.268**).
+- **Before 2.0.269** `b1_runner` ran MLX MTP through `MTPBatch`: post-EOS
+  tokens could pollute hybrid recurrent `ArraysCache` and drop `[prompt + gen]`
+  prefix caching on mid-round EOS stops, stateful 1-layer drafters (such as
+  Qwen 3.8 MTP) did not persist warm KV across turns, and MLX drafter discovery
+  did not scan nested `<model>/mtp/` or quantized `*-MTP-<quant>` folders. From
+  **2.0.269**, owned `SpeculativeSession` + `StatefulDrafterPrefiller` clamp
+  before commit, persist drafter KV, and add Gemma 4 maskless SWA drafting
+  (followed by heylook's owned Qwen 3.5 / 3.8 runtime and warm text-only suffix
+  embeddings in **2.0.271**).

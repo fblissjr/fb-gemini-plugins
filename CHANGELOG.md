@@ -4,6 +4,15 @@
 
 All notable changes to `fb-gemini-plugins` are documented in this file.
 
+## [0.37.4] - 2026-11-23
+
+### Changed
+
+- **`heylook-provider` (`v0.25.3` $\rightarrow$ `v0.25.4`, verified against `heylookitsanllm 2.0.272`)**:
+  - Updated [`SKILL.md`](skills/heylook-provider/skills/heylook-provider/SKILL.md), [`wire_reference.md`](skills/heylook-provider/skills/heylook-provider/references/wire_reference.md), [`older_servers.md`](skills/heylook-provider/skills/heylook-provider/references/older_servers.md), and [`skills/heylook-provider/README.md`](skills/heylook-provider/README.md) for `heylookitsanllm` `2.0.267`–`2.0.272`:
+    - **Template `reasoning_effort` defaults & HF `{%- generation %}` caveat**: clarified that omitting `reasoning_effort` applies `engine.thinking.depth.default` from the in-force template (including operator `chat_template.heylook.jinja` overrides, so clients should read `depth.default` rather than assuming a publisher default), and documented that HuggingFace training-only `{%- generation %}` / `{%- endgeneration %}` Jinja tags cause standard Jinja2 template detection to fail silently (`engine.thinking: null`, no `reasoning_effort`) until cleaned in `chat_template.heylook.jinja`.
+    - **Owned `b1_runner` `SpeculativeSession`, stateful drafter KV, & drafter discovery (`2.0.267`–`2.0.271`)**: documented stop-before-commit `[prompt + gen]` cache preservation across mid-round EOS stops on hybrid recurrent models, stateful drafter KV persistence across turns, nested `<model>/mtp/` and quantized `*-MTP-<quant>` MLX drafter discovery, and recorded `2.0.267`, `2.0.268`, `2.0.269`, and `2.0.271` version boundaries in `older_servers.md`.
+
 ## [0.37.3] - 2026-11-21
 
 ### Changed

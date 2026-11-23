@@ -2,7 +2,7 @@
 name: heylook-provider
 description: Wire an application to heylook (heylookitsanllm), a local multimodal LLM server on Apple Silicon serving MLX and gguf models over an Anthropic Messages-conformant /v1/messages endpoint. Use when adding heylook as a provider alongside Gemini, OpenAI or Anthropic, choosing between direct /v1/messages, presets and the conversation store, tuning system prompts, sampler cascades or prompt caching (thinking replay, multi-image turns), configuring x-api-key or Bearer auth, debugging 400/401/403/404/409/422/503 errors, parsing SSE streams, cancelling requests or ending thinking early, computing multimodal embeddings, sending images or audio, or porting off the removed OpenAI route. Covers install-local model discovery, capability gating, Anthropic SDK vs raw HTTP tradeoffs, and client-side image resize. Not for hosted Gemini APIs or working inside heylook itself.
 metadata:
-  verified_against: "heylookitsanllm 2.0.266"
+  verified_against: "heylookitsanllm 2.0.272"
 ---
 
 # heylook as an inference provider
@@ -75,14 +75,14 @@ Key differences from Anthropic's Messages API:
 
 - **`max_tokens` is optional** (see `<parameters>`).
 - **`thinking` takes a bool** or `{"type": "enabled"|"disabled", "budget_tokens": N}` (both fields optional; gate `budget_tokens` on `thinking_budget`; 400 on MLX harmony models).
-- **`reasoning_effort`** uses each model's own template vocabulary (`engine.thinking.depth.values`, `depth.off` folds into off, `depth.unknown: "verbatim"` accepts any word). Never map a generic low/medium/high scale across models; an unoffered value is a 400.
+- **`reasoning_effort`** uses each model's own template vocabulary (`engine.thinking.depth.values`, `depth.default` for what omitting it runs — including operator `chat_template.heylook.jinja` overrides — `depth.off` folds into off, `depth.unknown: "verbatim"` accepts any word). Never map a generic low/medium/high scale or hardcode a vendor default across models; an unoffered value is a 400. If a vendor MLX `chat_template.jinja` carries HF training-only `{%- generation %}` tags, template detection fails silently (`engine.thinking: null`, no `reasoning_effort`) until cleaned in `chat_template.heylook.jinja`.
 - **No tools**: `tools` and `tool_choice` are a 422.
 - **`response_format`** uses OpenAI's shape (`json_schema`, `json_object`, `text`); 400 on harmony, diffusion, and continuations.
 - **Thinking blocks carry no `signature`**, and there is no `signature_delta`. Join only `text` output blocks for the answer (`thinking` blocks hold reasoning, echoed under both `thinking` and `text`).
 - **`message_start.usage.input_tokens` is 0**; read usage from `message_delta`. Whole prompt = `input_tokens` (processed) + `cache_read_input_tokens` (reused).
 - **A trailing assistant message is continued**, not answered; a thinking-only trailing assistant turn resumes inside that thought.
 - **Refused vs ignored fields**: `logprobs`, `top_logprobs`, `sampler`, `preset`, `vision_tokens`, `tools`, `tool_choice`, `show_special_tokens: true`, and misspellings `enable_thinking`, `max_new_tokens`, `system_prompt`, `chat_template_kwargs` are a **422** naming the fix. Other unknown fields are **silently ignored**.
-- **Extensions & engine notes**: `min_p`, `repetition_penalty`, `repetition_context_size`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`; on streams, `heylook_progress` and `message_stop.performance`. Note `presence_penalty` and `repetition_penalty` count **generated-only** tokens on MLX vs **prompt + generated** on GGUF; on MLX `mtp` drafters, penalties and `budget_tokens` draft (non-MTP drafters, `response_format`, logit bias, and prompts past `draft_max_context` run undrafted). Detail: `references/wire_reference.md`.
+- **Extensions & engine notes**: `min_p`, `repetition_penalty`, `repetition_context_size`, `presence_penalty`, `seed`, `reasoning_effort`, `response_format`; on streams, `heylook_progress` and `message_stop.performance`. Note `presence_penalty` and `repetition_penalty` count **generated-only** tokens on MLX vs **prompt + generated** on GGUF; on MLX `mtp` drafters (`b1_runner` owned `SpeculativeSession`, preserving `[prompt + gen]` prefix cache and stateful drafter KV across mid-round EOS stops and turns since `2.0.269`), penalties and `budget_tokens` draft (non-MTP drafters, `response_format`, logit bias, and prompts past `draft_max_context` run undrafted). Detail: `references/wire_reference.md`.
 </wire>
 
 <caching>

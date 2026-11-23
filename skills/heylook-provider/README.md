@@ -1,6 +1,6 @@
 # heylook-provider
 
-*Last updated: 2026-11-21*
+*Last updated: 2026-11-23*
 
 Integration knowledge and runtime capability discovery for [heylook](https://github.com/fblissjr/heylookitsanllm) (`heylookitsanllm`), a local multimodal LLM server on Apple Silicon serving MLX and gguf models. Built for **Google Antigravity** (`agy` CLI v1.4.0+ and Antigravity App v2.24.0+), **Gemini CLI**, **Gemini Spark** (`Customize > Skills`), and **Claude Code** when applications add `heylook` as an inference provider — not for working inside the server codebase.
 

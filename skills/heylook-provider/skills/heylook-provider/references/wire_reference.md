@@ -108,8 +108,14 @@ control. The exception is `depth.unknown: "verbatim"` (gpt-oss, for one): the
 template pastes any word in, so every value is accepted. The value reaches the
 template under the template's own variable name (`depth.variable`), whether or
 not thinking is on. Show the template's own words and never translate between models:
-there is no shared low/medium/high scale. Omitting it applies the template's
-default.
+there is no shared low/medium/high scale. Omitting it applies the in-force
+template's `depth.default` (which an operator may override per model via
+`chat_template.heylook.jinja`, so read `engine.thinking.depth.default` from
+`/v1/models` instead of assuming a publisher's upstream default). Note that
+HuggingFace training-only `{%- generation %}` / `{%- endgeneration %}` Jinja
+tags are not supported by standard Jinja2: a vendor MLX `chat_template.jinja`
+carrying them causes detection to return `engine.thinking: null` and omit
+`reasoning_effort` until overridden with a clean `chat_template.heylook.jinja`.
 
 | `depth` key | Meaning |
 |---|---|
@@ -402,7 +408,7 @@ not apply is `null` in both modes.
 | `thinking_duration_ms`, `content_duration_ms` | Time from the first emitted segment of each kind to its end, in both modes. `0` is a real value: under one millisecond, as when a short answer is released in one piece |
 | `peak_memory_gb` | MLX only: generation on gguf runs in a subprocess that does not report it |
 | `cache` | `{prompt_tokens, cached_tokens, processed_tokens, outcome, cause, reason}`; `outcome` is `reused`, `miss` or `ineligible`; see Multi-turn history and prompt caching for `cause` values |
-| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a drafter folder beside the model, or a `"built-in MTP head"` in the checkpoint's own weights) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. On MLX `kind == "mtp"` drafters (`v2.0.250`–`v2.0.251`), `presence_penalty`, `repetition_penalty`, `thinking.budget_tokens`, and non-greedy sampling (via lossless Leviathan rejection sampling since `v2.0.249`) all draft; structured output (`response_format`), logit bias, penalties on non-MTP drafters (`dflash`), and prompts exceeding `draft_max_context` (`v2.0.246`) run undrafted and carry no `performance.speculative` |
+| `speculative` | When a drafter ran: `{drafted, accepted, emitted, acceptance_rate, draft_share}`; the two rates are different quantities. MLX drafts too (a sibling drafter folder, nested `<model>/mtp/`, quantized `*-MTP-<quant>` folder since `v2.0.269`, or a `"built-in MTP head"` in the checkpoint's own weights) and reports `accepted`, `emitted` and `draft_share`; `drafted` and `acceptance_rate` are null there, since only gguf knows the drafter's proposals. On MLX `kind == "mtp"` drafters (`v2.0.250`–`v2.0.251`; owned `b1_runner` `SpeculativeSession` since `v2.0.269`, clamping stop tokens before cache commit and persisting stateful drafter KV across turns), `presence_penalty`, `repetition_penalty`, `thinking.budget_tokens`, and non-greedy sampling (via lossless Leviathan rejection sampling since `v2.0.249`) all draft; structured output (`response_format`), logit bias, penalties on non-MTP drafters (`dflash`), and prompts exceeding `draft_max_context` (`v2.0.246`) run undrafted and carry no `performance.speculative` |
 
 Time to first token is not returned in either mode. On a stream, time the
 first `content_block_delta` yourself; non-streaming it is unobservable.
